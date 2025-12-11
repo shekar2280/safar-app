@@ -19,7 +19,7 @@ import Constants from "expo-constants";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { tripData, setTripData } = useContext(CreateTripContext);
+  const { tripData } = useContext(CreateTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -83,7 +83,11 @@ export default function GenerateTrip() {
         }
       );
       const data = await response.json();
-      return data?.results?.[0]?.urls?.regular || null;
+      const raw = data?.results?.[0]?.urls?.raw;
+
+      if (!raw) return null;
+
+      return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
     } catch (error) {
       console.error("Error fetching Unsplash image:", error);
       return null;
@@ -106,8 +110,6 @@ export default function GenerateTrip() {
       const { icon, ...cleanTraveler } = tripData.traveler;
 
       if (existingTrip.exists()) {
-        console.log("♻️ Using cached trip data");
-        const data = existingTrip.data();
         const userTripRef = doc(collection(db, "UserTrips"));
         await setDoc(userTripRef, {
           userEmail: user.email,
@@ -116,6 +118,7 @@ export default function GenerateTrip() {
           startDate: tripData.startDate,
           endDate: tripData.endDate,
           traveler: cleanTraveler,
+          isActive: false,
           createdAt: serverTimestamp(),
         });
         setLoading(false);
@@ -162,6 +165,7 @@ export default function GenerateTrip() {
         startDate: tripData.startDate,
         endDate: tripData.endDate,
         traveler: cleanTraveler,
+        isActive: false,
         createdAt: serverTimestamp(),
       });
 

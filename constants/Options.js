@@ -324,14 +324,14 @@ export const DiscoverIdeasList = [
     title: "Trending Places",
     desc: "Trending places near you",
     route: "/discover-trip/trending-places/select-departure",
-    image: require("../assets/images/trending.png"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933449/trending_zz1svj.png",
   },
   {
     id: 2,
     title: "Hidden Gems ",
     desc: "Discover underrated and offbeat destinations",
     route: "/discover-trip/hidden-gems/select-destination",
-    image: require("../assets/images/hidden_gems.webp"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933447/hidden_gems_y5qu3m.webp",
   },
   // {
   //   id: 2,
@@ -345,14 +345,14 @@ export const DiscoverIdeasList = [
     title: "Concert Nights ",
     desc: "Catch your favorite artists live",
     route: "/discover-trip/concert-trips/select-artist",
-    image: require("../assets/images/concert.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933446/concert_pxshln.jpg",
   },
   {
     id: 4,
     title: "Festive Getaways ",
     desc: "Trips during local or global festivals",
     route: "/discover-trip/festive-trips/select-destination",
-    image: require("../assets/images/festive.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933446/festive_rjm4kc.jpg",
   },
 ];
 

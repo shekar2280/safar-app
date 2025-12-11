@@ -10,13 +10,13 @@ import { Colors } from "../../constants/Colors";
 
 const { width, height } = Dimensions.get("window");
 
-import fallback1 from "../../assets/images/fallback-1.jpg";
-import fallback2 from "../../assets/images/fallback-2.jpg";
-import fallback3 from "../../assets/images/fallback-3.jpg";
-import fallback4 from "../../assets/images/fallback-4.jpg";
-import fallback5 from "../../assets/images/fallback-5.jpg";
+import trendingPlace1 from "../../assets/images/trending-places/trending-place1.jpg";
+import trendingPlace2 from "../../assets/images/trending-places/trending-place2.jpg";
+import trendingPlace3 from "../../assets/images/trending-places/trending-place3.jpg";
+import trendingPlace4 from "../../assets/images/trending-places/trending-place4.jpg";
+import trendingPlace5 from "../../assets/images/trending-places/trending-place5.jpg";
 
-const fallbackImages = [fallback1, fallback2, fallback3, fallback4, fallback5];
+const fallbackImages = [trendingPlace1, trendingPlace2, trendingPlace3, trendingPlace4, trendingPlace5];
 
 export default function DiscoverCard({ option, selectedOption, cardHeight }) {
   const isSelected = selectedOption?.id === option?.id;

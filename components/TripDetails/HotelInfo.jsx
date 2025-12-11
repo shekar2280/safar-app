@@ -7,54 +7,23 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import Constants from "expo-constants";
 import { Colors } from "../../constants/Colors";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 
+const LOCAL_HOTEL_IMAGES = [
+  require("../../assets/images/hotel-images/hotel_image_1.jpg"),
+  require("../../assets/images/hotel-images/hotel_image_2.jpg"),
+  require("../../assets/images/hotel-images/hotel_image_3.jpg"),
+  require("../../assets/images/hotel-images/hotel_image_4.jpg"),
+  require("../../assets/images/hotel-images/hotel_image_5.jpg"),
+  require("../../assets/images/hotel-images/hotel_image_6.jpg"),
+  require("../../assets/images/hotel-images/hotel_fallback.jpg"),
+];
+
+const IMAGE_COUNT = LOCAL_HOTEL_IMAGES.length - 1;
+
 export default function HotelInfo({ hotelData }) {
-  const UNSPLASH_API_KEY = Constants.expoConfig?.extra?.UNSPLASH_API_KEY;
-  const [hotelImages, setHotelImages] = useState([]);
-
-  const fetchHotelImages = async (count) => {
-    try {
-      const response = await fetch(
-        `https://api.unsplash.com/search/photos?query=hotelRoom&per_page=${count}&orientation=landscape`,
-        {
-          headers: {
-            Authorization: `Client-ID ${UNSPLASH_API_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-      return data?.results?.map((result) => result?.urls?.small) || [];
-    } catch (error) {
-      console.error("Error fetching hotel images:", error);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    const loadImages = async () => {
-      if (Array.isArray(hotelData) && hotelData.length > 0) {
-        try {
-          const cachedImages = await AsyncStorage.getItem("hotelImages");
-          if (cachedImages) {
-            setHotelImages(JSON.parse(cachedImages));
-          } else {
-            const images = await fetchHotelImages(hotelData.length);
-            setHotelImages(images);
-            await AsyncStorage.setItem("hotelImages", JSON.stringify(images));
-          }
-        } catch (err) {
-          console.error("Error loading/saving images", err);
-        }
-      }
-    };
-    loadImages();
-  }, [hotelData]);
   const handleBooking = (url) => {
     if (url) {
       Linking.openURL(url).catch((err) =>
@@ -115,11 +84,9 @@ export default function HotelInfo({ hotelData }) {
             }}
           >
             <Image
-              source={{
-                uri:
-                  hotelImages[index] ||
-                  "https://via.placeholder.com/250x120?text=Hotel+Image",
-              }}
+              source={
+                LOCAL_HOTEL_IMAGES[index % IMAGE_COUNT]
+              }
               style={{
                 width: "100%",
                 height: 120,
