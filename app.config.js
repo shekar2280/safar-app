@@ -39,12 +39,19 @@ export default {
           backgroundColor: "#ffffff",
         },
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true,
     },
     extra: {
       UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY,
+      "OCRSPACE_API_KEY": process.env.OCRSPACE_API_KEY,
     },
   },
 };
