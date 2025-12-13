@@ -1,22 +1,25 @@
-import {
-  Dimensions,
-  ScrollView,
-  Text,
+import { 
+  Dimensions, 
+  ScrollView, 
+  Text, 
+  View, 
+  StyleSheet, 
   TextInput,
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
+  TouchableOpacity 
 } from "react-native";
-import { Colors } from "../../constants/Colors";
-import { useState } from "react";
+import { useEffect, useState } from "react"; 
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Constants from "expo-constants";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+
+
+import { Colors } from "../../constants/Colors";
+import { ActionButton } from "../../components/WalletDetails/ActionButton";
+import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
+import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
 
 const { width, height } = Dimensions.get("window");
+
 const ocrApiKey = Constants.default.expoConfig.extra.OCRSPACE_API_KEY;
 
 const extractTotalFromPlain = (raw) => {
@@ -27,44 +30,12 @@ const extractTotalFromPlain = (raw) => {
     const hit = keys.some((k) => up.startsWith(k));
     if (!hit) continue;
 
+    // Regex to match currency format: $1,234.56 or 1234.56
     const match = line.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+\.\d{2})/);
     if (match) return parseFloat(match[0].replace(/,/g, "")).toFixed(2);
   }
   return null;
 };
-
-const ActionButton = ({ title, onPress, disabled, styleOverride = {} }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    disabled={disabled}
-    style={[
-      styles.primaryActionButton,
-      { opacity: disabled ? 0.5 : 1 },
-      styleOverride,
-      { backgroundColor: Colors.PRIMARY },
-    ]}
-  >
-    <Text style={styles.actionButtonText}>{title}</Text>
-  </TouchableOpacity>
-);
-
-const SpendingItem = ({ item }) => (
-  <View style={styles.spendingItem}>
-    <View style={{ flex: 1 }}>
-      <Text style={styles.spendingName}>{item.name}</Text>
-      <Text style={styles.spendingDate}>{item.date}</Text>
-    </View>
-    <Text style={styles.spendingAmount}>- ${item.amount.toFixed(2)}</Text>
-    {item.imageUri && (
-      <Ionicons
-        name="image"
-        size={20}
-        color="#888"
-        style={{ marginLeft: 10 }}
-      />
-    )}
-  </View>
-);
 
 export default function SpendingsInput() {
   const [spendings, setSpendings] = useState([]);
@@ -72,9 +43,39 @@ export default function SpendingsInput() {
   const [amountInput, setAmountInput] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
 
+  const [totalBudget, setTotalBudget] = useState(0); 
+  const [remBudget, setRemBudget] = useState(0);
+
+  const [newBudgetInput, setNewBudgetInput] = useState(""); 
+  
   const [image, setImage] = useState(null);
   const [extractedText, setExtractedText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const calculateRemainingBudget = (currentSpendings, budget) => {
+    const totalSpent = currentSpendings.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const remaining = budget - totalSpent;
+    return remaining;
+  };
+
+  useEffect(() => {
+    const remaining = calculateRemainingBudget(spendings, totalBudget);
+    setRemBudget(remaining);
+  }, [spendings, totalBudget]);
+
+  const handleSetBudget = () => {
+    const newBudget = parseFloat(newBudgetInput);
+    if (isNaN(newBudget) || newBudget <= 0) {
+        alert("Please enter a valid budget amount greater than zero.");
+        return;
+    }
+    setTotalBudget(newBudget);
+    setNewBudgetInput(""); 
+  };
 
   const getPermissions = async () => {
     const { status: galleryStatus } =
@@ -99,41 +100,6 @@ export default function SpendingsInput() {
     setSpendingName("");
     setAmountInput("");
     setIsProcessing(false);
-  };
-
-  const processImageAndPerformOCR = async (asset) => {
-    setIsProcessing(true);
-    setExtractedText("Resizing image and performing OCR...");
-
-    try {
-      const manipulatedImage = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 1000 } }],
-        {
-          compress: 0.85,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
-        }
-      );
-
-      if (!manipulatedImage.base64) {
-        throw new Error("Failed to generate Base64 data.");
-      }
-
-      const base64Data = manipulatedImage.base64;
-      setImage(manipulatedImage.uri);
-
-      const ocrResult = await performOCR({ base64: base64Data });
-      const total = extractTotalFromPlain(ocrResult);
-
-      setExtractedText(total || "not found");
-      setAmountInput(total ? total : "");
-    } catch (err) {
-      console.error("Image processing failed:", err);
-      setExtractedText(`Image processing error: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const performOCR = async (file) => {
@@ -165,6 +131,47 @@ export default function SpendingsInput() {
     }
 
     return json?.ParsedResults?.[0]?.ParsedText || "";
+  };
+
+  const processImageAndPerformOCR = async (asset) => {
+    setIsProcessing(true);
+    setExtractedText("Resizing image and performing OCR...");
+
+    try {
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 1000 } }],
+        {
+          compress: 0.85,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
+        }
+      );
+
+      if (!manipulatedImage.base64) {
+        throw new Error("Failed to generate Base64 data.");
+      }
+
+      const base64Data = manipulatedImage.base64;
+      setImage(manipulatedImage.uri);
+
+      const ocrResult = await performOCR({ base64: base64Data });
+      const total = extractTotalFromPlain(ocrResult);
+
+      if (total) {
+        setExtractedText(`Successfully extracted total: $${total}`);
+      } else {
+        setExtractedText(
+          `Total not found. Raw text start: ${ocrResult.substring(0, 50)}...`
+        );
+      }
+      setAmountInput(total ? total : "");
+    } catch (err) {
+      console.error("Image processing failed:", err);
+      setExtractedText(`Image processing error: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const pickImage = (type) => async () => {
@@ -201,7 +208,7 @@ export default function SpendingsInput() {
       id: Date.now().toString(),
       name: spendingName.trim(),
       amount: amount,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toLocaleString(),
       imageUri: image,
     };
 
@@ -215,120 +222,6 @@ export default function SpendingsInput() {
     setIsFormVisible(false);
   };
 
-  const renderSpendingInputs = () => (
-    <View style={styles.formContainer}>
-      <ActionButton
-        title="❌ Close"
-        onPress={hideForm}
-        styleOverride={{ marginBottom: 15 }}
-      />
-
-      <TextInput
-        placeholder="Enter spending name (e.g., Coffee)"
-        value={spendingName}
-        onChangeText={setSpendingName}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Enter bill amount manually"
-        value={amountInput}
-        onChangeText={(text) => setAmountInput(text.replace(/[^0-9.]/g, ""))}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-
-      <View style={{ gap: 10 }}>
-        <Text style={styles.subHeader}>Or, Scan Bill for Amount</Text>
-        <View style={styles.buttonRow}>
-          <ActionButton
-            title={
-              <>
-                <Ionicons
-                  name="images"
-                  size={width * 0.05}
-                  color={Colors.WHITE}
-                />
-                <Text> Gallery</Text>
-              </>
-            }
-            onPress={pickImage("gallery")}
-            disabled={isProcessing}
-            styleOverride={styles.inlineActionButton}
-          />
-          <ActionButton
-            title={
-              <>
-                <Ionicons
-                  name="camera"
-                  size={width * 0.05}
-                  color={Colors.WHITE}
-                />
-                <Text> Camera</Text>
-              </>
-            }
-            onPress={pickImage("camera")}
-            disabled={isProcessing}
-            styleOverride={styles.inlineActionButton}
-          />
-          <ActionButton
-            title={
-              <>
-                <Ionicons
-                  name="trash"
-                  size={width * 0.05}
-                  color={Colors.WHITE}
-                />
-                <Text> Clear</Text>
-              </>
-            }
-            onPress={clearAll}
-            disabled={isProcessing}
-            styleOverride={styles.inlineActionButton}
-          />
-        </View>
-
-        {isProcessing && (
-          <View style={styles.processingView}>
-            <ActivityIndicator size="small" color={Colors.BLUE} />
-            <Text style={{ marginLeft: 10 }}>{extractedText}</Text>
-          </View>
-        )}
-
-        {image && !isProcessing && (
-          <>
-            <Image
-              source={{ uri: image }}
-              contentFit="contain"
-              style={styles.imagePreview}
-            />
-            <Text style={styles.ocrResult}>
-              Extracted Total: {extractedText || "N/A"}
-            </Text>
-          </>
-        )}
-      </View>
-
-      <ActionButton
-        title={
-          <>
-            <Ionicons
-              name="checkmark"
-              size={width * 0.05}
-              color={Colors.WHITE}
-            />
-            <Text> Record Spending</Text>
-          </>
-        }
-        onPress={recordSpending}
-        disabled={
-          isProcessing || !spendingName.trim() || isNaN(parseFloat(amountInput))
-        }
-        styleOverride={{ marginTop: 15 }}
-      />
-    </View>
-  );
-
   return (
     <ScrollView
       style={styles.container}
@@ -337,22 +230,81 @@ export default function SpendingsInput() {
       <View style={{ gap: 10 }}>
         <Text style={styles.header}>💰 Record Spending</Text>
 
-        {!isFormVisible && (
-          <ActionButton
-            title="➕ Add Spending"
-            onPress={() => setIsFormVisible(true)}
-            styleOverride={styles.addSpendingButton}
-          />
-        )}
+        {totalBudget <= 0 ? (
+          <View style={styles.setupContainer}>
+            <Text style={styles.setupHeader}>
+              Set Your Initial Budget
+            </Text>
+            <TextInput
+              placeholder="Enter Monthly/Total Budget"
+              value={newBudgetInput}
+              onChangeText={(text) => setNewBudgetInput(text.replace(/[^0-9.]/g, ""))}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+            <ActionButton
+              title="Start Tracking"
+              onPress={handleSetBudget}
+              disabled={!newBudgetInput.trim()}
+              styleOverride={styles.setTotalButton }
+            />
+          </View>
+        ) : (
+          <>
+            <View style={styles.budgetSummary}>
+              <Text style={styles.budgetText}>
+                Total Budget:
+                <Text style={styles.budgetAmount}>
+                  ${totalBudget.toFixed(2)}
+                </Text>
+              </Text>
+              <Text style={styles.budgetText}>
+                Remaining Budget:
+                <Text
+                  style={[
+                    styles.budgetAmount,
+                    { color: remBudget < 0 ? Colors.RED : Colors.PRIMARY },
+                  ]}
+                >
+                  ${remBudget.toFixed(2)}
+                </Text>
+              </Text>
+            </View>
 
-        {isFormVisible && renderSpendingInputs()}
+            {!isFormVisible && (
+              <ActionButton
+                title="➕ Add Spending"
+                onPress={() => setIsFormVisible(true)}
+                styleOverride={styles.addSpendingButton}
+              />
+            )}
+
+            {isFormVisible && (
+              <SpendingForm
+                spendingName={spendingName}
+                amountInput={amountInput}
+                image={image}
+                extractedText={extractedText}
+                isProcessing={isProcessing}
+                setSpendingName={setSpendingName}
+                setAmountInput={setAmountInput}
+                hideForm={hideForm}
+                pickImage={pickImage}
+                clearAll={clearAll}
+                recordSpending={recordSpending}
+              />
+            )}
+          </>
+        )}
 
         <View style={styles.historySection}>
           <Text style={styles.historyHeader}>
             Recent Spendings ({spendings.length})
           </Text>
           {spendings.length === 0 ? (
-            <Text style={styles.noDataText}>No spendings recorded yet.</Text>
+            <Text style={styles.noDataText}>
+              {totalBudget > 0 ? "No spendings recorded yet." : "Set your budget above to begin tracking."}
+            </Text>
           ) : (
             spendings.map((item) => <SpendingItem key={item.id} item={item} />)
           )}
@@ -375,13 +327,60 @@ const styles = StyleSheet.create({
   header: {
     fontSize: width * 0.07,
     fontWeight: "bold",
+    color: Colors.DARK_GRAY,
   },
-  subHeader: {
+  setupContainer: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.LIGHT_GRAY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  setupHeader: {
+    fontSize: width * 0.055,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.DARK_GRAY,
+  },
+  input: { 
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 12,
+    borderRadius: 8,
+    fontSize: width * 0.04,
+    marginBottom: 10,
+    width: '100%',
+    backgroundColor: Colors.WHITE,
+  },
+  budgetSummary: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: Colors.LIGHT_GRAY,
+    borderLeftWidth: 5,
+    borderLeftColor: Colors.PRIMARY,
+    borderRightWidth: 5,
+    borderRightColor: Colors.PRIMARY,
+    marginBottom: 10,
+    flexDirection: 'column',
+  },
+  budgetText: {
     fontSize: width * 0.045,
+    marginBottom: 5,
     fontWeight: "500",
+  },
+  budgetAmount: {
+    fontWeight: "bold",
+    color: Colors.PRIMARY,
   },
   historySection: {
     marginTop: 15,
+    marginBottom: 25,
   },
   historyHeader: {
     fontSize: width * 0.06,
@@ -390,41 +389,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     paddingBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: width * 0.04,
-    marginBottom: 10,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 10,
-    justifyContent: "space-between",
-  },
-  actionButtonText: {
-    textAlign: "center",
-    color: Colors.WHITE,
-    fontFamily: "outfitMedium",
-    fontSize: width * 0.04,
-  },
-  primaryActionButton: {
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: width * 0.04,
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: height * 0.02,
-  },
-  inlineActionButton: {
-    flex: 1,
-    paddingVertical: height * 0.02,
+    color: Colors.DARK_GRAY,
   },
   addSpendingButton: {
     paddingVertical: height * 0.02,
@@ -433,63 +398,16 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginBottom: 10,
   },
-  formContainer: {
-    padding: width * 0.03,
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
+  setTotalButton: {
+    padding: height * 0.02,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#eee",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-  },
-  processingView: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: "#f0f0ff",
-    borderRadius: 8,
-  },
-  imagePreview: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#f2f2f2",
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  ocrResult: {
-    fontSize: width * 0.045,
-    marginTop: 10,
-    fontWeight: "bold",
-    color: "green",
-  },
-  spendingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
-  },
-  spendingName: {
-    fontSize: width * 0.045,
-    fontWeight: "600",
-  },
-  spendingDate: {
-    fontSize: width * 0.035,
-    color: "#888",
-    marginTop: 2,
-  },
-  spendingAmount: {
-    fontSize: width * 0.05,
-    fontWeight: "bold",
-    color: "red",
   },
   noDataText: {
     textAlign: "center",
-    color: "#999",
+    color: Colors.MEDIUM_GRAY,
     marginTop: 20,
   },
 });
