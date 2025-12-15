@@ -1,22 +1,24 @@
-import { 
-  Dimensions, 
-  ScrollView, 
-  Text, 
-  View, 
-  StyleSheet, 
+import {
+  Dimensions,
+  ScrollView,
+  Text,
+  View,
+  StyleSheet,
   TextInput,
-  TouchableOpacity 
+  TouchableOpacity,
 } from "react-native";
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Constants from "expo-constants";
-
 
 import { Colors } from "../../constants/Colors";
 import { ActionButton } from "../../components/WalletDetails/ActionButton";
 import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
 import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
+import { useLocalSearchParams } from "expo-router";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../config/FirebaseConfig";
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,16 +40,19 @@ const extractTotalFromPlain = (raw) => {
 };
 
 export default function SpendingsInput() {
+  const { tripId } = useLocalSearchParams();
+  const user = auth.currentUser;
+
   const [spendings, setSpendings] = useState([]);
   const [spendingName, setSpendingName] = useState("");
   const [amountInput, setAmountInput] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
 
-  const [totalBudget, setTotalBudget] = useState(0); 
+  const [totalBudget, setTotalBudget] = useState(0);
   const [remBudget, setRemBudget] = useState(0);
 
-  const [newBudgetInput, setNewBudgetInput] = useState(""); 
-  
+  const [newBudgetInput, setNewBudgetInput] = useState("");
+
   const [image, setImage] = useState(null);
   const [extractedText, setExtractedText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -67,14 +72,45 @@ export default function SpendingsInput() {
     setRemBudget(remaining);
   }, [spendings, totalBudget]);
 
-  const handleSetBudget = () => {
+  useEffect(() => {
+    const fetchTripData = async () => {
+      if(!tripId || !user){
+        return;
+      }
+
+      try {
+        const tripDocRef = doc(db, "UserTrips", tripId);
+        const tripSnapshots = await getDoc(tripDocRef);
+        if(tripSnapshots.exists()){
+          const data = tripSnapshots.data();
+          setTotalBudget(data.totalBudget || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching trip data: ", error);
+      }
+    };
+
+    fetchTripData();
+  }, [tripId, user]);
+
+  const handleSetBudget = async () => {
+    if (!tripId) return;
+
     const newBudget = parseFloat(newBudgetInput);
     if (isNaN(newBudget) || newBudget <= 0) {
-        alert("Please enter a valid budget amount greater than zero.");
-        return;
+      alert("Please enter a valid budget amount greater than zero.");
+      return;
     }
-    setTotalBudget(newBudget);
-    setNewBudgetInput(""); 
+    try {
+      const tripDocRef = doc(db, "UserTrips", tripId);
+      await setDoc(tripDocRef, { totalBudget: newBudget }, { merge: true });
+
+      setTotalBudget(newBudget);
+      setNewBudgetInput("");
+    } catch (error) {
+      console.error("Error setting budget:", error);
+      alert("Failed to save budget. Please try again.");
+    }
   };
 
   const getPermissions = async () => {
@@ -159,7 +195,7 @@ export default function SpendingsInput() {
       const total = extractTotalFromPlain(ocrResult);
 
       if (total) {
-        setExtractedText(`Successfully extracted total: $${total}`);
+        setExtractedText(`Successfully extracted total: $₹{total}`);
       } else {
         setExtractedText(
           `Total not found. Raw text start: ${ocrResult.substring(0, 50)}...`
@@ -232,13 +268,13 @@ export default function SpendingsInput() {
 
         {totalBudget <= 0 ? (
           <View style={styles.setupContainer}>
-            <Text style={styles.setupHeader}>
-              Set Your Initial Budget
-            </Text>
+            <Text style={styles.setupHeader}>Set Your Initial Budget</Text>
             <TextInput
               placeholder="Enter Monthly/Total Budget"
               value={newBudgetInput}
-              onChangeText={(text) => setNewBudgetInput(text.replace(/[^0-9.]/g, ""))}
+              onChangeText={(text) =>
+                setNewBudgetInput(text.replace(/[^0-9.]/g, ""))
+              }
               keyboardType="numeric"
               style={styles.input}
             />
@@ -246,7 +282,7 @@ export default function SpendingsInput() {
               title="Start Tracking"
               onPress={handleSetBudget}
               disabled={!newBudgetInput.trim()}
-              styleOverride={styles.setTotalButton }
+              styleOverride={styles.setTotalButton}
             />
           </View>
         ) : (
@@ -255,7 +291,7 @@ export default function SpendingsInput() {
               <Text style={styles.budgetText}>
                 Total Budget:
                 <Text style={styles.budgetAmount}>
-                  ${totalBudget.toFixed(2)}
+                  ₹{totalBudget.toFixed(2)}
                 </Text>
               </Text>
               <Text style={styles.budgetText}>
@@ -266,7 +302,7 @@ export default function SpendingsInput() {
                     { color: remBudget < 0 ? Colors.RED : Colors.PRIMARY },
                   ]}
                 >
-                  ${remBudget.toFixed(2)}
+                  ₹{remBudget.toFixed(2)}
                 </Text>
               </Text>
             </View>
@@ -303,7 +339,9 @@ export default function SpendingsInput() {
           </Text>
           {spendings.length === 0 ? (
             <Text style={styles.noDataText}>
-              {totalBudget > 0 ? "No spendings recorded yet." : "Set your budget above to begin tracking."}
+              {totalBudget > 0
+                ? "No spendings recorded yet."
+                : "Set your budget above to begin tracking."}
             </Text>
           ) : (
             spendings.map((item) => <SpendingItem key={item.id} item={item} />)
@@ -325,7 +363,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    fontSize: width * 0.07,
+    fontSize: width * 0.06,
     fontWeight: "bold",
     color: Colors.DARK_GRAY,
   },
@@ -333,29 +371,29 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     backgroundColor: Colors.LIGHT_GRAY,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: Colors.PRIMARY,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
   },
   setupHeader: {
     fontSize: width * 0.055,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
     color: Colors.DARK_GRAY,
   },
-  input: { 
+  input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 12,
     borderRadius: 8,
     fontSize: width * 0.04,
     marginBottom: 10,
-    width: '100%',
+    width: "100%",
     backgroundColor: Colors.WHITE,
   },
   budgetSummary: {
@@ -367,7 +405,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 5,
     borderRightColor: Colors.PRIMARY,
     marginBottom: 10,
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   budgetText: {
     fontSize: width * 0.045,
