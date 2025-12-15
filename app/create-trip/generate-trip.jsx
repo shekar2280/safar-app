@@ -167,6 +167,7 @@ export default function GenerateTrip() {
         traveler: cleanTraveler,
         isActive: false,
         createdAt: serverTimestamp(),
+        totalBudget: null,
       });
 
       setLoading(false);

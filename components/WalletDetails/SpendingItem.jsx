@@ -9,7 +9,7 @@ export const SpendingItem = ({ item }) => (
       <Text style={styles.spendingName}>{item.name}</Text>
       <Text style={styles.spendingDate}>{item.date}</Text>
     </View>
-    <Text style={styles.spendingAmount}>- ${item.amount.toFixed(2)}</Text>
+    <Text style={styles.spendingAmount}>-  ₹{item.amount.toFixed(2)}</Text>
     {/* {item.imageUri && (
       <Ionicons
         name="image"
