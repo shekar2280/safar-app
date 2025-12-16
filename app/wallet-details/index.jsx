@@ -7,18 +7,28 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Constants from "expo-constants";
+import { useLocalSearchParams } from "expo-router";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  serverTimestamp,
+  onSnapshot,
+  query,
+  where,
+  addDoc,
+} from "firebase/firestore";
+import { auth, db } from "../../config/FirebaseConfig";
 
 import { Colors } from "../../constants/Colors";
 import { ActionButton } from "../../components/WalletDetails/ActionButton";
 import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
 import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
-import { useLocalSearchParams } from "expo-router";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "../../config/FirebaseConfig";
 
 const { width, height } = Dimensions.get("window");
 
@@ -73,24 +83,60 @@ export default function SpendingsInput() {
   }, [spendings, totalBudget]);
 
   useEffect(() => {
-    const fetchTripData = async () => {
-      if(!tripId || !user){
-        return;
-      }
+    if (!tripId || !user) {
+      return;
+    }
 
+    const fetchBudget = async () => {
       try {
         const tripDocRef = doc(db, "UserTrips", tripId);
         const tripSnapshots = await getDoc(tripDocRef);
-        if(tripSnapshots.exists()){
+        if (tripSnapshots.exists()) {
           const data = tripSnapshots.data();
           setTotalBudget(data.totalBudget || 0);
         }
       } catch (error) {
-        console.error("Error fetching trip data: ", error);
+        console.error("Error fetching trip budget: ", error);
       }
     };
 
-    fetchTripData();
+    fetchBudget();
+
+    const transactionsCollectionRef = collection(db, "Transactions");
+    const q = query(
+      transactionsCollectionRef,
+      where("tripId", "==", tripId)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const firestoreSpendings = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          firestoreSpendings.push({
+            id: doc.id, 
+            name: data.name,
+            amount: data.amount,
+            date: data.date?.toDate().toLocaleString() || new Date().toLocaleString(),
+            imageUri: data.imageUri,
+            synced: true, 
+          });
+        });
+
+        firestoreSpendings.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        setSpendings(firestoreSpendings);
+      },
+      (error) => {
+        console.error("Error fetching transactions in real-time:", error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      console.log("Unsubscribed from Firestore Transactions listener.");
+    };
   }, [tripId, user]);
 
   const handleSetBudget = async () => {
@@ -195,7 +241,7 @@ export default function SpendingsInput() {
       const total = extractTotalFromPlain(ocrResult);
 
       if (total) {
-        setExtractedText(`Successfully extracted total: $₹{total}`);
+        setExtractedText(`Successfully extracted total: ₹${total}`);
       } else {
         setExtractedText(
           `Total not found. Raw text start: ${ocrResult.substring(0, 50)}...`
@@ -233,24 +279,33 @@ export default function SpendingsInput() {
     }
   };
 
-  const recordSpending = () => {
+  const recordSpending = async () => {
     const amount = parseFloat(amountInput);
     if (!spendingName.trim() || isNaN(amount) || amount <= 0) {
       alert("Please enter a valid spending name and amount.");
       return;
     }
 
-    const newSpending = {
-      id: Date.now().toString(),
-      name: spendingName.trim(),
-      amount: amount,
-      date: new Date().toLocaleString(),
-      imageUri: image,
-    };
+    try {
+      const transactionsCollectionRef = collection(db, "Transactions");
 
-    setSpendings([newSpending, ...spendings]);
-    clearAll();
-    setIsFormVisible(false);
+      await addDoc(transactionsCollectionRef, {
+        tripId: tripId,
+        userId: user.uid,
+        name: spendingName.trim(),
+        amount: amount,
+        date: serverTimestamp(), 
+        imageUri: image,
+      });
+
+      console.log("Spending successfully recorded to Firebase.");
+
+      clearAll();
+      setIsFormVisible(false);
+    } catch (error) {
+      console.error("Error recording spending:", error);
+      alert("Failed to record spending. Please try again.");
+    }
   };
 
   const hideForm = () => {
