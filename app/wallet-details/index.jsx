@@ -114,17 +114,19 @@ export default function SpendingsInput() {
         const firestoreSpendings = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          const dateObject = data.date?.toDate() || new Date();
           firestoreSpendings.push({
             id: doc.id, 
             name: data.name,
             amount: data.amount,
+            timestamp: dateObject.getTime(),
             date: data.date?.toDate().toLocaleString() || new Date().toLocaleString(),
             imageUri: data.imageUri,
             synced: true, 
           });
         });
 
-        firestoreSpendings.sort((a, b) => new Date(b.date) - new Date(a.date));
+        firestoreSpendings.sort((a, b) => b.timestamp - a.timestamp);
 
         setSpendings(firestoreSpendings);
       },
@@ -135,7 +137,6 @@ export default function SpendingsInput() {
 
     return () => {
       unsubscribe();
-      console.log("Unsubscribed from Firestore Transactions listener.");
     };
   }, [tripId, user]);
 
@@ -298,8 +299,6 @@ export default function SpendingsInput() {
         imageUri: image,
       });
 
-      console.log("Spending successfully recorded to Firebase.");
-
       clearAll();
       setIsFormVisible(false);
     } catch (error) {
@@ -312,6 +311,7 @@ export default function SpendingsInput() {
     clearAll();
     setIsFormVisible(false);
   };
+
 
   return (
     <ScrollView
@@ -399,7 +399,7 @@ export default function SpendingsInput() {
                 : "Set your budget above to begin tracking."}
             </Text>
           ) : (
-            spendings.map((item) => <SpendingItem key={item.id} item={item} />)
+            spendings.map((item) => <SpendingItem key={item.id} item={item}  />)
           )}
         </View>
       </View>
