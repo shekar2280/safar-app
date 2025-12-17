@@ -14,6 +14,7 @@ export default {
       supportsTablet: true,
     },
     android: {
+      package: "com.shekarsafar.safar",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff",
