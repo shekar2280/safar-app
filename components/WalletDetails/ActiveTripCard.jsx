@@ -1,11 +1,8 @@
 import { View, Text, Image, TouchableOpacity, Dimensions } from "react-native";
-import React from "react";
 import moment from "moment";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-// Note: You can use MaterialIcons here if you prefer,
-// but MaterialCommunityIcons has a better wallet icon.
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -120,7 +117,7 @@ export default function ActiveTripCard({ trip }) {
           borderRadius: 8,
         }}
       >
-        <MaterialCommunityIcons
+        <Ionicons
           name="wallet"
           size={width * 0.06}
           color={Colors.PRIMARY}
