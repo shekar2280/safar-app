@@ -115,10 +115,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 5,
-<<<<<<< HEAD
-    paddingVertical: 15,
-=======
->>>>>>> 80c823af35000ea9a48adf62105148c82768fdcb
     marginRight: 35,
     marginHorizontal: 10, 
     backgroundColor: "white",

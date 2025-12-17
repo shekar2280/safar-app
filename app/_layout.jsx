@@ -10,13 +10,9 @@ import { SportsTripProvider } from "../context/SportsTripContext";
 import { TrendingTripProvider } from "../context/TrendingTripContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/config/FirebaseConfig";
-<<<<<<< HEAD
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LOCAL_HOTEL_IMAGES } from "../constants/Options"
-import { Asset } from 'expo-asset';
-=======
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
->>>>>>> 80c823af35000ea9a48adf62105148c82768fdcb
+import { LOCAL_HOTEL_IMAGES } from "../constants/Options";
+import { Asset } from "expo-asset";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -38,11 +34,7 @@ export default function RootLayout() {
     checkStatus();
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-<<<<<<< HEAD
-      setIsSignedIn(!!user); 
-=======
       setIsSignedIn(!!user);
->>>>>>> 80c823af35000ea9a48adf62105148c82768fdcb
     });
 
     return unsubscribe;
@@ -77,21 +69,12 @@ export default function RootLayout() {
                 <TrendingTripProvider>
                   <Stack screenOptions={{ headerShown: false }}>
                     {showLogin ? (
-<<<<<<< HEAD
                       <Stack.Screen name="auth/Login" />
                     ) : !isSignedIn ? (
                       <Stack.Screen name="auth/sign-in/index" />
                     ) : (
                       <Stack.Screen name="(tabs)" />
                     )}
-=======
-                  <Stack.Screen name="auth/Login" />
-                ) : !isSignedIn ? (
-                  <Stack.Screen name="auth/sign-in/index" />
-                ) : (
-                  <Stack.Screen name="(tabs)" />
-                )}
->>>>>>> 80c823af35000ea9a48adf62105148c82768fdcb
                   </Stack>
                 </TrendingTripProvider>
               </SportsTripProvider>
