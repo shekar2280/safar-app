@@ -19,7 +19,7 @@ import { AI_PROMPT } from "../../../constants/Options";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { trendingData, setTrendingData } = useContext(TrendingTripContext);
+  const { trendingData } = useContext(TrendingTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -86,7 +86,6 @@ export default function GenerateTrip() {
       const { icon, ...cleanTraveler } = trendingData.traveler;
 
       if (existingTrip.exists()) {
-        console.log("♻️ Using cached trip data");
         const data = existingTrip.data();
         const userTripRef = doc(collection(db, "UserTrips"));
         await setDoc(userTripRef, {
@@ -96,6 +95,7 @@ export default function GenerateTrip() {
           startDate: trendingData.startDate,
           endDate: trendingData.endDate,
           traveler: cleanTraveler,
+          isActive: false,
           createdAt: serverTimestamp(),
         });
         setLoading(false);
@@ -142,6 +142,7 @@ export default function GenerateTrip() {
         startDate: trendingData.startDate,
         endDate: trendingData.endDate,
         traveler: cleanTraveler,
+        isActive: false,
         createdAt: serverTimestamp(),
       });
 

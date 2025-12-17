@@ -20,7 +20,7 @@ import Constants from "expo-constants";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { discoverData, setDiscoverData } = useContext(DiscoverTripContext);
+  const { discoverData } = useContext(DiscoverTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -88,7 +88,6 @@ export default function GenerateTrip() {
       const { icon, ...cleanTraveler } = discoverData.traveler;
 
       if (existingTrip.exists()) {
-        console.log("♻️ Using cached trip data");
         const data = existingTrip.data();
         const userTripRef = doc(collection(db, "UserTrips"));
         await setDoc(userTripRef, {
@@ -98,6 +97,7 @@ export default function GenerateTrip() {
           startDate: discoverData.startDate,
           endDate: discoverData.endDate,
           traveler: cleanTraveler,
+          isActive: false,
           createdAt: serverTimestamp(),
         });
         setLoading(false);
@@ -142,6 +142,7 @@ export default function GenerateTrip() {
         startDate: discoverData.startDate,
         endDate: discoverData.endDate,
         traveler: cleanTraveler,
+        isActive: false,
         createdAt: serverTimestamp(),
       });
 

@@ -20,7 +20,7 @@ import Constants from "expo-constants";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { festiveData, setFestiveData } = useContext(FestiveTripContext);
+  const { festiveData } = useContext(FestiveTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -107,8 +107,6 @@ export default function GenerateTrip() {
       const { icon, ...cleanTraveler } = festiveData.traveler;
 
       if (existingTrip.exists()) {
-        console.log("♻️ Using cached trip data");
-        const data = existingTrip.data();
         const userTripRef = doc(collection(db, "UserTrips"));
         await setDoc(userTripRef, {
           userEmail: user.email,
@@ -117,6 +115,7 @@ export default function GenerateTrip() {
           startDate: festiveData.startDate,
           endDate: festiveData.endDate,
           traveler: cleanTraveler,
+          isActive: false,
           createdAt: serverTimestamp(),
         });
         setLoading(false);
@@ -170,6 +169,7 @@ export default function GenerateTrip() {
         startDate: festiveData.startDate,
         endDate: festiveData.endDate,
         traveler: cleanTraveler,
+        isActive: false,
         createdAt: serverTimestamp(),
       });
 

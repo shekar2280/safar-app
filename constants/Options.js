@@ -33,6 +33,22 @@ export const SelectTravelerList = [
   },
 ];
 
+export const LOCAL_HOTEL_IMAGES = [
+  require("../assets/images/hotel-images/hotel_image_1.jpg"),
+  require("../assets/images/hotel-images/hotel_image_2.jpg"),
+  require("../assets/images/hotel-images/hotel_image_3.jpg"),
+  require("../assets/images/hotel-images/hotel_image_4.jpg"),
+  require("../assets/images/hotel-images/hotel_image_5.jpg"),
+  require("../assets/images/hotel-images/hotel_image_6.jpg"),
+  require("../assets/images/hotel-images/hotel_fallback.jpg"),
+];
+
+export const concertImages = [
+    require("../assets/images/concert-trips/concert-images/concert-1.jpg"),
+    require("../assets/images/concert-trips/concert-images/concert-2.jpg"),
+    require("../assets/images/concert-trips/concert-images/concert-3.jpg"),
+  ];
+
 export const SelectBudgetOptions = [
   {
     id: 1,

@@ -1,18 +1,18 @@
-import { View, Text, Image, TouchableOpacity, Dimensions } from "react-native";
-import React, { useEffect, useState } from "react";
+import { View, Text, Image, TouchableOpacity, Dimensions, Alert } from "react-native";
+import { useEffect, useState } from "react";
 import moment from "moment";
 import { Colors } from "./../../constants/Colors";
 import UserTripCard from "./UserTripCard";
-import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
+import { deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../config/FirebaseConfig";
 
 const { width, height } = Dimensions.get("window");
 
 export default function UserTripList({ userTrips }) {
   const [trips, setTrips] = useState([]);
   const router = useRouter();
-
-  const UNSPLASH_API_KEY = Constants.expoConfig.extra.UNSPLASH_API_KEY;
 
   useEffect(() => {
     const sorted = [...userTrips].sort((a, b) => {
@@ -38,7 +38,7 @@ export default function UserTripList({ userTrips }) {
     latestTrip.startDate ||
     latestTripData.startDate ||
     latestTrip?.concertData?.startDate;
-    
+
   const otherTrips = trips.slice(1);
 
   let imageUrl;
@@ -53,6 +53,23 @@ export default function UserTripList({ userTrips }) {
 
   const handleDelete = (tripId) => {
     setTrips((prev) => prev.filter((t) => t.id !== tripId));
+  };
+
+  const confirmDelete = () => {
+    Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "UserTrips", latestTrip.id));
+          } catch (error) {
+            console.error("Failed to delete trip:", error);
+          }
+        },
+      },
+    ]);
   };
 
   if (!latestTrip) return null;
@@ -119,39 +136,57 @@ export default function UserTripList({ userTrips }) {
               color: Colors.GRAY,
             }}
           >
-            {latestTrip.traveler?.title|| "1"}
+            {latestTrip.traveler?.title || "1"}
           </Text>
         </View>
       </View>
 
-      <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "/trip-details",
-            params: {
-              trip: JSON.stringify(latestTrip),
-              imageUrl,
-            },
-          })
-        }
+      <View
         style={{
-          backgroundColor: Colors.PRIMARY,
-          padding: height * 0.018,
-          borderRadius: width * 0.04,
-          marginTop: height * 0.015,
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: height * 0.02,
+          gap: 12,
         }}
       >
-        <Text
+        <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: "/trip-details",
+              params: { trip: JSON.stringify(latestTrip), imageUrl },
+            })
+          }
           style={{
-            color: Colors.WHITE,
-            textAlign: "center",
-            fontFamily: "outfitMedium",
-            fontSize: width * 0.04,
+            flex: 1,
+            backgroundColor: Colors.PRIMARY,
+            height: 56,
+            borderRadius: 16,
+            justifyContent: "center",
+            alignItems: "center",
+            elevation: 3,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
           }}
         >
-          See your plan
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={{
+              color: Colors.WHITE,
+              fontFamily: "outfitBold",
+              fontSize: 16,
+            }}
+          >
+            See your plan
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={confirmDelete}
+        >
+          <MaterialIcons name="delete" size={34} color="#FF6347" />
+        </TouchableOpacity>
+      </View>
 
       {/* 🗂 Other Trips */}
       {otherTrips.map((trip) => (

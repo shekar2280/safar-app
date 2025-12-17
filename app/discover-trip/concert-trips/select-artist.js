@@ -21,6 +21,7 @@ import Animated, {
 import { ConcertTripContext } from "../../../context/ConcertTripContext";
 import { CONCERT_LOCATION_DATE_PROMPT } from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
+import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get("window");
 
@@ -102,7 +103,7 @@ export default function ConcertTrip() {
     }
   };
 
-  const TICKETMASTER_API_KEY = "7v3hGscLvwP79lI2D0vuvIYW4mhngrRG";
+  const TICKETMASTER_API_KEY = Constants.expoConfig.extra.TICKETMASTER_API_KEY;
   const fetchConcertsFromTicketmaster = async (artistName) => {
     try {
       const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${TICKETMASTER_API_KEY}&keyword=${encodeURIComponent(
