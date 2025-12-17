@@ -30,6 +30,7 @@ export default {
       "expo-router",
       "expo-font",
       "expo-video",
+      "expo-asset",
       "expo-web-browser",
       [
         "expo-splash-screen",
