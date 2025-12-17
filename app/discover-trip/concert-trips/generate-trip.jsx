@@ -12,7 +12,7 @@ import { ConcertTripContext } from "../../../context/ConcertTripContext";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateConcertTrip() {
-  const { concertData, setConcertData } = useContext(ConcertTripContext);
+  const { concertData } = useContext(ConcertTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -76,6 +76,7 @@ export default function GenerateConcertTrip() {
         tripPlan: parsedConcertData,
         docId: docId,
         createdAt: serverTimestamp(),
+        isActive: false,
       });
 
       setLoading(false);

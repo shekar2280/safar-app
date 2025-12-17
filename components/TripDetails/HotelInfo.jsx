@@ -8,18 +8,9 @@ import {
   Dimensions,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
+import { LOCAL_HOTEL_IMAGES } from "../../constants/Options";
 
 const { width } = Dimensions.get("window");
-
-const LOCAL_HOTEL_IMAGES = [
-  require("../../assets/images/hotel-images/hotel_image_1.jpg"),
-  require("../../assets/images/hotel-images/hotel_image_2.jpg"),
-  require("../../assets/images/hotel-images/hotel_image_3.jpg"),
-  require("../../assets/images/hotel-images/hotel_image_4.jpg"),
-  require("../../assets/images/hotel-images/hotel_image_5.jpg"),
-  require("../../assets/images/hotel-images/hotel_image_6.jpg"),
-  require("../../assets/images/hotel-images/hotel_fallback.jpg"),
-];
 
 const IMAGE_COUNT = LOCAL_HOTEL_IMAGES.length - 1;
 

@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../config/FirebaseConfig";
+import { concertImages } from "../../constants/Options";
 
 const { width, height } = Dimensions.get("window");
 
@@ -45,11 +46,11 @@ export default function UserTripCard({ trip, onDelete }) {
     ]);
   };
 
-  const concertImages = [
-    require("../../assets/images/concert-trips/concert-images/concert-1.jpg"),
-    require("../../assets/images/concert-trips/concert-images/concert-2.jpg"),
-    require("../../assets/images/concert-trips/concert-images/concert-3.jpg"),
-  ];
+  // const concertImages = [
+  //   require("../../assets/images/concert-trips/concert-images/concert-1.jpg"),
+  //   require("../../assets/images/concert-trips/concert-images/concert-2.jpg"),
+  //   require("../../assets/images/concert-trips/concert-images/concert-3.jpg"),
+  // ];
 
   return (
     <View
@@ -127,7 +128,7 @@ export default function UserTripCard({ trip, onDelete }) {
       </TouchableOpacity>
 
       <TouchableOpacity onPress={confirmDelete}>
-        <MaterialIcons name="delete" size={width * 0.06} color="#FF6347" />
+        <MaterialIcons name="delete" size={width * 0.07} color="#FF6347" />
       </TouchableOpacity>
     </View>
   );

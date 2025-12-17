@@ -10,6 +10,9 @@ import { SportsTripProvider } from "../context/SportsTripContext";
 import { TrendingTripProvider } from "../context/TrendingTripContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/config/FirebaseConfig";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LOCAL_HOTEL_IMAGES } from "../constants/Options"
+import { Asset } from 'expo-asset';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -31,35 +34,54 @@ export default function RootLayout() {
     checkStatus();
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsSignedIn(!!user); // user exists = logged in
+      setIsSignedIn(!!user); 
     });
 
     return unsubscribe;
   }, []);
 
+  function cacheImages(images) {
+    return images.map((image) => {
+      if (typeof image === "string") {
+        return Image.prefetch(image);
+      } else {
+        return Asset.fromModule(image).downloadAsync();
+      }
+    });
+  }
+
+  useEffect(() => {
+    const loadAssets = async () => {
+      await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
+    };
+    loadAssets();
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
-    <CreateTripContext.Provider value={{ tripData, setTripData }}>
-      <DiscoverTripProvider>
-        <ConcertTripProvider>
-          <FestiveTripProvider>
-            <SportsTripProvider>
-              <TrendingTripProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  {showLogin ? (
-                  <Stack.Screen name="auth/Login" />
-                ) : !isSignedIn ? (
-                  <Stack.Screen name="auth/sign-in/index" />
-                ) : (
-                  <Stack.Screen name="(tabs)" />
-                )}
-                </Stack>
-              </TrendingTripProvider>
-            </SportsTripProvider>
-          </FestiveTripProvider>
-        </ConcertTripProvider>
-      </DiscoverTripProvider>
-    </CreateTripContext.Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <CreateTripContext.Provider value={{ tripData, setTripData }}>
+        <DiscoverTripProvider>
+          <ConcertTripProvider>
+            <FestiveTripProvider>
+              <SportsTripProvider>
+                <TrendingTripProvider>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    {showLogin ? (
+                      <Stack.Screen name="auth/Login" />
+                    ) : !isSignedIn ? (
+                      <Stack.Screen name="auth/sign-in/index" />
+                    ) : (
+                      <Stack.Screen name="(tabs)" />
+                    )}
+                  </Stack>
+                </TrendingTripProvider>
+              </SportsTripProvider>
+            </FestiveTripProvider>
+          </ConcertTripProvider>
+        </DiscoverTripProvider>
+      </CreateTripContext.Provider>
+    </GestureHandlerRootView>
   );
 }

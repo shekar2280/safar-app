@@ -52,6 +52,7 @@ export default {
     extra: {
       UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY,
       "OCRSPACE_API_KEY": process.env.OCRSPACE_API_KEY,
+      "TICKETMASTER_API_KEY": process.env.TICKETMASTER_API_KEY,
     },
   },
 };

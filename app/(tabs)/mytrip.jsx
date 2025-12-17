@@ -91,14 +91,11 @@ export default function Mytrip() {
       const tripsWithDetails = await Promise.all(
         userTripsData.map(async (trip) => {
           try {
+            // IMPORTANT: Keep the original createdAt from the UserTrip
+            const originalTimestamp = trip.createdAt;
+
             if (!trip.savedTripId) {
-              console.warn("Trip missing savedTripId:", trip);
-              return {
-                ...trip,
-                startDate: trip.startDate,
-                endDate: trip.endDate,
-                traveler: trip.traveler,
-              };
+              return { ...trip };
             }
 
             const savedTripRef = doc(db, "SavedTripData", trip.savedTripId);
@@ -107,42 +104,31 @@ export default function Mytrip() {
             if (savedTripSnap.exists()) {
               const saved = savedTripSnap.data();
 
-              delete saved.createdAt;
-              delete saved.docId;
-
               return {
-                ...trip,
-                ...saved, 
-                id: trip.id,
-                userEmail: trip.userEmail,
-              };
-            } else {
-              console.warn("No SavedTripData found for", trip.savedTripId);
-              return {
-                ...trip,
-                startDate: trip.startDate,
-                endDate: trip.endDate,
-                traveler: trip.traveler,
+                ...saved, // Data from global cache
+                ...trip, // OVERWRITE with user-specific data (IDs, original createdAt)
+                createdAt: originalTimestamp, // Force original sort order
               };
             }
+            return { ...trip };
           } catch (err) {
-            console.error("Error fetching SavedTripData:", err);
-            return {
-              ...trip,
-              startDate: trip.startDate,
-              endDate: trip.endDate,
-              traveler: trip.traveler,
-            };
+            return { ...trip };
           }
         })
       );
 
+      // MANUALLY RE-SORT after merging to be 100% sure
+      const sortedTrips = tripsWithDetails.sort((a, b) => {
+        const dateA = a.createdAt?.seconds || 0;
+        const dateB = b.createdAt?.seconds || 0;
+        return dateB - dateA; // Descending
+      });
+
       await AsyncStorage.setItem(
         `userTrips_${user.email}`,
-        JSON.stringify(tripsWithDetails)
+        JSON.stringify(sortedTrips)
       );
-
-      setUserTrips(tripsWithDetails);
+      setUserTrips(sortedTrips);
       setLoading(false);
     });
 
