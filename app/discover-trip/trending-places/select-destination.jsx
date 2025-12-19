@@ -2,8 +2,8 @@ import { View, Text, Dimensions, FlatList, TouchableOpacity } from "react-native
 import React, { useContext, useEffect, useState } from "react";
 import { router, useNavigation } from "expo-router";
 import { Colors } from "../../../constants/Colors";
-import DiscoverCard from "../../../components/CreateTrip/DiscoverCard";
 import { TrendingTripContext } from "../../../context/TrendingTripContext";
+import TrendingTripCard from "../../../components/CreateTrip/TrendingTripsCard";
 
 const { width, height } = Dimensions.get("window");
 
@@ -73,7 +73,7 @@ export default function SelectTrendingPlace() {
             style={{ marginVertical: height * 0.012 }}
             onPress={() => handleSelect(item)}
           >
-            <DiscoverCard
+            <TrendingTripCard
               option={item}
               cardHeight={height * 0.22}
               selectedOption={selectedPlace}

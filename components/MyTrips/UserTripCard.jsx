@@ -1,23 +1,25 @@
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Alert,
   Dimensions,
 } from "react-native";
-import React from "react";
+import React, { useMemo } from "react";
 import moment from "moment";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../config/FirebaseConfig";
-import { concertImages } from "../../constants/Options";
+import { concertImages, fallbackImages } from "../../constants/Options";
+import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
 
 export default function UserTripCard({ trip, onDelete }) {
+  const router = useRouter();
+
   const tripData =
     trip?.tripData ||
     trip?.discoverData ||
@@ -25,8 +27,29 @@ export default function UserTripCard({ trip, onDelete }) {
     trip?.concertData ||
     trip?.trendingData ||
     {};
-  const tripPlan = trip.tripPlan;
-  const router = useRouter();
+
+  const tripPlan = trip?.tripPlan;
+
+  const randomFallback = useMemo(() => {
+    const randomUrl = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+    return randomUrl;
+  }, [trip?.id]);
+
+  const concertFallback = useMemo(() => {
+    return concertImages[Math.floor(Math.random() * concertImages.length)];
+  }, [trip?.id]);
+
+  const getFinalImageSource = () => {
+    if (trip?.concertData) {
+      return concertFallback;
+    }
+    if (trip?.imageUrl) {
+      return { uri: trip.imageUrl };
+    }
+    return randomFallback;
+  };
+
+  const finalSource = getFinalImageSource();
 
   const confirmDelete = () => {
     Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
@@ -68,19 +91,14 @@ export default function UserTripCard({ trip, onDelete }) {
             pathname: "/trip-details",
             params: {
               trip: JSON.stringify(trip),
-              imageUrl: trip.imageUrl,
+              imageUrl: trip.imageUrl || "",
             },
           })
         }
       >
         <Image
-          source={
-            trip?.concertData
-              ? concertImages[Math.floor(Math.random() * concertImages.length)]
-              : trip?.imageUrl
-              ? { uri: trip.imageUrl }
-              : require("../../assets/images/homepage.jpg")
-          }
+          source={finalSource}
+          transition={500}
           style={{
             width: width * 0.25,
             height: width * 0.25,
@@ -116,7 +134,7 @@ export default function UserTripCard({ trip, onDelete }) {
               color: Colors.GRAY,
             }}
           >
-            Travelers: {trip?.traveler?.title}
+            Travelers: {trip?.traveler?.title || "1"}
           </Text>
         </View>
       </TouchableOpacity>

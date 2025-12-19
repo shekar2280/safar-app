@@ -1,5 +1,5 @@
-import { View, Text, Image, TouchableOpacity, Dimensions, Alert } from "react-native";
-import { useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, Dimensions, Alert } from "react-native";
+import { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import { Colors } from "./../../constants/Colors";
 import UserTripCard from "./UserTripCard";
@@ -7,6 +7,8 @@ import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../config/FirebaseConfig";
+import { fallbackImages } from "../../constants/Options";
+import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,7 +27,13 @@ export default function UserTripList({ userTrips }) {
 
   const latestTrip = trips[0];
 
+  const randomFallback = useMemo(() => {
+    const randomUrl = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+    return randomUrl;
+  }, [latestTrip?.id]);
+
   if (!latestTrip) return null;
+
   const latestTripData =
     latestTrip?.tripData ||
     latestTrip?.discoverData ||
@@ -41,15 +49,17 @@ export default function UserTripList({ userTrips }) {
 
   const otherTrips = trips.slice(1);
 
-  let imageUrl;
+  const getFinalImageSource = () => {
+    if (latestTrip?.concertData) {
+      return require("../../assets/images/concert.jpg");
+    }
+    if (latestTrip?.imageUrl) {
+      return { uri: latestTrip.imageUrl };
+    }
+    return randomFallback;
+  };
 
-  if (latestTrip?.concertData) {
-    imageUrl = require("../../assets/images/concert.jpg");
-  } else if (latestTrip?.imageUrl) {
-    imageUrl = latestTrip.imageUrl;
-  } else {
-    imageUrl = require("../../assets/images/homepage.jpg");
-  }
+  const finalSource = getFinalImageSource();
 
   const handleDelete = (tripId) => {
     setTrips((prev) => prev.filter((t) => t.id !== tripId));
@@ -64,6 +74,7 @@ export default function UserTripList({ userTrips }) {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, "UserTrips", latestTrip.id));
+            handleDelete(latestTrip.id);
           } catch (error) {
             console.error("Failed to delete trip:", error);
           }
@@ -72,18 +83,18 @@ export default function UserTripList({ userTrips }) {
     ]);
   };
 
-  if (!latestTrip) return null;
-
   return (
     <View style={{ marginTop: height * 0.025 }}>
       <Image
-        source={typeof imageUrl === "string" ? { uri: imageUrl } : imageUrl}
+        source={finalSource}
+        transition={500}
         style={{
           width: "100%",
           height: height * 0.25,
-          resizeMode: "cover",
           borderRadius: width * 0.04,
         }}
+        contentFit="cover"
+        cachePolicy="memory-disk"
       />
 
       <Text
@@ -91,7 +102,6 @@ export default function UserTripList({ userTrips }) {
           fontFamily: "outfitBold",
           fontSize: width * 0.05,
           marginTop: height * 0.015,
-          justifyContent: "space-between",
         }}
         numberOfLines={1}
       >
@@ -153,7 +163,10 @@ export default function UserTripList({ userTrips }) {
           onPress={() =>
             router.push({
               pathname: "/trip-details",
-              params: { trip: JSON.stringify(latestTrip), imageUrl },
+              params: { 
+                trip: JSON.stringify(latestTrip), 
+                imageUrl: latestTrip?.imageUrl || "" 
+              },
             })
           }
           style={{
@@ -181,14 +194,11 @@ export default function UserTripList({ userTrips }) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={confirmDelete}
-        >
+        <TouchableOpacity onPress={confirmDelete}>
           <MaterialIcons name="delete" size={34} color="#FF6347" />
         </TouchableOpacity>
       </View>
 
-      {/* 🗂 Other Trips */}
       {otherTrips.map((trip) => (
         <UserTripCard key={trip.id} trip={trip} onDelete={handleDelete} />
       ))}

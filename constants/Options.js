@@ -1,6 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Fontisto from "@expo/vector-icons/Fontisto";
-import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 
 export const SelectTravelerList = [
   {
@@ -50,10 +48,19 @@ export const concertImages = [
 ];
 
 export const fallbackImages = [
-  require("../assets/images/fallback_image1.jpg"),
-  require("../assets/images/fallback_image2.jpg"),
-  require("../assets/images/fallback_image3.jpg"),
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/f_auto,q_auto,w_800/v1766143095/fallback_image1_oquhsp.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/f_auto,q_auto,w_800/v1766143097/fallback_image3_mogvf0.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/f_auto,q_auto,w_800/v1766143100/fallback_image2_y6jkri.jpg",
 ];
+
+export const trendingTripCardImages = [
+  require("../assets/images/trending-places/trending-place1.jpg"),
+  require("../assets/images/trending-places/trending-place2.jpg"),
+  require("../assets/images/trending-places/trending-place3.jpg"),
+  require("../assets/images/trending-places/trending-place4.jpg"),
+  require("../assets/images/trending-places/trending-place5.jpg"),
+]
+
 
 export const SelectBudgetOptions = [
   {
