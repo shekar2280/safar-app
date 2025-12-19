@@ -1,4 +1,4 @@
-import { View, Text, Dimensions } from "react-native";
+import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
@@ -26,6 +26,7 @@ export default function GenerateTrip() {
   const router = useRouter();
   const user = auth.currentUser;
   const hasGenerated = useRef(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const isTripReady =
@@ -55,7 +56,7 @@ export default function GenerateTrip() {
     const date = new Date(dateStr);
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0"); 
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
 
     if (transportType === "flight") {
@@ -68,7 +69,7 @@ export default function GenerateTrip() {
       throw new Error("Invalid transportType. Use 'flight' or 'train'.");
     }
   }
-  const flightDate = formatDateForMMT(festiveData.startDate, "flight"); 
+  const flightDate = formatDateForMMT(festiveData.startDate, "flight");
   const trainDate = formatDateForMMT(festiveData.startDate, "train");
 
   const fetchUnsplashImage = async (locationName) => {
@@ -84,16 +85,24 @@ export default function GenerateTrip() {
         }
       );
       const data = await response.json();
-      return data?.results?.[0]?.urls?.regular || null;
+       return data?.results?.[0]?.urls?.regular || null;
     } catch (error) {
       console.error("Error fetching Unsplash image:", error);
       return null;
     }
   };
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const generateAiTrip = async () => {
     setLoading(true);
     setError(null);
+    setRetryCount(0);
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+    let aiResponse = null;
 
     try {
       const normalizedKey = `${festiveData.locationInfo.title.toLowerCase()}-${
@@ -137,7 +146,22 @@ export default function GenerateTrip() {
         .replace(/{festival}/g, festiveData?.locationInfo?.festival)
         .replace(/{budget}/g, festiveData?.budget);
 
-      const aiResponse = await generateTripPlan(FINAL_PROMPT);
+      while (attempts < maxAttempts && !success) {
+        try {
+          setRetryCount(attempts);
+          aiResponse = await generateTripPlan(FINAL_PROMPT);
+          success = true;
+        } catch (err) {
+          attempts++;
+
+          if (attempts < maxAttempts) {
+            const waitTime = attempts * 2000;
+            await delay(waitTime);
+          } else {
+            throw err;
+          }
+        }
+      }
 
       const cleanedResponse = cleanAiResponse(aiResponse);
       let parsedfestiveData;
@@ -176,17 +200,22 @@ export default function GenerateTrip() {
       setLoading(false);
       router.push("(tabs)/mytrip");
     } catch (err) {
-      console.error("❌ Error generating AI trip:", err);
-
       let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503")) {
-        message = "Under maintenance, try again later.";
+      if (err?.message?.includes("503") || err?.message?.includes("429")) {
+        message =
+          "The AI server is currently busy. Please try again in a moment.";
       }
 
       setError(message);
       setLoading(false);
       hasGenerated.current = false;
     }
+  };
+
+  const getLoadingMessage = () => {
+    if (retryCount === 0) return "Generating your trip...";
+    if (retryCount === 1) return "Retrying...";
+    return "Almost there, finishing touches...";
   };
 
   return (
@@ -219,24 +248,67 @@ export default function GenerateTrip() {
             }}
           />
         )}
-        {error ? " " : "Generating your trip"}
+        {getLoadingMessage()}
       </Text>
 
       {error && (
-        <View style={{ alignItems: "center", marginTop: height * 0.05 }}>
-          <Text style={{ fontSize: width * 0.2 }}>❌</Text>
+        <View style={{ alignItems: "center", width: "100%" }}>
+          <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
           <Text
             style={{
-              marginTop: height * 0.02,
-              fontSize: width * 0.045,
-              fontFamily: "outfitBold",
-              color: "red",
+              fontFamily: "outfitMedium",
               textAlign: "center",
-              paddingHorizontal: width * 0.05,
+              marginVertical: 10,
+              paddingHorizontal: 20,
             }}
           >
             {error}
           </Text>
+
+          <TouchableOpacity
+            onPress={() => generateAiTrip()}
+            style={{
+              marginTop: 20,
+              backgroundColor: Colors.PRIMARY,
+              padding: 15,
+              borderRadius: 15,
+              width: width * 0.7,
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
+              Try Again
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)/mytrip")}
+            style={{
+              marginTop: 15,
+              padding: 15,
+              borderRadius: 15,
+              borderWidth: 1,
+              borderColor: Colors.PRIMARY,
+              width: width * 0.7,
+            }}
+          >
+            <Text
+              style={{
+                color: Colors.PRIMARY,
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
+              Back to Home
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>

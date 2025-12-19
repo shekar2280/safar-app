@@ -1,4 +1,4 @@
-import { View, Text, Dimensions } from "react-native";
+import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
@@ -18,6 +18,7 @@ export default function GenerateConcertTrip() {
   const router = useRouter();
   const user = auth.currentUser;
   const hasGenerated = useRef(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const isTripReady =
@@ -26,7 +27,7 @@ export default function GenerateConcertTrip() {
       concertData?.traveler &&
       concertData?.budget &&
       concertData?.locationInfo?.concertDate;
-      
+
     if (isTripReady && user && !hasGenerated.current) {
       hasGenerated.current = true;
       generateAiConcertTrip();
@@ -42,9 +43,17 @@ export default function GenerateConcertTrip() {
       .trim();
   };
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const generateAiConcertTrip = async () => {
     setLoading(true);
     setError(null);
+    setRetryCount(0);
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+    let aiResponse = null;
 
     const FINAL_PROMPT = CONCERT_TRIP_AI_PROMPT.replace(
       /{travelers}/g,
@@ -58,7 +67,21 @@ export default function GenerateConcertTrip() {
       .replace(/{startDate}/g, concertData?.startDate);
 
     try {
-      const aiResponse = await generateTripPlan(FINAL_PROMPT);
+      while (attempts < maxAttempts && !success) {
+        try {
+          setRetryCount(attempts);
+          aiResponse = await generateTripPlan(FINAL_PROMPT);
+          success = true;
+        } catch (err) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            const waitTime = attempts * 2000;
+            await delay(waitTime);
+          } else {
+            throw err;
+          }
+        }
+      }
 
       const cleanedResponse = cleanAiResponse(aiResponse);
       let parsedConcertData;
@@ -82,11 +105,19 @@ export default function GenerateConcertTrip() {
       setLoading(false);
       router.push("(tabs)/mytrip");
     } catch (err) {
-      console.error("❌ Error generating concert trip:", err);
-      setError("Something went wrong. Please try again.");
-      hasGenerated.current = false;
+      let message = "Something went wrong. Please try again.";
+      if (err?.message?.includes("503") || err?.message?.includes("429")) {
+        message =
+          "The AI server is currently busy. Please try again in a moment.";
+      }
       setLoading(false);
+      hasGenerated.current = false;
     }
+  };
+  const getLoadingMessage = () => {
+    if (retryCount === 0) return "Generating your trip...";
+    if (retryCount === 1) return "Retrying...";
+    return "Almost there, finishing touches...";
   };
 
   return (
@@ -119,24 +150,67 @@ export default function GenerateConcertTrip() {
             }}
           />
         )}
-        {error ? " " : "Generating your concert trip"}
+        {getLoadingMessage()}
       </Text>
 
       {error && (
-        <View style={{ alignItems: "center", marginTop: height * 0.05 }}>
-          <Text style={{ fontSize: width * 0.2 }}>❌</Text>
+        <View style={{ alignItems: "center", width: "100%" }}>
+          <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
           <Text
             style={{
-              marginTop: height * 0.02,
-              fontSize: width * 0.045,
-              fontFamily: "outfitBold",
-              color: "red",
+              fontFamily: "outfitMedium",
               textAlign: "center",
-              paddingHorizontal: width * 0.05,
+              marginVertical: 10,
+              paddingHorizontal: 20,
             }}
           >
             {error}
           </Text>
+
+          <TouchableOpacity
+            onPress={() => generateAiTrip()}
+            style={{
+              marginTop: 20,
+              backgroundColor: Colors.PRIMARY,
+              padding: 15,
+              borderRadius: 15,
+              width: width * 0.7,
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
+              Try Again
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)/mytrip")}
+            style={{
+              marginTop: 15,
+              padding: 15,
+              borderRadius: 15,
+              borderWidth: 1,
+              borderColor: Colors.PRIMARY,
+              width: width * 0.7,
+            }}
+          >
+            <Text
+              style={{
+                color: Colors.PRIMARY,
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
+              Back to Home
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
