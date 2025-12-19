@@ -1,4 +1,4 @@
-import { View, Text, Dimensions } from "react-native";
+import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
@@ -26,6 +26,7 @@ export default function GenerateTrip() {
   const router = useRouter();
   const user = auth.currentUser;
   const hasGenerated = useRef(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const isTripReady =
@@ -71,9 +72,17 @@ export default function GenerateTrip() {
     }
   };
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const generateAiTrip = async () => {
     setLoading(true);
     setError(null);
+    setRetryCount(0);
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+    let aiResponse = null;
 
     try {
       const normalizedKey = `${discoverData.locationInfo.title.toLowerCase()}-${
@@ -83,12 +92,10 @@ export default function GenerateTrip() {
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
-      const { startDate, endDate, traveler, ...tripTemplateData } =
-        discoverData;
+      const { startDate, endDate, traveler, ...tripTemplateData } = discoverData;
       const { icon, ...cleanTraveler } = discoverData.traveler;
 
       if (existingTrip.exists()) {
-        const data = existingTrip.data();
         const userTripRef = doc(collection(db, "UserTrips"));
         await setDoc(userTripRef, {
           userEmail: user.email,
@@ -101,14 +108,11 @@ export default function GenerateTrip() {
           createdAt: serverTimestamp(),
         });
         setLoading(false);
-        router.push("(tabs)/mytrip");
+        router.replace("/(tabs)/mytrip");
         return;
       }
 
-      const FINAL_PROMPT = AI_PROMPT.replace(
-        /{location}/g,
-        discoverData?.locationInfo?.title
-      )
+      const FINAL_PROMPT = AI_PROMPT.replace(/{location}/g, discoverData?.locationInfo?.title)
         .replace(/{departure}/g, discoverData?.departureInfo?.name)
         .replace(/{totalDays}/g, discoverData?.totalDays)
         .replace(/{totalNight}/g, discoverData?.totalDays - 1)
@@ -116,16 +120,26 @@ export default function GenerateTrip() {
         .replace(/{traveler}/g, discoverData?.traveler?.title)
         .replace(/{budget}/g, discoverData?.budget);
 
-      const aiResponse = await generateTripPlan(FINAL_PROMPT);
+      while (attempts < maxAttempts && !success) {
+        try {
+          setRetryCount(attempts);
+          aiResponse = await generateTripPlan(FINAL_PROMPT);
+          success = true;
+        } catch (err) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            await delay(attempts * 2000);
+          } else {
+            throw err;
+          }
+        }
+      }
 
       const cleanedResponse = cleanAiResponse(aiResponse);
-      const parseddiscoverData = JSON.parse(cleanedResponse);
+      const parsedData = JSON.parse(cleanedResponse);
+      const normalizedTrip = normalizeItinerary(parsedData);
 
-      const normalizedTrip = normalizeItinerary(parseddiscoverData);
-
-      const imageUrl = await fetchUnsplashImage(
-        discoverData?.locationInfo?.title || "travel"
-      );
+      const imageUrl = await fetchUnsplashImage(discoverData?.locationInfo?.title || "travel");
 
       await setDoc(savedTripRef, {
         savedTripId: normalizedKey,
@@ -147,69 +161,78 @@ export default function GenerateTrip() {
       });
 
       setLoading(false);
-      router.push("(tabs)/mytrip");
+      router.replace("/(tabs)/mytrip");
     } catch (err) {
-      console.error("❌ Error generating AI trip:", err);
-
       let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503")) {
-        message = "Under maintenance, try again later.";
+      if (err?.message?.includes("503") || err?.message?.includes("429")) {
+        message = "The AI server is currently busy. Please try again in a moment.";
       }
-
       setError(message);
       setLoading(false);
       hasGenerated.current = false;
     }
   };
 
+  const getLoadingMessage = () => {
+    if (retryCount === 0) return "Generating your trip...";
+    if (retryCount === 1) return "Retrying...";
+    return "Almost there, finishing touches...";
+  };
+
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: width * 0.06,
-        paddingTop: height * 0.12,
-        backgroundColor: Colors.WHITE,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+    <View style={{ flex: 1, padding: width * 0.06, backgroundColor: Colors.WHITE, justifyContent: "center", alignItems: "center" }}>
+      
+      {loading && (
+        <View style={{ alignItems: 'center' }}>
           <LottieView
             source={require("../../../assets/animations/travel.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-              marginTop: height * 0.05,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        {error ? " " : "Generating your trip"}
-      </Text>
+          <Text style={{ fontSize: width * 0.06, fontFamily: "outfitBold", textAlign: "center", marginTop: 20 }}>
+            {getLoadingMessage()}
+          </Text>
+        </View>
+      )}
 
       {error && (
-        <View style={{ alignItems: "center", marginTop: height * 0.05 }}>
-          <Text style={{ fontSize: width * 0.2 }}>❌</Text>
-          <Text
-            style={{
-              marginTop: height * 0.02,
-              fontSize: width * 0.045,
-              fontFamily: "outfitBold",
-              color: "red",
-              textAlign: "center",
-              paddingHorizontal: width * 0.05,
-            }}
-          >
+        <View style={{ alignItems: "center", width: '100%' }}>
+          <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
+          <Text style={{ fontFamily: 'outfitMedium', textAlign: 'center', marginVertical: 10, paddingHorizontal: 20 }}>
             {error}
           </Text>
+
+          <TouchableOpacity
+            onPress={() => generateAiTrip()}
+            style={{
+              marginTop: 20,
+              backgroundColor: Colors.PRIMARY,
+              padding: 15,
+              borderRadius: 15,
+              width: width * 0.7,
+            }}
+          >
+            <Text style={{ color: "white", textAlign: "center", fontFamily: "outfitBold", fontSize: 16 }}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)/mytrip")}
+            style={{
+              marginTop: 15,
+              padding: 15,
+              borderRadius: 15,
+              borderWidth: 1,
+              borderColor: Colors.PRIMARY,
+              width: width * 0.7,
+            }}
+          >
+            <Text style={{ color: Colors.PRIMARY, textAlign: "center", fontFamily: "outfitBold", fontSize: 16 }}>
+              Back to Home
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>

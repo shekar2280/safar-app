@@ -46,12 +46,6 @@ export default function UserTripCard({ trip, onDelete }) {
     ]);
   };
 
-  // const concertImages = [
-  //   require("../../assets/images/concert-trips/concert-images/concert-1.jpg"),
-  //   require("../../assets/images/concert-trips/concert-images/concert-2.jpg"),
-  //   require("../../assets/images/concert-trips/concert-images/concert-3.jpg"),
-  // ];
-
   return (
     <View
       style={{

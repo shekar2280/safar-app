@@ -42,6 +42,7 @@ export default function SearchDeparture() {
     query: "",
     results: [],
   });
+  const [retryCount, setRetryCount] = useState(0);
 
   function normalizeLocation(data) {
     const address = data.address || {};
@@ -102,47 +103,63 @@ export default function SearchDeparture() {
     })();
   }, []);
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const fetchTrendingPlaces = async (locationInfo) => {
-    try {
-      const snapshot = await getDoc(
-        doc(db, "TrendingPlaces", locationInfo.normalizedKey)
-      );
-      if (snapshot.exists()) {
-        const cachedData = snapshot.data().trendingPlaces;
-        setTrendingData((prev) => ({ ...prev, trendingPlaces: cachedData }));
+  let attempts = 0;
+  const maxAttempts = 3;
+  let success = false;
+  let aiResp = null;
 
-        return cachedData;
-      }
+  try {
+    const snapshot = await getDoc(
+      doc(db, "TrendingPlaces", locationInfo.normalizedKey)
+    );
+    if (snapshot.exists()) {
+      const cachedData = snapshot.data().trendingPlaces;
+      setTrendingData((prev) => ({ ...prev, trendingPlaces: cachedData }));
 
-      const prompt = TRENDING_PLACE_PROMPT.replace(
-        /{location}/g,
-        locationInfo.label
-      );
-
-      const aiResp = await generateTripPlan(prompt);
-
-      setTrendingData((prev) => ({
-        ...prev,
-        trendingPlaces: aiResp,
-      }));
-
-      const docId = locationInfo.normalizedKey;
-      await setDoc(doc(db, "TrendingPlaces", docId), {
-        userEmail: user.email,
-        city: locationInfo.city,
-        state: locationInfo.state,
-        country: locationInfo.country,
-        normalizedKey: locationInfo.normalizedKey,
-        trendingPlaces: aiResp,
-        createdAt: serverTimestamp(),
-      });
-
-      return aiResp;
-    } catch (error) {
-      console.error("Failed to fetch trending places:", error);
-      return [];
+      return cachedData;
     }
-  };
+
+    const prompt = TRENDING_PLACE_PROMPT.replace(
+      /{location}/g, 
+      locationInfo.label
+    );
+
+    while (attempts < maxAttempts && !success) {
+      try {
+        setRetryCount(attempts); 
+        const rawResp = await generateTripPlan(prompt);
+        aiResp = typeof rawResp === 'string' ? JSON.parse(rawResp) : rawResp;
+        success = true; 
+      } catch (err) {
+        attempts++;
+        if (attempts < maxAttempts) {
+          const waitTime = attempts * 2000;
+          await delay(waitTime);
+        } else {
+          throw err; 
+        }
+      }
+    }
+    setTrendingData((prev) => ({ ...prev, trendingPlaces: aiResp }));
+
+    await setDoc(doc(db, "TrendingPlaces", locationInfo.normalizedKey), {
+      userEmail: user.email,
+      city: locationInfo.city,
+      state: locationInfo.state,
+      country: locationInfo.country,
+      normalizedKey: locationInfo.normalizedKey,
+      trendingPlaces: aiResp,
+      createdAt: serverTimestamp(),
+    });
+
+    return aiResp;
+  } catch (error) {
+    return [];
+  }
+};
 
   useEffect(() => {
     if (state.query.length < 3) {
