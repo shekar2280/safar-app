@@ -2,7 +2,7 @@ import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
-import { AI_PROMPT } from "../../../constants/Options";
+import { AI_PROMPT, DiscoverTripImages, fallbackImages } from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
@@ -65,10 +65,16 @@ export default function GenerateTrip() {
         }
       );
       const data = await response.json();
-      return data?.results?.[0]?.urls?.regular || null;
+      const raw = data?.results?.[0]?.urls?.raw;
+
+      if (raw) {
+        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
+      }
+
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     } catch (error) {
-      console.error("Error fetching Unsplash image:", error);
-      return null;
+      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
+      return fallbackImages[randomIndex];
     }
   };
 
@@ -92,7 +98,8 @@ export default function GenerateTrip() {
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
-      const { startDate, endDate, traveler, ...tripTemplateData } = discoverData;
+      const { startDate, endDate, traveler, ...tripTemplateData } =
+        discoverData;
       const { icon, ...cleanTraveler } = discoverData.traveler;
 
       if (existingTrip.exists()) {
@@ -112,7 +119,10 @@ export default function GenerateTrip() {
         return;
       }
 
-      const FINAL_PROMPT = AI_PROMPT.replace(/{location}/g, discoverData?.locationInfo?.title)
+      const FINAL_PROMPT = AI_PROMPT.replace(
+        /{location}/g,
+        discoverData?.locationInfo?.title
+      )
         .replace(/{departure}/g, discoverData?.departureInfo?.name)
         .replace(/{totalDays}/g, discoverData?.totalDays)
         .replace(/{totalNight}/g, discoverData?.totalDays - 1)
@@ -139,13 +149,20 @@ export default function GenerateTrip() {
       const parsedData = JSON.parse(cleanedResponse);
       const normalizedTrip = normalizeItinerary(parsedData);
 
-      const imageUrl = await fetchUnsplashImage(discoverData?.locationInfo?.title || "travel");
+      const locationTitle = discoverData?.locationInfo?.title;
+      let finalImageUrl = "";
+
+      if(DiscoverTripImages[locationTitle]){
+        finalImageUrl = DiscoverTripImages[locationTitle];
+      }else{  
+        finalImageUrl = await fetchUnsplashImage(discoverData?.locationInfo?.title);
+      }
 
       await setDoc(savedTripRef, {
         savedTripId: normalizedKey,
         discoverData: tripTemplateData,
         tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
+        imageUrl: finalImageUrl,
       });
 
       const userTripRef = doc(collection(db, "UserTrips"));
@@ -165,7 +182,8 @@ export default function GenerateTrip() {
     } catch (err) {
       let message = "Something went wrong. Please try again.";
       if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message = "The AI server is currently busy. Please try again in a moment.";
+        message =
+          "The AI server is currently busy. Please try again in a moment.";
       }
       setError(message);
       setLoading(false);
@@ -180,26 +198,47 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={{ flex: 1, padding: width * 0.06, backgroundColor: Colors.WHITE, justifyContent: "center", alignItems: "center" }}>
-      
+    <View
+      style={{
+        flex: 1,
+        padding: width * 0.06,
+        backgroundColor: Colors.WHITE,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       {loading && (
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../../assets/animations/travel.json")}
             autoPlay
             loop
             style={{ width: width * 0.7, height: width * 0.7 }}
           />
-          <Text style={{ fontSize: width * 0.06, fontFamily: "outfitBold", textAlign: "center", marginTop: 20 }}>
+          <Text
+            style={{
+              fontSize: width * 0.06,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
             {getLoadingMessage()}
           </Text>
         </View>
       )}
 
       {error && (
-        <View style={{ alignItems: "center", width: '100%' }}>
+        <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text style={{ fontFamily: 'outfitMedium', textAlign: 'center', marginVertical: 10, paddingHorizontal: 20 }}>
+          <Text
+            style={{
+              fontFamily: "outfitMedium",
+              textAlign: "center",
+              marginVertical: 10,
+              paddingHorizontal: 20,
+            }}
+          >
             {error}
           </Text>
 
@@ -213,7 +252,14 @@ export default function GenerateTrip() {
               width: width * 0.7,
             }}
           >
-            <Text style={{ color: "white", textAlign: "center", fontFamily: "outfitBold", fontSize: 16 }}>
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
               Try Again
             </Text>
           </TouchableOpacity>
@@ -229,7 +275,14 @@ export default function GenerateTrip() {
               width: width * 0.7,
             }}
           >
-            <Text style={{ color: Colors.PRIMARY, textAlign: "center", fontFamily: "outfitBold", fontSize: 16 }}>
+            <Text
+              style={{
+                color: Colors.PRIMARY,
+                textAlign: "center",
+                fontFamily: "outfitBold",
+                fontSize: 16,
+              }}
+            >
               Back to Home
             </Text>
           </TouchableOpacity>
