@@ -15,7 +15,7 @@ import {
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
 import Constants from "expo-constants";
 import { TrendingTripContext } from "../../../context/TrendingTripContext";
-import { AI_PROMPT } from "../../../constants/Options";
+import { AI_PROMPT, fallbackImages } from "../../../constants/Options";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
@@ -64,10 +64,16 @@ export default function GenerateTrip() {
         }
       );
       const data = await response.json();
-      return data?.results?.[0]?.urls?.regular || null;
+      const raw = data?.results?.[0]?.urls?.raw;
+
+      if (raw) {
+        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
+      }
+
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     } catch (error) {
-      console.error("Error fetching Unsplash image:", error);
-      return null;
+      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
+      return fallbackImages[randomIndex];
     }
   };
 

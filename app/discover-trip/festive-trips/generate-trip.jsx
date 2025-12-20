@@ -2,7 +2,7 @@ import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
-import { FESTIVE_AI_PROMPT } from "../../../constants/Options";
+import { fallbackImages, FESTIVE_AI_PROMPT } from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
@@ -85,10 +85,16 @@ export default function GenerateTrip() {
         }
       );
       const data = await response.json();
-       return data?.results?.[0]?.urls?.regular || null;
+      const raw = data?.results?.[0]?.urls?.raw;
+
+      if (raw) {
+        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
+      }
+
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     } catch (error) {
-      console.error("Error fetching Unsplash image:", error);
-      return null;
+      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
+      return fallbackImages[randomIndex];
     }
   };
 

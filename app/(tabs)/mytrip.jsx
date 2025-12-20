@@ -91,7 +91,6 @@ export default function Mytrip() {
       const tripsWithDetails = await Promise.all(
         userTripsData.map(async (trip) => {
           try {
-            // IMPORTANT: Keep the original createdAt from the UserTrip
             const originalTimestamp = trip.createdAt;
 
             if (!trip.savedTripId) {
@@ -105,9 +104,9 @@ export default function Mytrip() {
               const saved = savedTripSnap.data();
 
               return {
-                ...saved, // Data from global cache
-                ...trip, // OVERWRITE with user-specific data (IDs, original createdAt)
-                createdAt: originalTimestamp, // Force original sort order
+                ...saved, 
+                ...trip, 
+                createdAt: originalTimestamp, 
               };
             }
             return { ...trip };
@@ -117,11 +116,10 @@ export default function Mytrip() {
         })
       );
 
-      // MANUALLY RE-SORT after merging to be 100% sure
       const sortedTrips = tripsWithDetails.sort((a, b) => {
         const dateA = a.createdAt?.seconds || 0;
         const dateB = b.createdAt?.seconds || 0;
-        return dateB - dateA; // Descending
+        return dateB - dateA; 
       });
 
       await AsyncStorage.setItem(

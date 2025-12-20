@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../constants/Colors";
 import { CreateTripContext } from "../../context/CreateTripContext";
-import { AI_PROMPT } from "../../constants/Options";
+import { AI_PROMPT, fallbackImages } from "../../constants/Options";
 import { generateTripPlan } from "../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../config/FirebaseConfig";
@@ -75,7 +75,7 @@ export default function GenerateTrip() {
     try {
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName + " famous place"
+          locationName
         )}&per_page=1&orientation=landscape`,
         {
           headers: {
@@ -86,12 +86,14 @@ export default function GenerateTrip() {
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
 
-     if (!raw) return null;
+      if (raw) {
+        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
+      }
 
-      return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     } catch (error) {
-      console.error("Error fetching Unsplash image:", error);
-      return null;
+      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
+      return fallbackImages[randomIndex];
     }
   };
 
@@ -199,7 +201,6 @@ export default function GenerateTrip() {
       setLoading(false);
       router.replace("(tabs)/mytrip");
     } catch (err) {
-
       let message = "Something went wrong. Please try again.";
       if (err?.message?.includes("503") || err?.message?.includes("429")) {
         message =

@@ -42,9 +42,9 @@ export const LOCAL_HOTEL_IMAGES = [
 ];
 
 export const concertImages = [
-  require("../assets/images/concert-trips/concert-images/concert-1.jpg"),
-  require("../assets/images/concert-trips/concert-images/concert-2.jpg"),
-  require("../assets/images/concert-trips/concert-images/concert-3.jpg"),
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766237162/concert-1_qwv2qb.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766237166/concert-2_d2edym.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766237180/concert-3_zwbgrr.jpg",
 ];
 
 export const fallbackImages = [
@@ -511,6 +511,29 @@ export const DiscoverTripIdeas = [
     image: require("../assets/images/hidden-gems/kibber.jpg"),
   },
 ];
+
+export const DiscoverTripImages = {
+  "Tawang, Arunachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
+  "Gokarna, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
+  "Chopta, Uttarakhand": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
+  "Majuli, Assam": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
+  "Halebidu, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
+  "Ziro Valley, Arunachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
+  "Mawlynnong, Meghalaya": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
+  "Patan, Gujarat": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
+  "Lepakshi, Andhra Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
+  "Chandratal, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
+  "Hampi, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
+  "Velas, Maharashtra": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
+  "Dzukou Valley, Nagaland": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
+  "Chalakudy, Kerala": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
+  "Mandu, Madhya Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
+  "Khimsar, Rajasthan": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
+  "Tirthan Valley, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
+  "Lonar Crater, Maharashtra": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
+  "Araku Valley, Andhra Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
+  "Kibber, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
+}
 
 // export const DISCOVER_AI_PROMPT = `
 // Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights. The budget for this trip is {budget}.
