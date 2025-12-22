@@ -2,7 +2,12 @@ import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
-import { fallbackImages, FESTIVE_AI_PROMPT } from "../../../constants/Options";
+import {
+  fallbackImages,
+  FESTIVE_AI_PROMPT,
+  TRAVEL_AI_PROMPT,
+  AI_PROMPT,
+} from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
@@ -46,37 +51,31 @@ export default function GenerateTrip() {
   }, [festiveData]);
 
   const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    if (!rawText) return "{}";
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    return jsonMatch
+      ? jsonMatch[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim()
+      : "{}";
   };
 
   function formatDateForMMT(dateStr, transportType) {
     const date = new Date(dateStr);
-
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-
-    if (transportType === "flight") {
-      // Flight format: DD/MM/YYYY
-      return `${day}/${month}/${year}`;
-    } else if (transportType === "train") {
-      // Train format: YYYYMMDD
-      return `${year}${month}${day}`;
-    } else {
-      throw new Error("Invalid transportType. Use 'flight' or 'train'.");
-    }
+    return transportType === "flight"
+      ? `${day}/${month}/${year}`
+      : `${year}${month}${day}`;
   }
-  const flightDate = formatDateForMMT(festiveData.startDate, "flight");
-  const trainDate = formatDateForMMT(festiveData.startDate, "train");
 
   const fetchUnsplashImage = async (locationName) => {
     try {
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName + " famous place"
+          locationName + " festival cultural"
         )}&per_page=1&orientation=landscape`,
         {
           headers: {
@@ -86,15 +85,11 @@ export default function GenerateTrip() {
       );
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
-
-      if (raw) {
-        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
-      }
-
-      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+      return raw
+        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
+        : fallbackImages[0];
     } catch (error) {
-      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
-      return fallbackImages[randomIndex];
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
 
@@ -108,21 +103,73 @@ export default function GenerateTrip() {
     let attempts = 0;
     const maxAttempts = 3;
     let success = false;
-    let aiResponse = null;
 
-    try {
-      const normalizedKey = `${festiveData.locationInfo.title.toLowerCase()}-${
-        festiveData.totalDays
-      }-${festiveData.budget.toLowerCase()}-${festiveData.tripType.toLowerCase()}`;
+    const flightDate = formatDateForMMT(festiveData.startDate, "flight");
+    const trainDate = formatDateForMMT(festiveData.startDate, "train");
 
-      const savedTripRef = doc(db, "SavedTripData", normalizedKey);
-      const existingTrip = await getDoc(savedTripRef);
+    const normalizedKey = `festive-${festiveData.locationInfo.title.toLowerCase()}-${
+      festiveData.totalDays
+    }-${festiveData.budget.toLowerCase()}`;
 
-      const { startDate, endDate, traveler, ...tripTemplateData } = festiveData;
-      const { icon, ...cleanTraveler } = festiveData.traveler;
+    while (attempts < maxAttempts && !success) {
+      try {
+        setRetryCount(attempts);
 
-      if (existingTrip.exists()) {
+        const savedTripRef = doc(db, "SavedTripData", normalizedKey);
+        const existingTrip = await getDoc(savedTripRef);
+
+        let itineraryData;
+        let finalImageUrl;
+
+        if (existingTrip.exists()) {
+          const cachedData = existingTrip.data();
+          itineraryData = cachedData.tripPlan;
+          finalImageUrl = cachedData.imageUrl;
+        } else {
+          const FINAL_FESTIVE_PROMPT = FESTIVE_AI_PROMPT.replace(
+            /{location}/g,
+            festiveData?.locationInfo?.title
+          )
+            .replace(/{totalDays}/g, festiveData?.totalDays)
+            .replace(/{totalNight}/g, festiveData?.totalDays - 1)
+            .replace(/{traveler}/g, festiveData?.traveler?.title)
+            .replace(/{festival}/g, festiveData?.locationInfo?.festival)
+            .replace(/{budget}/g, festiveData?.budget);
+
+          const [itineraryRes, unsplashUrl] = await Promise.all([
+            generateTripPlan(FINAL_FESTIVE_PROMPT),
+            fetchUnsplashImage(festiveData?.locationInfo?.title),
+          ]);
+
+          itineraryData = normalizeItinerary(
+            JSON.parse(cleanAiResponse(itineraryRes))
+          );
+          finalImageUrl = unsplashUrl;
+
+          await setDoc(savedTripRef, {
+            savedTripId: normalizedKey,
+            tripPlan: itineraryData,
+            imageUrl: finalImageUrl,
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
+          /{tripType}/g,
+          festiveData?.tripType
+        )
+          .replace(/{departure}/g, festiveData?.departureInfo?.name)
+          .replace(/{location}/g, festiveData?.locationInfo?.title)
+          .replace(/{date}/g, festiveData.startDate)
+          .replace(/{flightDate}/g, flightDate)
+          .replace(/{trainDate}/g, trainDate);
+
+        const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
+        const transportData = JSON.parse(cleanAiResponse(transportRes));
+
         const userTripRef = doc(collection(db, "UserTrips"));
+        const { icon, ...cleanTraveler } = festiveData.traveler;
+
         await setDoc(userTripRef, {
           userEmail: user.email,
           userId: user.uid,
@@ -130,98 +177,32 @@ export default function GenerateTrip() {
           startDate: festiveData.startDate,
           endDate: festiveData.endDate,
           traveler: cleanTraveler,
+          transportDetails: transportData.transportDetails,
+          imageUrl: finalImageUrl,
           isActive: false,
           createdAt: serverTimestamp(),
         });
+
+        success = true;
         setLoading(false);
-        router.push("(tabs)/mytrip");
-        return;
-      }
-
-      const FINAL_PROMPT = FESTIVE_AI_PROMPT.replace(
-        /{location}/g,
-        festiveData?.locationInfo?.title
-      )
-        .replace(/{departure}/g, festiveData?.departureInfo?.name)
-        .replace(/{totalDays}/g, festiveData?.totalDays)
-        .replace(/{totalNight}/g, festiveData?.totalDays - 1)
-        .replace(/{flightDate}/g, flightDate)
-        .replace(/{trainDate}/g, trainDate)
-        .replace(/{tripType}/g, festiveData?.tripType)
-        .replace(/{traveler}/g, festiveData?.traveler?.title)
-        .replace(/{festival}/g, festiveData?.locationInfo?.festival)
-        .replace(/{budget}/g, festiveData?.budget);
-
-      while (attempts < maxAttempts && !success) {
-        try {
-          setRetryCount(attempts);
-          aiResponse = await generateTripPlan(FINAL_PROMPT);
-          success = true;
-        } catch (err) {
-          attempts++;
-
-          if (attempts < maxAttempts) {
-            const waitTime = attempts * 2000;
-            await delay(waitTime);
-          } else {
-            throw err;
-          }
+        router.replace("/(tabs)/mytrip");
+      } catch (err) {
+        attempts++;
+        console.error(`Attempt ${attempts} failed:`, err);
+        if (attempts < maxAttempts) {
+          await delay(attempts * 2500);
+        } else {
+          setError("Failed to generate festive trip. Please try again.");
+          setLoading(false);
+          hasGenerated.current = false;
         }
       }
-
-      const cleanedResponse = cleanAiResponse(aiResponse);
-      let parsedfestiveData;
-
-      try {
-        parsedfestiveData = JSON.parse(cleanedResponse);
-      } catch (parseErr) {
-        throw new Error("Failed to parse AI response. Please try again.");
-      }
-
-      const normalizedTrip = normalizeItinerary(parsedfestiveData);
-
-      const imageUrl = await fetchUnsplashImage(
-        festiveData?.locationInfo?.title || "travel"
-      );
-
-      await setDoc(savedTripRef, {
-        savedTripId: normalizedKey,
-        festiveData: tripTemplateData,
-        tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
-      });
-
-      const userTripRef = doc(collection(db, "UserTrips"));
-      await setDoc(userTripRef, {
-        userEmail: user.email,
-        userId: user.uid,
-        savedTripId: normalizedKey,
-        startDate: festiveData.startDate,
-        endDate: festiveData.endDate,
-        traveler: cleanTraveler,
-        isActive: false,
-        createdAt: serverTimestamp(),
-      });
-
-      setLoading(false);
-      router.push("(tabs)/mytrip");
-    } catch (err) {
-      let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message =
-          "The AI server is currently busy. Please try again in a moment.";
-      }
-
-      setError(message);
-      setLoading(false);
-      hasGenerated.current = false;
     }
   };
 
   const getLoadingMessage = () => {
-    if (retryCount === 0) return "Generating your trip...";
-    if (retryCount === 1) return "Retrying...";
-    return "Almost there, finishing touches...";
+    if (retryCount > 0) return "Connection slow, retrying...";
+    return "Generating your trip...";
   };
 
   return (
@@ -229,33 +210,31 @@ export default function GenerateTrip() {
       style={{
         flex: 1,
         padding: width * 0.06,
-        paddingTop: height * 0.12,
         backgroundColor: Colors.WHITE,
         justifyContent: "center",
         alignItems: "center",
       }}
     >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+      {loading && (
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../../assets/animations/festive-loading.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-              marginTop: height * 0.05,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        {getLoadingMessage()}
-      </Text>
+          <Text
+            style={{
+              fontSize: width * 0.07,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            {getLoadingMessage()}
+          </Text>
+        </View>
+      )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
@@ -265,12 +244,10 @@ export default function GenerateTrip() {
               fontFamily: "outfitMedium",
               textAlign: "center",
               marginVertical: 10,
-              paddingHorizontal: 20,
             }}
           >
             {error}
           </Text>
-
           <TouchableOpacity
             onPress={() => generateAiTrip()}
             style={{
@@ -293,7 +270,7 @@ export default function GenerateTrip() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/mytrip")}
             style={{
               marginTop: 15,

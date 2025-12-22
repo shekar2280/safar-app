@@ -3,7 +3,11 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../constants/Colors";
 import { CreateTripContext } from "../../context/CreateTripContext";
-import { AI_PROMPT, fallbackImages } from "../../constants/Options";
+import {
+  AI_PROMPT,
+  fallbackImages,
+  TRAVEL_AI_PROMPT,
+} from "../../constants/Options";
 import { generateTripPlan } from "../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../config/FirebaseConfig";
@@ -45,31 +49,33 @@ export default function GenerateTrip() {
   }, [tripData]);
 
   const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    if (!rawText) return "{}";
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        let cleaned = jsonMatch[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        return cleaned;
+      }
+      return "{}";
+    } catch (e) {
+      console.error("Cleaning Error:", e);
+      return "{}";
+    }
   };
 
   function formatDateForMMT(dateStr, transportType) {
     const date = new Date(dateStr);
-
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
 
-    if (transportType === "flight") {
-      // Flight format: DD/MM/YYYY
-      return `${day}/${month}/${year}`;
-    } else if (transportType === "train") {
-      // Train format: YYYYMMDD
-      return `${year}${month}${day}`;
-    } else {
-      throw new Error("Invalid transportType. Use 'flight' or 'train'.");
-    }
+    if (transportType === "flight") return `${day}/${month}/${year}`;
+    if (transportType === "train") return `${year}${month}${day}`;
+    return "";
   }
-  const flightDate = formatDateForMMT(tripData.startDate, "flight");
-  const trainDate = formatDateForMMT(tripData.startDate, "train");
 
   const fetchUnsplashImage = async (locationName) => {
     try {
@@ -85,107 +91,93 @@ export default function GenerateTrip() {
       );
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
-
-      if (raw) {
-        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
-      }
-
+      return raw
+        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
+        : fallbackImages[0];
+    } catch (e) {
       return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-    } catch (error) {
-      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
-      return fallbackImages[randomIndex];
     }
   };
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const generateAiTrip = async () => {
-    setLoading(true);
-    setError(null);
-    setRetryCount(0);
+  setLoading(true);
+  setError(null);
+  setRetryCount(0);
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    let success = false;
-    let aiResponse = null;
+  let attempts = 0;
+  const maxAttempts = 3;
+  let success = false;
 
+  const flightDate = formatDateForMMT(tripData.startDate, "flight");
+  const trainDate = formatDateForMMT(tripData.startDate, "train");
+  const normalizedKey = `${tripData.locationInfo.name.toLowerCase()}-${tripData.totalDays}-${tripData.budget.toLowerCase()}`;
+
+  while (attempts < maxAttempts && !success) {
     try {
-      const normalizedKey = `${tripData.locationInfo.name.toLowerCase()}-${
-        tripData.totalDays
-      }-${tripData.budget.toLowerCase()}-${tripData.tripType.toLowerCase()}`;
+      setRetryCount(attempts);
 
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
-      const { startDate, endDate, traveler, ...tripTemplateData } = tripData;
-      const { icon, ...cleanTraveler } = tripData.traveler;
+      let itineraryData;
+      let finalImageUrl;
 
       if (existingTrip.exists()) {
-        const userTripRef = doc(collection(db, "UserTrips"));
-        await setDoc(userTripRef, {
-          userEmail: user.email,
-          userId: user.uid,
+        const cachedData = existingTrip.data();
+        itineraryData = cachedData.tripPlan;
+        finalImageUrl = cachedData.imageUrl;
+      } else {
+        const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(/{location}/g, tripData?.locationInfo?.name)
+          .replace(/{totalDays}/g, tripData?.totalDays)
+          .replace(/{totalNight}/g, tripData?.totalDays - 1)
+          .replace(/{traveler}/g, tripData?.traveler?.title)
+          .replace(/{budget}/g, tripData?.budget);
+
+        const [itineraryRes, unsplashUrl] = await Promise.all([
+          generateTripPlan(FINAL_ITINERARY_PROMPT),
+          fetchUnsplashImage(tripData?.locationInfo?.name)
+        ]);
+
+        try {
+          const cleanedItinerary = cleanAiResponse(itineraryRes);
+          itineraryData = normalizeItinerary(JSON.parse(cleanedItinerary));
+        } catch (parseErr) {
+          console.error("Itinerary Parse Error:", parseErr);
+          throw new Error("Failed to parse itinerary details.");
+        }
+
+        finalImageUrl = unsplashUrl;
+
+        await setDoc(savedTripRef, {
           savedTripId: normalizedKey,
-          startDate: tripData.startDate,
-          endDate: tripData.endDate,
-          traveler: cleanTraveler,
-          isActive: false,
+          tripPlan: itineraryData,
+          imageUrl: finalImageUrl,
           createdAt: serverTimestamp(),
         });
-        setLoading(false);
-        router.replace("(tabs)/mytrip");
-        return;
       }
 
-      const FINAL_PROMPT = AI_PROMPT.replace(
-        /{location}/g,
-        tripData?.locationInfo?.name
-      )
+      const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(/{tripType}/g, tripData?.tripType)
         .replace(/{departure}/g, tripData?.departureInfo?.name)
-        .replace(/{totalDays}/g, tripData?.totalDays)
-        .replace(/{totalNight}/g, tripData?.totalDays - 1)
+        .replace(/{location}/g, tripData?.locationInfo?.name)
+        .replace(/{date}/g, tripData.startDate)
         .replace(/{flightDate}/g, flightDate)
-        .replace(/{trainDate}/g, trainDate)
-        .replace(/{tripType}/g, tripData?.tripType)
-        .replace(/{traveler}/g, tripData?.traveler?.title)
-        .replace(/{budget}/g, tripData?.budget);
+        .replace(/{trainDate}/g, trainDate);
 
-      while (attempts < maxAttempts && !success) {
-        try {
-          setRetryCount(attempts);
-          aiResponse = await generateTripPlan(FINAL_PROMPT);
-          success = true;
-        } catch (err) {
-          attempts++;
-          console.warn(`Attempt ${attempts} failed:`, err.message);
-
-          if (attempts < maxAttempts) {
-            const waitTime = attempts * 2000;
-            console.log(`Retrying in ${waitTime / 1000} seconds...`);
-            await delay(waitTime);
-          } else {
-            throw err;
-          }
-        }
+      const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
+      let transportData;
+      try {
+        const cleanedTransport = cleanAiResponse(transportRes);
+        transportData = JSON.parse(cleanedTransport);
+      } catch (parseErr) {
+        console.error("Transport Parse Error:", parseErr);
+        throw new Error("Failed to parse transport details.");
       }
-
-      const cleanedResponse = cleanAiResponse(aiResponse);
-      const parsedTripData = JSON.parse(cleanedResponse);
-
-      const normalizedTrip = normalizeItinerary(parsedTripData);
-
-      const imageUrl = await fetchUnsplashImage(
-        tripData?.locationInfo?.name || "travel"
-      );
-
-      await setDoc(savedTripRef, {
-        savedTripId: normalizedKey,
-        tripData: tripTemplateData,
-        tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
-      });
 
       const userTripRef = doc(collection(db, "UserTrips"));
+      const { icon, ...cleanTraveler } = tripData.traveler;
+
       await setDoc(userTripRef, {
         userEmail: user.email,
         userId: user.uid,
@@ -193,30 +185,41 @@ export default function GenerateTrip() {
         startDate: tripData.startDate,
         endDate: tripData.endDate,
         traveler: cleanTraveler,
+        transportDetails: transportData.transportDetails,
+        imageUrl: finalImageUrl,
         isActive: false,
         createdAt: serverTimestamp(),
-        totalBudget: null,
       });
 
+      success = true;
       setLoading(false);
-      router.replace("(tabs)/mytrip");
-    } catch (err) {
-      let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message =
-          "The AI server is currently busy. Please try again in a moment.";
-      }
+      router.replace("/(tabs)/mytrip");
 
-      setError(message);
-      setLoading(false);
-      hasGenerated.current = false;
+    } catch (err) {
+      attempts++;
+      console.error(`Attempt ${attempts} failed:`, err);
+      
+      if (attempts < maxAttempts) {
+        await delay(attempts * 2500); 
+      } else {
+        let message = "Failed to generate trip. Please try again.";
+        if (err?.message?.includes("parse")) {
+          message = "AI response was malformed. Retrying might fix it.";
+        } else if (err?.message?.includes("503") || err?.message?.includes("429")) {
+          message = "AI server is currently busy. Please try again in a moment.";
+        }
+        setError(message);
+        setLoading(false);
+        hasGenerated.current = false;
+      }
     }
-  };
+  }
+};
 
   const getLoadingMessage = () => {
-    if (retryCount === 0) return "Generating your trip...";
-    if (retryCount === 1) return "Retrying...";
-    return "Almost there, finishing touches...";
+    if (retryCount === 1) return "Retrying connection...";
+    if (retryCount === 2) return "Almost there, finishing touches...";
+    return "Generating your trip...";
   };
 
   return (
@@ -229,34 +232,26 @@ export default function GenerateTrip() {
         alignItems: "center",
       }}
     >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+      {loading && (
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../assets/animations/loading.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        <Text
-          style={{
-            fontSize: width * 0.07,
-            fontFamily: "outfitBold",
-            textAlign: "center",
-          }}
-        >
-          {getLoadingMessage()}
-        </Text>
-      </Text>
+          <Text
+            style={{
+              fontSize: width * 0.07,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            {getLoadingMessage()}
+          </Text>
+        </View>
+      )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
@@ -271,7 +266,7 @@ export default function GenerateTrip() {
           >
             {error}
           </Text>
-
+          
           <TouchableOpacity
             onPress={() => generateAiTrip()}
             style={{
