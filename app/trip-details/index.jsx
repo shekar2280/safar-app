@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -16,7 +17,7 @@ import PlannedTrip from "../../components/TripDetails/PlannedTrip";
 import RestaurantsInfo from "../../components/TripDetails/RestaurantsInfo";
 import TransportInfo from "../../components/TripDetails/TransportInfo";
 import ConcertInfo from "../../components/TripDetails/ConcertInfo";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore"; 
 import { db } from "../../config/FirebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "../../constants/Options";
@@ -38,6 +39,7 @@ export default function TripDetails() {
   }, [trip]);
 
   const [tripDetails, setTripDetails] = useState(parsedTrip);
+  const [loadingStaticData, setLoadingStaticData] = useState(false);
 
   const tripData =
     tripDetails?.tripData ||
@@ -53,67 +55,93 @@ export default function TripDetails() {
       headerTransparent: true,
       headerTitle: " ",
     });
-  }, []);
 
-  const imageSource = useMemo(() => {
-    const randomUrl =
-      fallbackImages[
-        Math.floor(Math.random() * fallbackImages.length)
-      ];
-    return randomUrl;
-  }, [tripDetails?.id]);
+    if (parsedTrip?.savedTripId && !parsedTrip?.tripPlan) {
+      fetchStaticItinerary(parsedTrip.savedTripId);
+    }
+  }, [parsedTrip]);
+
+  const fetchStaticItinerary = async (savedTripId) => {
+    setLoadingStaticData(true);
+    try {
+      const docRef = doc(db, "SavedTripData", savedTripId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const staticData = docSnap.data();
+        setTripDetails((prev) => ({
+          ...prev,
+          tripPlan: staticData.tripPlan,
+          imageUrl: prev.imageUrl || staticData.imageUrl,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching static itinerary:", error);
+      Alert.alert("Error", "Could not load complete itinerary.");
+    } finally {
+      setLoadingStaticData(false);
+    }
+  };
 
   const handleActivateTrip = async () => {
     if (!tripDetails.id) return;
-
     try {
       const tripRef = doc(db, "UserTrips", tripDetails.id);
-
       await updateDoc(tripRef, {
         isActive: true,
         activatedAt: new Date(),
       });
 
       setTripDetails((prev) => ({ ...prev, isActive: true }));
-
-      router.push({
-        pathname: "/wallet",
-        params: { tripId: tripDetails.id },
-      });
+      router.push({ pathname: "/wallet", params: { tripId: tripDetails.id } });
     } catch (error) {
-      console.error(error);
       Alert.alert("Error", "Failed to activate trip.");
     }
   };
 
-  const isTripActive = tripDetails.isActive;
+  const imageSource = useMemo(() => {
+    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+  }, [tripDetails?.id]);
+
+  if (loadingStaticData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+        <Text style={styles.loadingText}>Loading itinerary...</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      style={{ backgroundColor: Colors.WHITE }}
+    >
       <Image
         source={
           tripDetails?.concertData
             ? require("../../assets/images/concert.jpg")
-            : typeof imageUrl === "string" && imageUrl.length > 0
+            : imageUrl
             ? { uri: imageUrl }
             : imageSource
         }
         style={styles.headerImage}
       />
+
       <View style={styles.container}>
         <Text style={styles.title}>
-          {tripData?.locationInfo?.name || tripData?.locationInfo?.title || "Trip Details"}
+          {tripDetails?.tripPlan?.tripName || "Trip Details"}
         </Text>
 
         <View style={styles.infoRow}>
           <Text style={styles.dateText}>
-            {moment(tripDetails?.startDate).format("DD MMM YYYY")}
-            {" - "}
+            {moment(tripDetails?.startDate).format("DD MMM YYYY")} -{" "}
             {moment(tripDetails?.endDate).format("DD MMM YYYY")}
           </Text>
         </View>
 
-        {!isTripActive ? (
+        {/* Wallet Activation Section */}
+        {!tripDetails.isActive ? (
           <TouchableOpacity
             onPress={handleActivateTrip}
             style={styles.activateButton}
@@ -144,21 +172,22 @@ export default function TripDetails() {
           </View>
         )}
 
+        {/* Concert Section */}
         {tripDetails?.tripPlan?.concertDetails && (
           <ConcertInfo concertData={tripDetails.tripPlan.concertDetails} />
         )}
 
-        <TransportInfo
-          transportData={tripDetails?.tripPlan?.transportDetails}
-        />
+        {/* Transport Section */}
+        <TransportInfo transportData={tripDetails?.transportDetails} />
 
+        {/* Hotels Section */}
         <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} />
 
+        {/* Itinerary & Food Section */}
         <View style={{ paddingTop: height * 0.02 }}>
           <PlannedTrip
             itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
           />
-
           <RestaurantsInfo
             restaurantsInfo={{
               ...tripDetails?.tripPlan?.recommendations,
@@ -172,11 +201,14 @@ export default function TripDetails() {
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    width: "100%",
-    height: height * 0.4,
-    resizeMode: "cover",
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.WHITE,
   },
+  loadingText: { fontFamily: "outfit", marginTop: 10, color: Colors.GRAY },
+  headerImage: { width: "100%", height: height * 0.4 },
   container: {
     padding: width * 0.05,
     backgroundColor: Colors.WHITE,
@@ -186,16 +218,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: width * 0.07,
     paddingBottom: height * 0.1,
   },
-  title: {
-    fontSize: width * 0.065,
-    fontFamily: "outfitBold",
-  },
-  infoRow: {
-    flexDirection: "row",
-    gap: width * 0.015,
-    marginTop: height * 0.005,
-    marginVertical: height * 0.02,
-  },
+  title: { fontSize: width * 0.065, fontFamily: "outfitBold" },
+  infoRow: { flexDirection: "row", marginVertical: height * 0.015 },
   dateText: {
     fontFamily: "outfit",
     fontSize: width * 0.045,
@@ -203,29 +227,29 @@ const styles = StyleSheet.create({
   },
   activateButton: {
     backgroundColor: Colors.PRIMARY,
-    padding: height * 0.018,
-    borderRadius: width * 0.025,
-    marginBottom: height * 0.03,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 25,
   },
   activateButtonText: {
     color: Colors.WHITE,
     textAlign: "center",
     fontFamily: "outfitBold",
-    fontSize: width * 0.045,
+    fontSize: 16,
   },
   activeBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#E6F4EA",
-    padding: height * 0.015,
-    borderRadius: width * 0.025,
-    marginBottom: height * 0.03,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 25,
   },
   activeText: {
     color: "#00A86B",
     fontFamily: "outfitMedium",
-    fontSize: width * 0.045,
-    marginLeft: width * 0.02,
+    fontSize: 16,
+    marginLeft: 8,
   },
   linkText: {
     color: Colors.PRIMARY,
