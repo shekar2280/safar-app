@@ -15,7 +15,12 @@ import {
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
 import Constants from "expo-constants";
 import { TrendingTripContext } from "../../../context/TrendingTripContext";
-import { AI_PROMPT, fallbackImages } from "../../../constants/Options";
+import {
+  AI_PROMPT,
+  fallbackImages,
+  TRAVEL_AI_PROMPT,
+} from "../../../constants/Options";
+
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
@@ -45,17 +50,36 @@ export default function GenerateTrip() {
   }, [trendingData]);
 
   const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    if (!rawText) return "{}";
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return jsonMatch[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+      }
+      return "{}";
+    } catch (e) {
+      return "{}";
+    }
   };
+
+  function formatDateForMMT(dateStr, transportType) {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    if (transportType === "flight") return `${day}/${month}/${year}`;
+    if (transportType === "train") return `${year}${month}${day}`;
+    return "";
+  }
 
   const fetchUnsplashImage = async (locationName) => {
     try {
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName + " famous place"
+          locationName
         )}&per_page=1&orientation=landscape`,
         {
           headers: {
@@ -65,15 +89,11 @@ export default function GenerateTrip() {
       );
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
-
-      if (raw) {
-        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
-      }
-
+      return raw
+        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
+        : fallbackImages[0];
+    } catch (e) {
       return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-    } catch (error) {
-      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
-      return fallbackImages[randomIndex];
     }
   };
 
@@ -87,22 +107,76 @@ export default function GenerateTrip() {
     let attempts = 0;
     const maxAttempts = 3;
     let success = false;
-    let aiResponse = null;
 
-    try {
-      const normalizedKey = `${trendingData.locationInfo.title.toLowerCase()}-${
-        trendingData.totalDays
-      }-${trendingData.budget.toLowerCase()}-${trendingData.tripType.toLowerCase()}`;
+    const flightDate = formatDateForMMT(trendingData.startDate, "flight");
+    const trainDate = formatDateForMMT(trendingData.startDate, "train");
 
-      const savedTripRef = doc(db, "SavedTripData", normalizedKey);
-      const existingTrip = await getDoc(savedTripRef);
+    const normalizedKey = `${trendingData.locationInfo.title.toLowerCase()}-${
+      trendingData.totalDays
+    }-${trendingData.budget.toLowerCase()}`;
 
-      const { startDate, endDate, traveler, ...tripTemplateData } =
-        trendingData;
-      const { icon, ...cleanTraveler } = trendingData.traveler;
+    while (attempts < maxAttempts && !success) {
+      try {
+        setRetryCount(attempts);
 
-      if (existingTrip.exists()) {
+        const savedTripRef = doc(db, "SavedTripData", normalizedKey);
+        const existingTrip = await getDoc(savedTripRef);
+
+        let itineraryData;
+        let finalImageUrl;
+
+        if (existingTrip.exists()) {
+          const cachedData = existingTrip.data();
+          itineraryData = cachedData.tripPlan;
+          finalImageUrl = cachedData.imageUrl;
+        } else {
+          const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
+            /{location}/g,
+            trendingData?.locationInfo?.title
+          )
+            .replace(/{totalDays}/g, trendingData?.totalDays)
+            .replace(/{totalNight}/g, trendingData?.totalDays - 1)
+            .replace(/{traveler}/g, trendingData?.traveler?.title)
+            .replace(/{budget}/g, trendingData?.budget);
+
+          const [itineraryRes, unsplashUrl] = await Promise.all([
+            generateTripPlan(FINAL_ITINERARY_PROMPT),
+            fetchUnsplashImage(trendingData?.locationInfo?.title),
+          ]);
+
+          itineraryData = normalizeItinerary(
+            JSON.parse(cleanAiResponse(itineraryRes))
+          );
+          finalImageUrl = unsplashUrl;
+
+          await setDoc(savedTripRef, {
+            savedTripId: normalizedKey,
+            tripPlan: itineraryData,
+            imageUrl: finalImageUrl,
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
+          /{tripType}/g,
+          trendingData?.tripType
+        )
+          .replace(
+            /{departure}/g,
+            trendingData?.departureInfo?.label ||
+              trendingData?.departureInfo?.name
+          )
+          .replace(/{location}/g, trendingData?.locationInfo?.title)
+          .replace(/{date}/g, trendingData.startDate)
+          .replace(/{flightDate}/g, flightDate)
+          .replace(/{trainDate}/g, trainDate);
+
+        const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
+        const transportData = JSON.parse(cleanAiResponse(transportRes));
+
         const userTripRef = doc(collection(db, "UserTrips"));
+        const { icon, ...cleanTraveler } = trendingData.traveler;
+
         await setDoc(userTripRef, {
           userEmail: user.email,
           userId: user.uid,
@@ -110,85 +184,32 @@ export default function GenerateTrip() {
           startDate: trendingData.startDate,
           endDate: trendingData.endDate,
           traveler: cleanTraveler,
+          transportDetails: transportData.transportDetails,
+          imageUrl: finalImageUrl,
           isActive: false,
           createdAt: serverTimestamp(),
         });
+
+        success = true;
         setLoading(false);
-        router.push("(tabs)/mytrip");
-        return;
-      }
-
-      const FINAL_PROMPT = AI_PROMPT.replace(
-        /{location}/g,
-        trendingData?.locationInfo?.title
-      )
-        .replace(/{departure}/g, trendingData?.departureInfo?.label)
-        .replace(/{totalDays}/g, trendingData?.totalDays)
-        .replace(/{totalNight}/g, trendingData?.totalDays - 1)
-        .replace(/{tripType}/g, trendingData?.tripType)
-        .replace(/{traveler}/g, trendingData?.traveler?.title)
-        .replace(/{budget}/g, trendingData?.budget);
-
-      while (attempts < maxAttempts && !success) {
-        try {
-          setRetryCount(attempts);
-          aiResponse = await generateTripPlan(FINAL_PROMPT);
-          success = true;
-        } catch (err) {
-          attempts++;
-          if (attempts < maxAttempts) {
-            await delay(attempts * 2000);
-          } else {
-            throw err;
-          }
+        router.replace("/(tabs)/mytrip");
+      } catch (err) {
+        attempts++;
+        console.error(`Attempt ${attempts} failed:`, err);
+        if (attempts < maxAttempts) {
+          await delay(attempts * 2500);
+        } else {
+          setError("Failed to generate trip. Please try again.");
+          setLoading(false);
+          hasGenerated.current = false;
         }
       }
-
-      const cleanedResponse = cleanAiResponse(aiResponse);
-      const parsedTripData = JSON.parse(cleanedResponse);
-      const normalizedTrip = normalizeItinerary(parsedTripData);
-
-      const imageUrl = await fetchUnsplashImage(
-        trendingData?.locationInfo?.title || "travel"
-      );
-
-      await setDoc(savedTripRef, {
-        savedTripId: normalizedKey,
-        tripData: tripTemplateData,
-        tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
-      });
-
-      const userTripRef = doc(collection(db, "UserTrips"));
-      await setDoc(userTripRef, {
-        userEmail: user.email,
-        userId: user.uid,
-        savedTripId: normalizedKey,
-        startDate: trendingData.startDate,
-        endDate: trendingData.endDate,
-        traveler: cleanTraveler,
-        isActive: false,
-        createdAt: serverTimestamp(),
-      });
-
-      setLoading(false);
-      router.replace("(tabs)/mytrip");
-    } catch (err) {
-      let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message =
-          "The AI server is currently busy. Please try again in a moment.";
-      }
-      setError(message);
-      setLoading(false);
-      hasGenerated.current = false;
     }
   };
 
   const getLoadingMessage = () => {
-    if (retryCount === 0) return "Generating your trip...";
-    if (retryCount === 1) return "Retrying...";
-    return "Almost there, finishing touches...";
+    if (retryCount > 0) return "Connection slow, retrying...";
+    return "Generating your trip...";
   };
 
   return (
@@ -201,27 +222,26 @@ export default function GenerateTrip() {
         alignItems: "center",
       }}
     >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+      {loading && (
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../../assets/animations/loading.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-              marginTop: height * 0.05,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        {getLoadingMessage()}
-      </Text>
+          <Text
+            style={{
+              fontSize: width * 0.07,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            {getLoadingMessage()}
+          </Text>
+        </View>
+      )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
@@ -236,7 +256,6 @@ export default function GenerateTrip() {
           >
             {error}
           </Text>
-
           <TouchableOpacity
             onPress={() => generateAiTrip()}
             style={{
@@ -258,7 +277,6 @@ export default function GenerateTrip() {
               Try Again
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/mytrip")}
             style={{
