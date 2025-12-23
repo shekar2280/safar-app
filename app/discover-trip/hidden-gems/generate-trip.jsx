@@ -10,9 +10,9 @@ import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
 import {
   AI_PROMPT,
-  TRAVEL_AI_PROMPT,
   DiscoverTripImages,
   fallbackImages,
+  TRAVEL_AI_PROMPT,
 } from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
@@ -60,8 +60,13 @@ export default function GenerateTrip() {
     if (!rawText) return "{}";
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return jsonMatch[0].trim();
-      return rawText.trim();
+      if (jsonMatch) {
+        return jsonMatch[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+      }
+      return "{}";
     } catch (e) {
       return "{}";
     }
@@ -94,7 +99,7 @@ export default function GenerateTrip() {
       return raw
         ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
         : fallbackImages[0];
-    } catch (error) {
+    } catch (e) {
       return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
@@ -106,65 +111,104 @@ export default function GenerateTrip() {
     setError(null);
     setRetryCount(0);
 
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+
     const flightDate = formatDateForMMT(discoverData.startDate, "flight");
     const trainDate = formatDateForMMT(discoverData.startDate, "train");
 
-    try {
-      const normalizedKey = `${discoverData.locationInfo.title.toLowerCase()}-${
-        discoverData.totalDays
-      }-${discoverData.budget.toLowerCase()}`;
-      const savedTripRef = doc(db, "SavedTripData", normalizedKey);
-      const existingTrip = await getDoc(savedTripRef);
+    const normalizedKey = `${discoverData.locationInfo.title.toLowerCase()}-${
+      discoverData.totalDays
+    }-${discoverData.budget.toLowerCase()}`;
 
-      let itineraryData;
-      let finalImageUrl;
-      let transportData;
+    while (attempts < maxAttempts && !success) {
+      try {
+        setRetryCount(attempts);
 
-      if (existingTrip.exists()) {
-        const cachedData = existingTrip.data();
-        itineraryData = cachedData.tripPlan;
-        finalImageUrl = cachedData.imageUrl;
-      } else {
-        const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
-          /{location}/g,
-          discoverData?.locationInfo?.title
+        const savedTripRef = doc(db, "SavedTripData", normalizedKey);
+        const existingTrip = await getDoc(savedTripRef);
+
+        let itineraryData;
+        let finalImageUrl;
+
+        if (existingTrip.exists()) {
+          const cachedData = existingTrip.data();
+          itineraryData = cachedData.tripPlan;
+          finalImageUrl = cachedData.imageUrl;
+        } else {
+          const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
+            /{location}/g,
+            discoverData?.locationInfo?.title
+          )
+            .replace(/{totalDays}/g, discoverData?.totalDays)
+            .replace(/{totalNight}/g, discoverData?.totalDays - 1)
+            .replace(/{traveler}/g, discoverData?.traveler?.title)
+            .replace(/{budget}/g, discoverData?.budget);
+
+          const locationTitle = discoverData?.locationInfo?.title;
+
+          const [itineraryRes, unsplashUrl] = await Promise.all([
+            generateTripPlan(FINAL_ITINERARY_PROMPT),
+            DiscoverTripImages[locationTitle]
+              ? Promise.resolve(DiscoverTripImages[locationTitle])
+              : fetchUnsplashImage(locationTitle),
+          ]);
+
+          itineraryData = normalizeItinerary(
+            JSON.parse(cleanAiResponse(itineraryRes))
+          );
+          finalImageUrl = unsplashUrl;
+
+          await setDoc(savedTripRef, {
+            savedTripId: normalizedKey,
+            tripPlan: itineraryData,
+            imageUrl: finalImageUrl,
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
+          /{tripType}/g,
+          discoverData?.tripType
         )
-          .replace(/{totalDays}/g, discoverData?.totalDays)
-          .replace(/{totalNight}/g, discoverData?.totalDays - 1)
-          .replace(/{traveler}/g, discoverData?.traveler?.title)
-          .replace(/{budget}/g, discoverData?.budget);
+          .replace(/{departure}/g, discoverData?.departureInfo?.name)
+          .replace(/{location}/g, discoverData?.locationInfo?.title)
+          .replace(/{date}/g, discoverData.startDate)
+          .replace(/{flightDate}/g, flightDate)
+          .replace(/{trainDate}/g, trainDate);
 
-        let attempts = 0;
-        const maxAttempts = 3;
-        let success = false;
-        let itineraryRes;
+        const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
+        const transportData = JSON.parse(cleanAiResponse(transportRes));
 
-        while (attempts < maxAttempts && !success) {
-          try {
-            setRetryCount(attempts + 1);
-            const [res, unsplashUrl] = await Promise.all([
-              generateTripPlan(FINAL_ITINERARY_PROMPT),
-              DiscoverTripImages[discoverData.locationInfo.title]
-                ? Promise.resolve(
-                    DiscoverTripImages[discoverData.locationInfo.title]
-                  )
-                : fetchUnsplashImage(discoverData.locationInfo.title),
-            ]);
+        const userTripRef = doc(collection(db, "UserTrips"));
+        const { icon, ...cleanTraveler } = discoverData.traveler;
 
-            itineraryData = normalizeItinerary(
-              JSON.parse(cleanAiResponse(res))
-            );
-            itineraryRes = res;
-            finalImageUrl = unsplashUrl;
-            success = true;
-          } catch (err) {
-            attempts++;
-            if (attempts < maxAttempts) await delay(2500);
-            else
-              throw new Error(
-                "AI returned invalid data format multiple times."
-              );
-          }
+        await setDoc(userTripRef, {
+          userEmail: user.email,
+          userId: user.uid,
+          savedTripId: normalizedKey,
+          startDate: discoverData.startDate,
+          endDate: discoverData.endDate,
+          traveler: cleanTraveler,
+          transportDetails: transportData.transportDetails,
+          imageUrl: finalImageUrl,
+          isActive: false,
+          createdAt: serverTimestamp(),
+        });
+
+        success = true;
+        setLoading(false);
+        router.replace("/(tabs)/mytrip");
+      } catch (err) {
+        attempts++;
+        console.error(`Discover Trip Attempt ${attempts} failed:`, err);
+        if (attempts < maxAttempts) {
+          await delay(attempts * 2500);
+        } else {
+          setError("Failed to discover your trip. Please try again.");
+          setLoading(false);
+          hasGenerated.current = false;
         }
 
         await setDoc(savedTripRef, {
@@ -174,60 +218,12 @@ export default function GenerateTrip() {
           createdAt: serverTimestamp(),
         });
       }
-
-      const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
-        /{tripType}/g,
-        discoverData?.tripType
-      )
-        .replace(/{departure}/g, discoverData?.departureInfo?.name)
-        .replace(/{location}/g, discoverData?.locationInfo?.title)
-        .replace(/{date}/g, discoverData.startDate)
-        .replace(/{flightDate}/g, flightDate)
-        .replace(/{trainDate}/g, trainDate);
-
-      const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
-      try {
-        transportData = JSON.parse(cleanAiResponse(transportRes));
-      } catch (e) {
-        transportData = { transportDetails: { outbound: [], return: [] } };
-      }
-
-      const { icon, ...cleanTraveler } = discoverData.traveler;
-      const tripSubCollection = collection(db, "UserTrips", user.uid, "trips");
-      const newUserTripRef = doc(tripSubCollection);
-
-      await setDoc(newUserTripRef, {
-        id: newUserTripRef.id,
-        userEmail: user.email,
-        userId: user.uid,
-        savedTripId: normalizedKey,
-        startDate: discoverData.startDate,
-        endDate: discoverData.endDate,
-        traveler: cleanTraveler,
-        transportDetails: transportData.transportDetails || [],
-        imageUrl: finalImageUrl,
-        isActive: false,
-        createdAt: serverTimestamp(),
-        totalBudget: 0,
-      });
-
-      setLoading(false);
-      router.replace("/(tabs)/mytrip");
-    } catch (err) {
-      console.error("GENERATION ERROR:", err);
-      let message = "Failed to generate trip. Please try again.";
-      if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message = "AI server is busy. Please try again in a moment.";
-      }
-      setError(message);
-      setLoading(false);
-      hasGenerated.current = false;
     }
   };
 
   const getLoadingMessage = () => {
-    if (retryCount <= 1) return "Generating your trip...";
-    return `Retrying connection...`;
+    if (retryCount > 0) return "Connection slow, retrying...";
+    return "Generating your trip...";
   };
 
   return (
@@ -247,7 +243,16 @@ export default function GenerateTrip() {
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text
+            style={{
+              fontFamily: "outfitMedium",
+              textAlign: "center",
+              marginVertical: 10,
+              paddingHorizontal: 20,
+            }}
+          >
+            {error}
+          </Text>
           <TouchableOpacity
             onPress={() => generateAiTrip()}
             style={styles.primaryButton}

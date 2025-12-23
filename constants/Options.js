@@ -113,24 +113,25 @@ Follow these instructions carefully:
      - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)"
 
 3. Recommendations:
-   Use a top-level key called "recommendations".
-   It must contain two arrays: "restaurants" and "localExperiences".
-  - For "restaurants":  
-    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
-    - Each entry must include:  
-      - restaurantName (real, existing place if possible)  
-      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - address (with city/area)  
-      - approximateCost (per person in ₹)  
-
-  - For "localExperiences":  
-    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
-    - Each entry must include:  
-      - experienceName  
-      - description (2–3 sentences about what the traveler will do/see/learn)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - approximateCost (per person in ₹, or 0 if free)  
+   +  Use a top-level key called "recommendations".
++  It must contain two arrays: "restaurants" and "localExperiences".
++
++  - For "restaurants":  
++    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
++    - Each entry must include:  
++      - restaurantName (real, existing place if possible)  
++      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
++      - priceRange ("Budget", "Moderate", "High")  
++      - address (with city/area)  
++      - approximateCost (per person in ₹)  
++
++  - For "localExperiences":  
++    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
++    - Each entry must include:  
++      - experienceName  
++      - description (2–3 sentences about what the traveler will do/see/learn)  
++      - priceRange ("Budget", "Moderate", "High")  
++      - approximateCost (per person in ₹, or 0 if free)  
 
 
 4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
@@ -201,7 +202,6 @@ h. Booking URL format:
 i. Avoid routes that go in the opposite direction or significantly increase travel time.
 j. Keep JSON clean, human-readable, and ready for frontend use.
 `;
-
 export const HOTEL_AI_PROMPT = `
 Generate 5–6 hotel options in or near {location} for a {budget} trip.
 
