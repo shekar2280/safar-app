@@ -6,7 +6,7 @@ import UserTripCard from "./UserTripCard";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../config/FirebaseConfig";
+import { auth, db } from "../../config/FirebaseConfig";
 import { fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 
@@ -28,7 +28,8 @@ export default function UserTripList({ userTrips }) {
   const latestTrip = trips[0];
 
   const randomFallback = useMemo(() => {
-    const randomUrl = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+    const randomUrl =
+      fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     return randomUrl;
   }, [latestTrip?.id]);
 
@@ -73,10 +74,13 @@ export default function UserTripList({ userTrips }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(db, "UserTrips", latestTrip.id));
-            handleDelete(latestTrip.id);
+            const user = auth.currentUser;
+            const tripRef = doc(db, "UserTrips", user.uid, "trips", latestTrip.id);
+
+            await deleteDoc(tripRef);
+            onDelete?.(latestTrip.id);
           } catch (error) {
-            console.error("Failed to delete trip:", error);
+            console.error("Delete Error:", error);
           }
         },
       },
@@ -163,9 +167,9 @@ export default function UserTripList({ userTrips }) {
           onPress={() =>
             router.push({
               pathname: "/trip-details",
-              params: { 
-                trip: JSON.stringify(latestTrip), 
-                imageUrl: latestTrip?.imageUrl || "" 
+              params: {
+                trip: JSON.stringify(latestTrip),
+                imageUrl: latestTrip?.imageUrl || "",
               },
             })
           }

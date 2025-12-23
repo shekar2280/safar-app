@@ -1,8 +1,18 @@
-import { View, Text, Dimensions, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Dimensions,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
-import { fallbackImages, FESTIVE_AI_PROMPT } from "../../../constants/Options";
+import {
+  fallbackImages,
+  FESTIVE_AI_PROMPT,
+  TRAVEL_AI_PROMPT,
+} from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
@@ -46,37 +56,31 @@ export default function GenerateTrip() {
   }, [festiveData]);
 
   const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    if (!rawText) return "{}";
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return jsonMatch[0].trim();
+      return rawText.trim();
+    } catch (e) {
+      return "{}";
+    }
   };
 
   function formatDateForMMT(dateStr, transportType) {
     const date = new Date(dateStr);
-
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-
-    if (transportType === "flight") {
-      // Flight format: DD/MM/YYYY
-      return `${day}/${month}/${year}`;
-    } else if (transportType === "train") {
-      // Train format: YYYYMMDD
-      return `${year}${month}${day}`;
-    } else {
-      throw new Error("Invalid transportType. Use 'flight' or 'train'.");
-    }
+    if (transportType === "flight") return `${day}/${month}/${year}`;
+    if (transportType === "train") return `${year}${month}${day}`;
+    return "";
   }
-  const flightDate = formatDateForMMT(festiveData.startDate, "flight");
-  const trainDate = formatDateForMMT(festiveData.startDate, "train");
 
   const fetchUnsplashImage = async (locationName) => {
     try {
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName + " famous place"
+          locationName + " festival"
         )}&per_page=1&orientation=landscape`,
         {
           headers: {
@@ -86,15 +90,11 @@ export default function GenerateTrip() {
       );
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
-
-      if (raw) {
-        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
-      }
-
-      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+      return raw
+        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
+        : fallbackImages[0];
     } catch (error) {
-      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
-      return fallbackImages[randomIndex];
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
 
@@ -105,113 +105,114 @@ export default function GenerateTrip() {
     setError(null);
     setRetryCount(0);
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    let success = false;
-    let aiResponse = null;
+    const flightDate = formatDateForMMT(festiveData.startDate, "flight");
+    const trainDate = formatDateForMMT(festiveData.startDate, "train");
 
     try {
       const normalizedKey = `${festiveData.locationInfo.title.toLowerCase()}-${
         festiveData.totalDays
-      }-${festiveData.budget.toLowerCase()}-${festiveData.tripType.toLowerCase()}`;
-
+      }-${festiveData.budget.toLowerCase()}`;
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
-      const { startDate, endDate, traveler, ...tripTemplateData } = festiveData;
-      const { icon, ...cleanTraveler } = festiveData.traveler;
+      let itineraryData;
+      let finalImageUrl;
+      let transportData;
 
       if (existingTrip.exists()) {
-        const userTripRef = doc(collection(db, "UserTrips"));
-        await setDoc(userTripRef, {
-          userEmail: user.email,
-          userId: user.uid,
-          savedTripId: normalizedKey,
-          startDate: festiveData.startDate,
-          endDate: festiveData.endDate,
-          traveler: cleanTraveler,
-          isActive: false,
-          createdAt: serverTimestamp(),
-        });
-        setLoading(false);
-        router.push("(tabs)/mytrip");
-        return;
-      }
+        const cachedData = existingTrip.data();
+        itineraryData = cachedData.tripPlan;
+        finalImageUrl = cachedData.imageUrl;
+      } else {
+        const FINAL_ITINERARY_PROMPT = FESTIVE_AI_PROMPT.replace(/{location}/g,festiveData?.locationInfo?.title)
+          .replace(/{totalDays}/g, festiveData?.totalDays)
+          .replace(/{totalNight}/g, festiveData?.totalDays - 1)
+          .replace(/{traveler}/g, festiveData?.traveler?.title)
+          .replace(/{festival}/g, festiveData?.locationInfo?.festival)
+          .replace(/{budget}/g, festiveData?.budget);
 
-      const FINAL_PROMPT = FESTIVE_AI_PROMPT.replace(
-        /{location}/g,
-        festiveData?.locationInfo?.title
-      )
-        .replace(/{departure}/g, festiveData?.departureInfo?.name)
-        .replace(/{totalDays}/g, festiveData?.totalDays)
-        .replace(/{totalNight}/g, festiveData?.totalDays - 1)
-        .replace(/{flightDate}/g, flightDate)
-        .replace(/{trainDate}/g, trainDate)
-        .replace(/{tripType}/g, festiveData?.tripType)
-        .replace(/{traveler}/g, festiveData?.traveler?.title)
-        .replace(/{festival}/g, festiveData?.locationInfo?.festival)
-        .replace(/{budget}/g, festiveData?.budget);
+        let attempts = 0;
+        const maxAttempts = 3;
+        let success = false;
+        let itineraryRes;
 
-      while (attempts < maxAttempts && !success) {
-        try {
-          setRetryCount(attempts);
-          aiResponse = await generateTripPlan(FINAL_PROMPT);
-          success = true;
-        } catch (err) {
-          attempts++;
+        while (attempts < maxAttempts && !success) {
+          try {
+            setRetryCount(attempts + 1);
+            const [res, unsplashUrl] = await Promise.all([
+              generateTripPlan(FINAL_ITINERARY_PROMPT),
+              fetchUnsplashImage(festiveData?.locationInfo?.title),
+            ]);
 
-          if (attempts < maxAttempts) {
-            const waitTime = attempts * 2000;
-            await delay(waitTime);
-          } else {
-            throw err;
+            const cleaned = cleanAiResponse(res);
+            itineraryData = normalizeItinerary(JSON.parse(cleaned));
+
+            itineraryRes = res;
+            finalImageUrl = unsplashUrl;
+            success = true;
+          } catch (err) {
+            attempts++;
+            if (attempts < maxAttempts) await delay(2500);
+            else
+              throw new Error(
+                "AI returned invalid data format multiple times."
+              );
           }
         }
+
+        await setDoc(savedTripRef, {
+          savedTripId: normalizedKey,
+          tripPlan: itineraryData,
+          imageUrl: finalImageUrl,
+          createdAt: serverTimestamp(),
+        });
       }
 
-      const cleanedResponse = cleanAiResponse(aiResponse);
-      let parsedfestiveData;
+      const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
+        /{tripType}/g,
+        festiveData?.tripType
+      )
+        .replace(/{departure}/g, festiveData?.departureInfo?.name)
+        .replace(/{location}/g, festiveData?.locationInfo?.title)
+        .replace(/{date}/g, festiveData.startDate)
+        .replace(/{flightDate}/g, flightDate)
+        .replace(/{trainDate}/g, trainDate);
 
+      const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
       try {
-        parsedfestiveData = JSON.parse(cleanedResponse);
-      } catch (parseErr) {
-        throw new Error("Failed to parse AI response. Please try again.");
+        transportData = JSON.parse(cleanAiResponse(transportRes));
+      } catch (e) {
+        transportData = { transportDetails: { outbound: [], return: [] } };
       }
 
-      const normalizedTrip = normalizeItinerary(parsedfestiveData);
+      const { icon, ...cleanTraveler } = festiveData.traveler;
+      const tripSubCollection = collection(db, "UserTrips", user.uid, "trips");
+      const newUserTripRef = doc(tripSubCollection);
 
-      const imageUrl = await fetchUnsplashImage(
-        festiveData?.locationInfo?.title || "travel"
-      );
-
-      await setDoc(savedTripRef, {
-        savedTripId: normalizedKey,
-        festiveData: tripTemplateData,
-        tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
-      });
-
-      const userTripRef = doc(collection(db, "UserTrips"));
-      await setDoc(userTripRef, {
+      await setDoc(newUserTripRef, {
+        id: newUserTripRef.id,
         userEmail: user.email,
         userId: user.uid,
         savedTripId: normalizedKey,
         startDate: festiveData.startDate,
         endDate: festiveData.endDate,
         traveler: cleanTraveler,
+        transportDetails: transportData.transportDetails || [],
+        imageUrl: finalImageUrl,
+        festiveData: { ...festiveData.locationInfo },
         isActive: false,
         createdAt: serverTimestamp(),
+        totalBudget: 0,
       });
 
       setLoading(false);
-      router.push("(tabs)/mytrip");
+      router.replace("/(tabs)/mytrip");
     } catch (err) {
-      let message = "Something went wrong. Please try again.";
+      console.error("GENERATION ERROR:", err);
+      let message = "Failed to generate festive trip. Please try again.";
       if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message =
-          "The AI server is currently busy. Please try again in a moment.";
+        message = "AI server is busy. Please try again in a moment.";
       }
-
       setError(message);
       setLoading(false);
       hasGenerated.current = false;
@@ -219,104 +220,92 @@ export default function GenerateTrip() {
   };
 
   const getLoadingMessage = () => {
-    if (retryCount === 0) return "Generating your trip...";
-    if (retryCount === 1) return "Retrying...";
-    return "Almost there, finishing touches...";
+    if (retryCount === 1) return "Retrying connection...";
+    if (retryCount === 2) return "Almost there, finishing touches...";
+    return "Generating your festive trip...";
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: width * 0.06,
-        paddingTop: height * 0.12,
-        backgroundColor: Colors.WHITE,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+    <View style={styles.container}>
+      {loading && (
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../../assets/animations/festive-loading.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-              marginTop: height * 0.05,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        {getLoadingMessage()}
-      </Text>
+          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
+        </View>
+      )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text
-            style={{
-              fontFamily: "outfitMedium",
-              textAlign: "center",
-              marginVertical: 10,
-              paddingHorizontal: 20,
-            }}
-          >
-            {error}
-          </Text>
-
+          <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             onPress={() => generateAiTrip()}
-            style={{
-              marginTop: 20,
-              backgroundColor: Colors.PRIMARY,
-              padding: 15,
-              borderRadius: 15,
-              width: width * 0.7,
-            }}
+            style={styles.primaryButton}
           >
-            <Text
-              style={{
-                color: "white",
-                textAlign: "center",
-                fontFamily: "outfitBold",
-                fontSize: 16,
-              }}
-            >
-              Try Again
-            </Text>
+            <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/mytrip")}
-            style={{
-              marginTop: 15,
-              padding: 15,
-              borderRadius: 15,
-              borderWidth: 1,
-              borderColor: Colors.PRIMARY,
-              width: width * 0.7,
-            }}
+            style={styles.secondaryButton}
           >
-            <Text
-              style={{
-                color: Colors.PRIMARY,
-                textAlign: "center",
-                fontFamily: "outfitBold",
-                fontSize: 16,
-              }}
-            >
-              Back to Home
-            </Text>
+            <Text style={styles.secondaryButtonText}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: width * 0.06,
+    backgroundColor: Colors.WHITE,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: width * 0.07,
+    fontFamily: "outfitBold",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  errorText: {
+    fontFamily: "outfitMedium",
+    textAlign: "center",
+    marginVertical: 10,
+    paddingHorizontal: 20,
+  },
+  primaryButton: {
+    marginTop: 20,
+    backgroundColor: Colors.PRIMARY,
+    padding: 15,
+    borderRadius: 15,
+    width: width * 0.7,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
+  secondaryButton: {
+    marginTop: 15,
+    padding: 15,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+    width: width * 0.7,
+  },
+  secondaryButtonText: {
+    color: Colors.PRIMARY,
+    textAlign: "center",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
+});
