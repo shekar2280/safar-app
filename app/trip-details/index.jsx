@@ -57,17 +57,15 @@ export default function TripDetails() {
 
   const imageSource = useMemo(() => {
     const randomUrl =
-      fallbackImages[
-        Math.floor(Math.random() * fallbackImages.length)
-      ];
+      fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     return randomUrl;
   }, [tripDetails?.id]);
 
   const handleActivateTrip = async () => {
-    if (!tripDetails.id) return;
+    if (!tripDetails.id || !auth.currentUser) return;
 
     try {
-      const tripRef = doc(db, "UserTrips", tripDetails.id);
+      const tripRef = doc(db,"UserTrips",auth.currentUser.uid,"trips",tripDetails.id);
 
       await updateDoc(tripRef, {
         isActive: true,
@@ -75,13 +73,9 @@ export default function TripDetails() {
       });
 
       setTripDetails((prev) => ({ ...prev, isActive: true }));
-
-      router.push({
-        pathname: "/wallet",
-        params: { tripId: tripDetails.id },
-      });
+      router.push({ pathname: "/wallet", params: { tripId: tripDetails.id } });
     } catch (error) {
-      console.error(error);
+      console.error("Activation Error:", error);
       Alert.alert("Error", "Failed to activate trip.");
     }
   };
@@ -102,7 +96,10 @@ export default function TripDetails() {
       />
       <View style={styles.container}>
         <Text style={styles.title}>
-          {tripData?.locationInfo?.name || tripData?.locationInfo?.title || "Trip Details"}
+          {tripData?.locationInfo?.name ||
+            tripData?.locationInfo?.title ||
+            tripDetails?.tripPlan?.tripName ||
+            "Trip Details"}
         </Text>
 
         <View style={styles.infoRow}>
@@ -149,7 +146,7 @@ export default function TripDetails() {
         )}
 
         <TransportInfo
-          transportData={tripDetails?.tripPlan?.transportDetails}
+          transportData={tripDetails?.transportDetails}
         />
 
         <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} />

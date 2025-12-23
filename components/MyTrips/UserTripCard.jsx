@@ -1,17 +1,11 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-  Dimensions,
-} from "react-native";
+import { View, Text, TouchableOpacity, Alert, Dimensions } from "react-native";
 import React, { useMemo } from "react";
 import moment from "moment";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../config/FirebaseConfig";
+import { auth, db } from "../../config/FirebaseConfig";
 import { concertImages, fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 
@@ -59,10 +53,13 @@ export default function UserTripCard({ trip, onDelete }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(db, "UserTrips", trip.id));
+            const user = auth.currentUser;
+            const tripRef = doc(db, "UserTrips", user.uid, "trips", trip.id);
+
+            await deleteDoc(tripRef);
             onDelete?.(trip.id);
           } catch (error) {
-            console.error("Failed to delete trip:", error);
+            console.error("Delete Error:", error);
           }
         },
       },

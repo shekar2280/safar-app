@@ -1,4 +1,10 @@
-import { View, Text, Dimensions, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Dimensions,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
@@ -15,7 +21,12 @@ import {
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
 import Constants from "expo-constants";
 import { TrendingTripContext } from "../../../context/TrendingTripContext";
-import { AI_PROMPT, fallbackImages } from "../../../constants/Options";
+import {
+  AI_PROMPT,
+  TRAVEL_AI_PROMPT,
+  fallbackImages,
+} from "../../../constants/Options";
+
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
@@ -45,35 +56,41 @@ export default function GenerateTrip() {
   }, [trendingData]);
 
   const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    if (!rawText) return "{}";
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      return jsonMatch ? jsonMatch[0].trim() : rawText.trim();
+    } catch (e) {
+      return "{}";
+    }
   };
+
+  function formatDateForMMT(dateStr, transportType) {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return transportType === "flight"
+      ? `${day}/${month}/${year}`
+      : `${year}${month}${day}`;
+  }
 
   const fetchUnsplashImage = async (locationName) => {
     try {
+      const apiKey = Constants.expoConfig?.extra?.UNSPLASH_API_KEY;
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
           locationName + " famous place"
         )}&per_page=1&orientation=landscape`,
-        {
-          headers: {
-            Authorization: `Client-ID ${Constants.expoConfig.extra.UNSPLASH_API_KEY}`,
-          },
-        }
+        { headers: { Authorization: `Client-ID ${apiKey}` } }
       );
       const data = await response.json();
       const raw = data?.results?.[0]?.urls?.raw;
-
-      if (raw) {
-        return `${raw}&auto=format&fit=crop&w=900&h=600&q=70`;
-      }
-
-      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+      return raw
+        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
+        : fallbackImages[0];
     } catch (error) {
-      const randomIndex = Math.floor(Math.random() * fallbackImages.length);
-      return fallbackImages[randomIndex];
+      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
 
@@ -84,205 +101,204 @@ export default function GenerateTrip() {
     setError(null);
     setRetryCount(0);
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    let success = false;
-    let aiResponse = null;
+    const flightDate = formatDateForMMT(trendingData.startDate, "flight");
+    const trainDate = formatDateForMMT(trendingData.startDate, "train");
 
     try {
       const normalizedKey = `${trendingData.locationInfo.title.toLowerCase()}-${
         trendingData.totalDays
-      }-${trendingData.budget.toLowerCase()}-${trendingData.tripType.toLowerCase()}`;
-
+      }-${trendingData.budget.toLowerCase()}`;
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
-      const { startDate, endDate, traveler, ...tripTemplateData } =
-        trendingData;
+      let itineraryData;
+      let finalImageUrl;
+      let transportData;
       const { icon, ...cleanTraveler } = trendingData.traveler;
 
       if (existingTrip.exists()) {
-        const userTripRef = doc(collection(db, "UserTrips"));
-        await setDoc(userTripRef, {
-          userEmail: user.email,
-          userId: user.uid,
-          savedTripId: normalizedKey,
-          startDate: trendingData.startDate,
-          endDate: trendingData.endDate,
-          traveler: cleanTraveler,
-          isActive: false,
-          createdAt: serverTimestamp(),
-        });
-        setLoading(false);
-        router.push("(tabs)/mytrip");
-        return;
-      }
+        const cachedData = existingTrip.data();
+        itineraryData = cachedData.tripPlan;
+        finalImageUrl = cachedData.imageUrl;
+      } else {
+        const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
+          /{location}/g,
+          trendingData?.locationInfo?.title
+        )
+          .replace(/{totalDays}/g, trendingData?.totalDays)
+          .replace(/{totalNight}/g, trendingData?.totalDays - 1)
+          .replace(/{traveler}/g, trendingData?.traveler?.title)
+          .replace(/{budget}/g, trendingData?.budget);
 
-      const FINAL_PROMPT = AI_PROMPT.replace(
-        /{location}/g,
-        trendingData?.locationInfo?.title
-      )
-        .replace(/{departure}/g, trendingData?.departureInfo?.label)
-        .replace(/{totalDays}/g, trendingData?.totalDays)
-        .replace(/{totalNight}/g, trendingData?.totalDays - 1)
-        .replace(/{tripType}/g, trendingData?.tripType)
-        .replace(/{traveler}/g, trendingData?.traveler?.title)
-        .replace(/{budget}/g, trendingData?.budget);
+        let attempts = 0;
+        const maxAttempts = 3;
+        let success = false;
+        let itineraryRes;
 
-      while (attempts < maxAttempts && !success) {
-        try {
-          setRetryCount(attempts);
-          aiResponse = await generateTripPlan(FINAL_PROMPT);
-          success = true;
-        } catch (err) {
-          attempts++;
-          if (attempts < maxAttempts) {
-            await delay(attempts * 2000);
-          } else {
-            throw err;
+        while (attempts < maxAttempts && !success) {
+          try {
+            setRetryCount(attempts + 1);
+            const [res, unsplashUrl] = await Promise.all([
+              generateTripPlan(FINAL_ITINERARY_PROMPT),
+              fetchUnsplashImage(trendingData?.locationInfo?.title),
+            ]);
+
+            itineraryData = normalizeItinerary(
+              JSON.parse(cleanAiResponse(res))
+            );
+            itineraryRes = res;
+            finalImageUrl = unsplashUrl;
+            success = true;
+          } catch (err) {
+            attempts++;
+            if (attempts < maxAttempts) await delay(2500);
+            else
+              throw new Error(
+                "AI returned invalid data format multiple times."
+              );
           }
         }
+
+        await setDoc(savedTripRef, {
+          savedTripId: normalizedKey,
+          tripPlan: itineraryData,
+          imageUrl: finalImageUrl,
+          createdAt: serverTimestamp(),
+        });
       }
 
-      const cleanedResponse = cleanAiResponse(aiResponse);
-      const parsedTripData = JSON.parse(cleanedResponse);
-      const normalizedTrip = normalizeItinerary(parsedTripData);
-
-      const imageUrl = await fetchUnsplashImage(
-        trendingData?.locationInfo?.title || "travel"
+      const transportRes = await generateTripPlan(
+        TRAVEL_AI_PROMPT.replace(/{tripType}/g, trendingData?.tripType)
+          .replace(
+            /{departure}/g,
+            trendingData?.departureInfo?.name ||
+              trendingData?.departureInfo?.label
+          )
+          .replace(/{location}/g, trendingData?.locationInfo?.title)
+          .replace(/{date}/g, trendingData.startDate)
+          .replace(/{flightDate}/g, flightDate)
+          .replace(/{trainDate}/g, trainDate)
       );
 
-      await setDoc(savedTripRef, {
-        savedTripId: normalizedKey,
-        tripData: tripTemplateData,
-        tripPlan: normalizedTrip,
-        imageUrl: imageUrl,
-      });
+      try {
+        transportData = JSON.parse(cleanAiResponse(transportRes));
+      } catch (e) {
+        transportData = { transportDetails: { outbound: [], return: [] } };
+      }
 
-      const userTripRef = doc(collection(db, "UserTrips"));
-      await setDoc(userTripRef, {
+      const tripSubCollection = collection(db, "UserTrips", user.uid, "trips");
+      const newUserTripRef = doc(tripSubCollection);
+
+      await setDoc(newUserTripRef, {
+        id: newUserTripRef.id,
         userEmail: user.email,
         userId: user.uid,
         savedTripId: normalizedKey,
         startDate: trendingData.startDate,
         endDate: trendingData.endDate,
         traveler: cleanTraveler,
+        transportDetails: transportData.transportDetails || [],
+        imageUrl: finalImageUrl,
         isActive: false,
         createdAt: serverTimestamp(),
+        totalBudget: 0,
       });
 
       setLoading(false);
-      router.replace("(tabs)/mytrip");
+      router.replace("/(tabs)/mytrip");
     } catch (err) {
-      let message = "Something went wrong. Please try again.";
-      if (err?.message?.includes("503") || err?.message?.includes("429")) {
-        message =
-          "The AI server is currently busy. Please try again in a moment.";
-      }
-      setError(message);
+      setError(err.message || "Failed to generate trending trip.");
       setLoading(false);
       hasGenerated.current = false;
     }
   };
 
   const getLoadingMessage = () => {
-    if (retryCount === 0) return "Generating your trip...";
-    if (retryCount === 1) return "Retrying...";
-    return "Almost there, finishing touches...";
+    if (retryCount <= 1) return "Generating your trip...";
+    return `Retrying connection (${retryCount}/3)...`;
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: width * 0.06,
-        backgroundColor: Colors.WHITE,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: width * 0.07,
-          fontFamily: "outfitBold",
-          textAlign: "center",
-        }}
-      >
-        {loading && (
+    <View style={styles.container}>
+      {loading && (
+        <View style={{ alignItems: "center" }}>
           <LottieView
             source={require("../../../assets/animations/loading.json")}
             autoPlay
             loop
-            style={{
-              width: width * 0.7,
-              height: width * 0.7,
-              marginTop: height * 0.05,
-            }}
+            style={{ width: width * 0.7, height: width * 0.7 }}
           />
-        )}
-        {getLoadingMessage()}
-      </Text>
+          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
+        </View>
+      )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text
-            style={{
-              fontFamily: "outfitMedium",
-              textAlign: "center",
-              marginVertical: 10,
-              paddingHorizontal: 20,
-            }}
-          >
-            {error}
-          </Text>
-
+          <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             onPress={() => generateAiTrip()}
-            style={{
-              marginTop: 20,
-              backgroundColor: Colors.PRIMARY,
-              padding: 15,
-              borderRadius: 15,
-              width: width * 0.7,
-            }}
+            style={styles.primaryButton}
           >
-            <Text
-              style={{
-                color: "white",
-                textAlign: "center",
-                fontFamily: "outfitBold",
-                fontSize: 16,
-              }}
-            >
-              Try Again
-            </Text>
+            <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/mytrip")}
-            style={{
-              marginTop: 15,
-              padding: 15,
-              borderRadius: 15,
-              borderWidth: 1,
-              borderColor: Colors.PRIMARY,
-              width: width * 0.7,
-            }}
+            style={styles.secondaryButton}
           >
-            <Text
-              style={{
-                color: Colors.PRIMARY,
-                textAlign: "center",
-                fontFamily: "outfitBold",
-                fontSize: 16,
-              }}
-            >
-              Back to Home
-            </Text>
+            <Text style={styles.secondaryButtonText}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: width * 0.06,
+    backgroundColor: Colors.WHITE,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: width * 0.07,
+    fontFamily: "outfitBold",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  errorText: {
+    fontFamily: "outfitMedium",
+    textAlign: "center",
+    marginVertical: 10,
+    paddingHorizontal: 20,
+  },
+  primaryButton: {
+    marginTop: 20,
+    backgroundColor: Colors.PRIMARY,
+    padding: 15,
+    borderRadius: 15,
+    width: width * 0.7,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
+  secondaryButton: {
+    marginTop: 15,
+    padding: 15,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+    width: width * 0.7,
+  },
+  secondaryButtonText: {
+    color: Colors.PRIMARY,
+    textAlign: "center",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
+});

@@ -59,8 +59,7 @@ export const trendingTripCardImages = [
   require("../assets/images/trending-places/trending-place3.jpg"),
   require("../assets/images/trending-places/trending-place4.jpg"),
   require("../assets/images/trending-places/trending-place5.jpg"),
-]
-
+];
 
 export const SelectBudgetOptions = [
   {
@@ -88,7 +87,71 @@ Generate a detailed, budget-conscious trip plan for {traveler} visiting {locatio
 
 Follow these instructions carefully:
 
-1. You are a travel data generator.
+1. Hotel options (5-6):
+   - Each hotel must include:
+     - hotelName
+     - hotelAddress
+     - pricePerNight (in ₹)
+     - hotelImageURL (real or relevant image URL)
+     - geoCoordinates with accurate latitude and longitude for the hotel
+     - rating (0–5)
+     - description (short)
+
+2. Daily itinerary:
+   - Use a top-level key called "dailyItinerary"
+   - Include a plan for each day of the trip using keys: day1, day2, ..., day{totalDays}
+   - Do not skip any day, even if it overlaps with travel
+   - If arrival is late on day1 or departure is early on the last day, suggest light/local activities accordingly
+   - For each day, include an object with a key "places" that holds an array of 2–3 real places to visit in/around the location
+   - Each item inside "places" must follow this structure:
+     - placeName: Name of the place
+     - placeDetails: A brief description
+     - placeImageURL: A real image URL if available, or use a relevant placeholder
+     - geoCoordinates: Accurate format {"latitude": number, "longitude": number}
+     - ticketPricing: Cost in ₹, or 0 if free
+     - estimatedTravelTime: Time to reach from previous location or hotel (e.g., "20 minutes")
+     - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)"
+
+3. Recommendations:
+   Use a top-level key called "recommendations".
+   It must contain two arrays: "restaurants" and "localExperiences".
+  - For "restaurants":  
+    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
+    - Each entry must include:  
+      - restaurantName (real, existing place if possible)  
+      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
+      - priceRange ("Budget", "Moderate", "High")  
+      - address (with city/area)  
+      - approximateCost (per person in ₹)  
+
+  - For "localExperiences":  
+    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
+    - Each entry must include:  
+      - experienceName  
+      - description (2–3 sentences about what the traveler will do/see/learn)  
+      - priceRange ("Budget", "Moderate", "High")  
+      - approximateCost (per person in ₹, or 0 if free)  
+
+
+4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
+
+5. Ensure the trip fits the provided budget and classify it as:
+   - "Budget" (< ₹10,000)
+   - "Moderate" (₹10,000–₹25,000)
+   - "Luxury" (> ₹25,000)
+
+6. Include a field called "tripDuration" formatted like "3 days, 2 nights".
+
+Ensure:
+- All content is realistic and based on actual locations and data.
+- All coordinates and links are valid and sensible.
+- Always return the same JSON structure with stable keys and order.
+
+Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
+`;
+
+export const TRAVEL_AI_PROMPT = `
+You are a travel data generator.
 
 Generate transportation details for a {tripType} trip from {departure} to {location} on {date}.
 
@@ -137,111 +200,8 @@ h. Booking URL format:
 
 i. Avoid routes that go in the opposite direction or significantly increase travel time.
 j. Keep JSON clean, human-readable, and ready for frontend use.
-
-
-2. Hotel options (5-6):
-   - Each hotel must include:
-     - hotelName
-     - hotelAddress
-     - pricePerNight (in ₹)
-     - hotelImageURL (real or relevant image URL)
-     - geoCoordinates with accurate latitude and longitude for the hotel
-     - rating (0–5)
-     - description (short)
-
-3. Daily itinerary:
-   - Use a top-level key called "dailyItinerary"
-   - Include a plan for each day of the trip using keys: day1, day2, ..., day{totalDays}
-   - Do not skip any day, even if it overlaps with travel
-   - If arrival is late on day1 or departure is early on the last day, suggest light/local activities accordingly
-   - For each day, include an object with a key "places" that holds an array of 2–3 real places to visit in/around the location
-   - Each item inside "places" must follow this structure:
-     - placeName: Name of the place
-     - placeDetails: A brief description
-     - placeImageURL: A real image URL if available, or use a relevant placeholder
-     - geoCoordinates: Accurate format {"latitude": number, "longitude": number}
-     - ticketPricing: Cost in ₹, or 0 if free
-     - estimatedTravelTime: Time to reach from previous location or hotel (e.g., "20 minutes")
-     - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)"
-
-4. Recommendations:
-   +  Use a top-level key called "recommendations".
-+  It must contain two arrays: "restaurants" and "localExperiences".
-+
-+  - For "restaurants":  
-+    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
-+    - Each entry must include:  
-+      - restaurantName (real, existing place if possible)  
-+      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
-+      - priceRange ("Budget", "Moderate", "High")  
-+      - address (with city/area)  
-+      - approximateCost (per person in ₹)  
-+
-+  - For "localExperiences":  
-+    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
-+    - Each entry must include:  
-+      - experienceName  
-+      - description (2–3 sentences about what the traveler will do/see/learn)  
-+      - priceRange ("Budget", "Moderate", "High")  
-+      - approximateCost (per person in ₹, or 0 if free)  
-
-
-5. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
-
-6. Ensure the trip fits the provided budget and classify it as:
-   - "Budget" (< ₹10,000)
-   - "Moderate" (₹10,000–₹25,000)
-   - "Luxury" (> ₹25,000)
-
-7. Include a field called "tripDuration" formatted like "3 days, 2 nights".
-
-Ensure:
-- All content is realistic and based on actual locations and data.
-- All coordinates and links are valid and sensible.
-- Always return the same JSON structure with stable keys and order.
-
-Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
 `;
 
-export const TRAVEL_AI_PROMPT = `
-You are a travel planner AI that generates transportation details between two locations.
-
-Input parameters:
-- tripType: either "Oneway" or "Round"
-- departure: origin city
-- location: destination city
-
-Instructions:
-1. For "Oneway":
-   - Return a JSON object with a key "transportDetails" containing one sub-key:
-     - "outbound": an array of 3–5 transport option objects from {departure} → {location}.
-
-2. For "Round":
-   - Return a JSON object with a key "transportDetails" containing two sub-keys:
-     - "outbound": array of 3–5 options {departure} → {location}.
-     - "return": array of 3–5 options {location} → {departure}.
-
-3. Each transport option object must include these exact fields:
-   - transportType: "Flight" or "Train"
-   - transportNumber: e.g., "6E-6102" or "12301 Rajdhani Express"
-   - from: departure airport/station code or city name
-   - to: arrival airport/station code or city name
-   - departureTime: e.g., "07:30 AM"
-   - arrivalTime: e.g., "11:15 AM"
-   - provider: airline or railway name (e.g., IndiGo, Air India, IRCTC)
-   - price: ticket price in ₹
-   - bookingURL: a realistic booking link (e.g., MakeMyTrip, IRCTC)
-   - tripDuration: formatted like "3 days, 2 nights"
-
-4. Rules for routing:
-   - Always choose the most direct and logical route.
-   - Prefer arrival airports/train stations closest to {location}.
-   - Do not include more than one intermediate stop (max 1 connection).
-   - If a direct option exists, always list it first.
-   - Avoid routes that go opposite to the direction or significantly increase travel time.
-
-Return ONLY a valid JSON object with no extra text, markdown, or explanations.
-`;
 export const HOTEL_AI_PROMPT = `
 Generate 5–6 hotel options in or near {location} for a {budget} trip.
 
@@ -513,27 +473,47 @@ export const DiscoverTripIdeas = [
 ];
 
 export const DiscoverTripImages = {
-  "Tawang, Arunachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
-  "Gokarna, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
-  "Chopta, Uttarakhand": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
-  "Majuli, Assam": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
-  "Halebidu, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
-  "Ziro Valley, Arunachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
-  "Mawlynnong, Meghalaya": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
-  "Patan, Gujarat": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
-  "Lepakshi, Andhra Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
-  "Chandratal, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
-  "Hampi, Karnataka": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
-  "Velas, Maharashtra": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
-  "Dzukou Valley, Nagaland": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
-  "Chalakudy, Kerala": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
-  "Mandu, Madhya Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
-  "Khimsar, Rajasthan": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
-  "Tirthan Valley, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
-  "Lonar Crater, Maharashtra": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
-  "Araku Valley, Andhra Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
-  "Kibber, Himachal Pradesh": "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
-}
+  "Tawang, Arunachal Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
+  "Gokarna, Karnataka":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
+  "Chopta, Uttarakhand":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
+  "Majuli, Assam":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
+  "Halebidu, Karnataka":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
+  "Ziro Valley, Arunachal Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
+  "Mawlynnong, Meghalaya":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
+  "Patan, Gujarat":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
+  "Lepakshi, Andhra Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
+  "Chandratal, Himachal Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
+  "Hampi, Karnataka":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
+  "Velas, Maharashtra":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
+  "Dzukou Valley, Nagaland":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
+  "Chalakudy, Kerala":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
+  "Mandu, Madhya Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
+  "Khimsar, Rajasthan":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
+  "Tirthan Valley, Himachal Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
+  "Lonar Crater, Maharashtra":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
+  "Araku Valley, Andhra Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
+  "Kibber, Himachal Pradesh":
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
+};
 
 // export const DISCOVER_AI_PROMPT = `
 // Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights. The budget for this trip is {budget}.

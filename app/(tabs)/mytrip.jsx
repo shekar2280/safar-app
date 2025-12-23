@@ -72,13 +72,10 @@ export default function Mytrip() {
   }, [isOffline]);
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.uid) return;
 
-    const q = query(
-      collection(db, "UserTrips"),
-      where("userEmail", "==", user.email),
-      orderBy("createdAt", "desc")
-    );
+    const tripsRef = collection(db, "UserTrips", user.uid, "trips");
+    const q = query(tripsRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       setLoading(true);
@@ -104,9 +101,9 @@ export default function Mytrip() {
               const saved = savedTripSnap.data();
 
               return {
-                ...saved, 
-                ...trip, 
-                createdAt: originalTimestamp, 
+                ...saved,
+                ...trip,
+                createdAt: originalTimestamp,
               };
             }
             return { ...trip };
@@ -119,7 +116,7 @@ export default function Mytrip() {
       const sortedTrips = tripsWithDetails.sort((a, b) => {
         const dateA = a.createdAt?.seconds || 0;
         const dateB = b.createdAt?.seconds || 0;
-        return dateB - dateA; 
+        return dateB - dateA;
       });
 
       await AsyncStorage.setItem(
@@ -146,6 +143,10 @@ export default function Mytrip() {
       loadCachedTrips();
     }
   }, [isOffline, user]);
+
+  const handleDelete = (deletedTripId) => {
+    setUserTrips((prev) => prev.filter((trip) => trip.id !== deletedTripId));
+  };
 
   return (
     <ScrollView
@@ -242,7 +243,7 @@ export default function Mytrip() {
         (userTrips?.length === 0 ? (
           <StartNewTripCard />
         ) : (
-          <UserTripList userTrips={userTrips} />
+          <UserTripList userTrips={userTrips} onDelete={handleDelete} />
         ))}
     </ScrollView>
   );
