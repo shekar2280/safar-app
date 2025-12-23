@@ -11,8 +11,8 @@ import { Colors } from "../../constants/Colors";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import {
   AI_PROMPT,
-  TRAVEL_AI_PROMPT,
   fallbackImages,
+  TRAVEL_AI_PROMPT,
 } from "../../constants/Options";
 import { generateTripPlan } from "../../config/AiModel";
 import { useRouter } from "expo-router";
@@ -58,9 +58,16 @@ export default function GenerateTrip() {
     if (!rawText) return "{}";
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return jsonMatch[0].trim();
-      return rawText.trim();
+      if (jsonMatch) {
+        let cleaned = jsonMatch[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        return cleaned;
+      }
+      return "{}";
     } catch (e) {
+      console.error("Cleaning Error:", e);
       return "{}";
     }
   };
@@ -101,21 +108,27 @@ export default function GenerateTrip() {
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const generateAiTrip = async () => {
-    setLoading(true);
-    setError(null);
-    setRetryCount(0);
+  setLoading(true);
+  setError(null);
+  setRetryCount(0);
 
-    const flightDate = formatDateForMMT(tripData.startDate, "flight");
-    const trainDate = formatDateForMMT(tripData.startDate, "train");
+  let attempts = 0;
+  const maxAttempts = 3;
+  let success = false;
 
+  const flightDate = formatDateForMMT(tripData.startDate, "flight");
+  const trainDate = formatDateForMMT(tripData.startDate, "train");
+  const normalizedKey = `${tripData.locationInfo.name.toLowerCase()}-${tripData.totalDays}-${tripData.budget.toLowerCase()}`;
+
+  while (attempts < maxAttempts && !success) {
     try {
-      const normalizedKey = `${tripData.locationInfo.name.toLowerCase()}-${tripData.totalDays}-${tripData.budget.toLowerCase()}`;
+      setRetryCount(attempts);
+
       const savedTripRef = doc(db, "SavedTripData", normalizedKey);
       const existingTrip = await getDoc(savedTripRef);
 
       let itineraryData;
       let finalImageUrl;
-      let transportData;
 
       if (existingTrip.exists()) {
         const cachedData = existingTrip.data();
@@ -128,31 +141,20 @@ export default function GenerateTrip() {
           .replace(/{traveler}/g, tripData?.traveler?.title)
           .replace(/{budget}/g, tripData?.budget);
 
-        let attempts = 0;
-        const maxAttempts = 3;
-        let success = false;
-        let itineraryRes;
+        const [itineraryRes, unsplashUrl] = await Promise.all([
+          generateTripPlan(FINAL_ITINERARY_PROMPT),
+          fetchUnsplashImage(tripData?.locationInfo?.name)
+        ]);
 
-        while (attempts < maxAttempts && !success) {
-          try {
-            setRetryCount(attempts + 1);
-            const [res, unsplashUrl] = await Promise.all([
-              generateTripPlan(FINAL_ITINERARY_PROMPT),
-              fetchUnsplashImage(tripData?.locationInfo?.name),
-            ]);
-            const cleaned = cleanAiResponse(res);
-            itineraryData = normalizeItinerary(JSON.parse(cleaned));
-            
-            itineraryRes = res;
-            finalImageUrl = unsplashUrl;
-            success = true;
-          } catch (err) {
-            attempts++;
-            console.warn(`Attempt ${attempts} failed due to JSON/Network error:`, err.message);
-            if (attempts < maxAttempts) await delay(2500);
-            else throw new Error("AI returned invalid data format multiple times. Please try again.");
-          }
+        try {
+          const cleanedItinerary = cleanAiResponse(itineraryRes);
+          itineraryData = normalizeItinerary(JSON.parse(cleanedItinerary));
+        } catch (parseErr) {
+          console.error("Itinerary Parse Error:", parseErr);
+          throw new Error("Failed to parse itinerary details.");
         }
+
+        finalImageUrl = unsplashUrl;
 
         await setDoc(savedTripRef, {
           savedTripId: normalizedKey,
@@ -170,41 +172,55 @@ export default function GenerateTrip() {
         .replace(/{trainDate}/g, trainDate);
 
       const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
-      
+      let transportData;
       try {
-        transportData = JSON.parse(cleanAiResponse(transportRes));
-      } catch (e) {
-        transportData = { transportDetails: { outbound: [], return: [] } };
+        const cleanedTransport = cleanAiResponse(transportRes);
+        transportData = JSON.parse(cleanedTransport);
+      } catch (parseErr) {
+        console.error("Transport Parse Error:", parseErr);
+        throw new Error("Failed to parse transport details.");
       }
 
+      const userTripRef = doc(collection(db, "UserTrips"));
       const { icon, ...cleanTraveler } = tripData.traveler;
-      const tripSubCollection = collection(db, "UserTrips", user.uid, "trips");
-      const newUserTripRef = doc(tripSubCollection);
 
-      await setDoc(newUserTripRef, {
-        id: newUserTripRef.id,
+      await setDoc(userTripRef, {
         userEmail: user.email,
         userId: user.uid,
         savedTripId: normalizedKey,
         startDate: tripData.startDate,
         endDate: tripData.endDate,
         traveler: cleanTraveler,
-        transportDetails: transportData.transportDetails || [],
+        transportDetails: transportData.transportDetails,
         imageUrl: finalImageUrl,
         isActive: false,
         createdAt: serverTimestamp(),
-        totalBudget: 0,
       });
 
+      success = true;
       setLoading(false);
       router.replace("/(tabs)/mytrip");
+
     } catch (err) {
-      console.error("GENERATION ERROR:", err);
-      setError(err.message || "Failed to generate trip.");
-      setLoading(false);
-      hasGenerated.current = false;
+      attempts++;
+      console.error(`Attempt ${attempts} failed:`, err);
+      
+      if (attempts < maxAttempts) {
+        await delay(attempts * 2500); 
+      } else {
+        let message = "Failed to generate trip. Please try again.";
+        if (err?.message?.includes("parse")) {
+          message = "AI response was malformed. Retrying might fix it.";
+        } else if (err?.message?.includes("503") || err?.message?.includes("429")) {
+          message = "AI server is currently busy. Please try again in a moment.";
+        }
+        setError(message);
+        setLoading(false);
+        hasGenerated.current = false;
+      }
     }
-  };
+  }
+};
 
   const getLoadingMessage = () => {
     if (retryCount === 1) return "Retrying connection...";
@@ -213,7 +229,15 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        flex: 1,
+        padding: width * 0.06,
+        backgroundColor: Colors.WHITE,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       {loading && (
         <View style={{ alignItems: "center" }}>
           <LottieView
@@ -222,14 +246,33 @@ export default function GenerateTrip() {
             loop
             style={{ width: width * 0.7, height: width * 0.7 }}
           />
-          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
+          <Text
+            style={{
+              fontSize: width * 0.07,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            {getLoadingMessage()}
+          </Text>
         </View>
       )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text
+            style={{
+              fontFamily: "outfitMedium",
+              textAlign: "center",
+              marginVertical: 10,
+              paddingHorizontal: 20,
+            }}
+          >
+            {error}
+          </Text>
+          
           <TouchableOpacity
             onPress={() => generateAiTrip()}
             style={styles.primaryButton}
