@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
-import { fallbackImages } from "../../constants/Options";
+import { concertImages, fallbackImages } from "../../constants/Options"; // Added concertImages
 import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
@@ -28,9 +28,11 @@ export default function UserTripList({ userTrips }) {
   const latestTrip = trips[0];
 
   const randomFallback = useMemo(() => {
-    const randomUrl =
-      fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-    return randomUrl;
+    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+  }, [latestTrip?.id]);
+
+  const concertFallback = useMemo(() => {
+    return concertImages[Math.floor(Math.random() * concertImages.length)];
   }, [latestTrip?.id]);
 
   if (!latestTrip) return null;
@@ -52,7 +54,15 @@ export default function UserTripList({ userTrips }) {
 
   const getFinalImageSource = () => {
     if (latestTrip?.concertData) {
-      return require("../../assets/images/concert.jpg");
+      const concertImg =
+        latestTrip?.concertData?.artistImageUrl ||
+        latestTrip?.concertData?.locationInfo?.imageUrl ||
+        latestTrip?.imageUrl;
+
+      if (concertImg) {
+        return { uri: concertImg };
+      }
+      return concertFallback;
     }
     if (latestTrip?.imageUrl) {
       return { uri: latestTrip.imageUrl };
@@ -75,10 +85,9 @@ export default function UserTripList({ userTrips }) {
         onPress: async () => {
           try {
             const user = auth.currentUser;
-            const tripRef = doc(db, "UserTrips", user.uid, "trips", latestTrip.id);
-
+            const tripRef = doc(db,"UserTrips",user.uid,"trips",latestTrip.id);
             await deleteDoc(tripRef);
-            onDelete?.(latestTrip.id);
+            handleDelete(latestTrip.id);
           } catch (error) {
             console.error("Delete Error:", error);
           }
@@ -169,7 +178,10 @@ export default function UserTripList({ userTrips }) {
               pathname: "/trip-details",
               params: {
                 trip: JSON.stringify(latestTrip),
-                imageUrl: latestTrip?.imageUrl || "",
+                imageUrl:
+                  typeof finalSource === "object"
+                    ? finalSource.uri
+                    : finalSource,
               },
             })
           }

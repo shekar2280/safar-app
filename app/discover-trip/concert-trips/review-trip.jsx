@@ -18,7 +18,7 @@ const { width, height } = Dimensions.get("window");
 export default function ReviewTrip() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { concertData } = useContext(ConcertTripContext);
+  const { concertData, setConcertData } = useContext(ConcertTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -68,6 +68,15 @@ export default function ReviewTrip() {
       value: concertData?.budget,
     },
   ];
+
+  const onBuildTrip = () => {
+    const cleanedData = {
+      ...concertData,
+      locationOptions: [], 
+    };
+    setConcertData(cleanedData);
+    router.replace("discover-trip/concert-trips/generate-trip");
+  };
 
   return (
     <ScrollView
@@ -150,9 +159,7 @@ export default function ReviewTrip() {
       ))}
 
       <TouchableOpacity
-        onPress={() =>
-          router.replace("discover-trip/concert-trips/generate-trip")
-        }
+        onPress={onBuildTrip}
         style={{
           paddingVertical: height * 0.02,
           backgroundColor: Colors.PRIMARY,

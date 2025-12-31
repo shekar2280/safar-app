@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ToastAndroid,
   ActivityIndicator,
+  StyleSheet,
+  FlatList,
 } from "react-native";
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigation, useRouter } from "expo-router";
@@ -15,35 +17,17 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withDelay,
   withRepeat,
   Easing,
 } from "react-native-reanimated";
 import { ConcertTripContext } from "../../../context/ConcertTripContext";
-import { CONCERT_LOCATION_DATE_PROMPT } from "../../../constants/Options";
+import {
+  CONCERT_LOCATION_DATE_PROMPT, singerOptions} from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
-import Constants from 'expo-constants';
+import Constants from "expo-constants";
 
 const { width, height } = Dimensions.get("window");
-
-const singerImages = [
-  require("../../../assets/images/concert-trips/anirudh.webp"),
-  require("../../../assets/images/concert-trips/dua.jpg"),
-  require("../../../assets/images/concert-trips/rahman.webp"),
-  require("../../../assets/images/concert-trips/jonita.jpg"),
-  require("../../../assets/images/concert-trips/weeknd.jpg"),
-  require("../../../assets/images/concert-trips/shreya.webp"),
-  require("../../../assets/images/concert-trips/arjit.webp"),
-  require("../../../assets/images/concert-trips/sabrina.jpg"),
-  require("../../../assets/images/concert-trips/miley.jpg"),
-];
-
-const chunkIntoRows = (array, numRows) => {
-  const rows = Array.from({ length: numRows }, () => []);
-  array.forEach((item, index) => {
-    rows[index % numRows].push(item);
-  });
-  return rows;
-};
 
 export default function ConcertTrip() {
   const navigation = useNavigation();
@@ -52,13 +36,35 @@ export default function ConcertTrip() {
   const [loading, setLoading] = useState(false);
   const { concertData, setConcertData } = useContext(ConcertTripContext);
 
+  const headerOpacity = useSharedValue(0);
+  const headerTranslateY = useSharedValue(20);
+  const searchBarOpacity = useSharedValue(0);
+
   useEffect(() => {
     navigation.setOptions({
       headerShown: true,
       headerTransparent: true,
       headerTitle: " ",
     });
+
+    headerOpacity.value = withTiming(1, { duration: 800 });
+    headerTranslateY.value = withTiming(0, {
+      duration: 800,
+      easing: Easing.out(Easing.exp),
+    });
+
+    searchBarOpacity.value = withDelay(300, withTiming(1, { duration: 800 }));
   }, []);
+
+  const animatedHeaderStyle = useAnimatedStyle(() => ({
+    opacity: headerOpacity.value,
+    transform: [{ translateY: headerTranslateY.value }],
+  }));
+
+  const animatedSearchStyle = useAnimatedStyle(() => ({
+    opacity: searchBarOpacity.value,
+    transform: [{ translateY: headerTranslateY.value * 0.5 }], 
+  }));
 
   const cleanAiResponse = (rawText) => {
     return rawText
@@ -113,32 +119,34 @@ export default function ConcertTrip() {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (!data._embedded?.events) {
-        return [];
-      }
+      if (!data._embedded?.events) return [];
 
-      const events = data._embedded.events.map((event, index) => ({
-        id: event.id || index + 1,
-        concertCity: event._embedded?.venues?.[0]?.city?.name || "Unknown City",
-        venueName: event._embedded?.venues?.[0]?.name || "Unknown Venue",
-        venueAddress:
-          event._embedded?.venues?.[0]?.address?.line1 || "Unknown Address",
-        concertDate: event.dates?.start?.localDate || "TBA",
-        concertImageURL:
-          event.images?.[0]?.url ||
-          "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg",
-        ticketPrice: event.priceRanges?.[0]
-          ? `$${event.priceRanges[0].min} - $${event.priceRanges[0].max}`
-          : "Not available",
-        geoCoordinates: event._embedded?.venues?.[0]?.location || null,
+      const events = data._embedded.events.map((event) => {
+        const highResImage =
+          event.images.find(
+            (img) => img.ratio === "16_9" && img.width > 1000
+          ) || event.images[0];
+        const venue = event._embedded?.venues?.[0];
 
-        title: event._embedded?.venues?.[0]?.city?.name || "Unknown City",
-        desc: `${event._embedded?.venues?.[0]?.name || "Unknown Venue"} on ${
-          event.dates?.start?.localDate || "TBA"
-        }`,
-
-        fullData: event,
-      }));
+        return {
+          id: event.id,
+          artist: event.name,
+          title: venue?.city?.name || "Unknown City",
+          desc: `${venue?.name} on ${event.dates?.start?.localDate}`,
+          image: highResImage?.url,
+          venueName: venue?.name,
+          venueAddress: venue?.address?.line1,
+          concertDate: event.dates?.start?.localDate,
+          concertTime: event.dates?.start?.localTime,
+          coordinates: {
+            latitude: venue?.location?.latitude,
+            longitude: venue?.location?.longitude,
+          },
+          bookingUrl: event.url,
+          priceRange: event.priceRanges?.[0] || null,
+          status: event.dates?.status?.code,
+        };
+      });
 
       setConcertData((prev) => ({
         ...prev,
@@ -153,152 +161,171 @@ export default function ConcertTrip() {
     }
   };
 
+  const onSelectArtist = async (name) => {
+    if (loading) return;
+    setArtist(name);
+    setLoading(true);
 
+    let options = await fetchConcertsFromTicketmaster(name);
 
-  const imageRows = chunkIntoRows(singerImages, 3);
-  const imageWidth = width * 0.35;
-  const imageGap = 10;
+    if (options.length === 0) {
+      options = await fetchConcertLocations(name);
+    }
+    setLoading(false);
+
+    if (options.length > 0) {
+      router.push("/discover-trip/concert-trips/select-place");
+    } else {
+      ToastAndroid.show(
+        "No concerts found. Try another artist.",
+        ToastAndroid.LONG
+      );
+    }
+  };
 
   return (
-    <View
-      style={{
-        padding: width * 0.06,
-        paddingTop: height * 0.12,
-        backgroundColor: Colors.WHITE,
-        flex: 1,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: width * 0.085,
-          fontFamily: "outfitBold",
-          marginTop: height * 0.01,
-        }}
-      >
-        Concert Trip
-      </Text>
+    <View style={styles.container}>
+      <Animated.View style={animatedHeaderStyle}>
+        <Text style={styles.headerTitle}>Concert Trip</Text>
+        <View style={styles.headerAccent} />
+      </Animated.View>
 
-      <TextInput
-        style={{
-          height: height * 0.06,
-          borderColor: Colors.GRAY,
-          borderWidth: 1,
-          borderRadius: 8,
-          paddingHorizontal: width * 0.04,
-          fontSize: width * 0.04,
-          marginTop: height * 0.01,
-        }}
-        value={artist}
-        onChangeText={setArtist}
-        placeholder="Type artist name here"
-        placeholderTextColor={Colors.PRIMARY}
-      />
+      <Animated.View style={animatedSearchStyle}>
+        <TextInput
+          style={styles.searchBar}
+          value={artist}
+          onChangeText={setArtist}
+          placeholder="Type artist name here"
+          placeholderTextColor={Colors.GRAY}
+        />
+      </Animated.View>
+      
+      <View style={{ flex: 1, marginTop: 20 }}>
+        <Text style={styles.subHeader}>Popular Artists</Text>
 
-      <View
-        style={{
-          marginTop: height * 0.03,
-          height: height * 0.6,
-          justifyContent: "space-between",
-        }}
-      >
-        {imageRows.map((rowImages, rowIndex) => {
-          const loopImages = [...rowImages, ...rowImages];
-          const totalWidth = loopImages.length * (imageWidth + imageGap);
-          const translateX = useSharedValue(0);
-
-          useEffect(() => {
-            translateX.value = withRepeat(
-              withTiming(-totalWidth / 2, {
-                duration: 18000 + rowIndex * 3000,
-                easing: Easing.linear,
-              }),
-              -1,
-              false
-            );
-          }, []);
-
-          const animatedStyle = useAnimatedStyle(() => ({
-            transform: [{ translateX: translateX.value }],
-          }));
-
-          return (
-            <View
-              key={rowIndex}
-              style={{
-                overflow: "hidden",
-                height: height * 0.18,
-                marginBottom: 12,
-              }}
+        <FlatList
+          data={singerOptions}
+          numColumns={2}
+          keyExtractor={(item) => item.id.toString()}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.cardContainer}
+              onPress={() => onSelectArtist(item.title)}
             >
-              <Animated.View style={[{ flexDirection: "row" }, animatedStyle]}>
-                {loopImages.map((imgSrc, imgIndex) => (
-                  <Image
-                    key={`${rowIndex}-${imgIndex}`}
-                    source={imgSrc}
-                    style={{
-                      width: imageWidth,
-                      height: height * 0.18,
-                      borderRadius: 12,
-                      resizeMode: "cover",
-                      marginRight: imageGap,
-                    }}
-                  />
-                ))}
-              </Animated.View>
-            </View>
-          );
-        })}
-
-        {artist.trim().length > 2 && (
-          <TouchableOpacity
-            onPress={async () => {
-              if (loading) return;
-
-              setLoading(true);
-              let options = await fetchConcertsFromTicketmaster(artist);
-              if (options.length === 0) {
-                options = await fetchConcertLocations(artist); 
-              }
-
-              setLoading(false);
-
-              if (options.length > 0) {
-                router.push("/discover-trip/concert-trips/select-place");
-              } else {
-                ToastAndroid.show(
-                  "No concerts found. Try another artist.",
-                  ToastAndroid.SHORT
-                );
-              }
-            }}
-            style={{
-              paddingVertical: height * 0.02,
-              backgroundColor: Colors.PRIMARY,
-              borderRadius: width * 0.04,
-              marginTop: height * 0.01,
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.WHITE} />
-            ) : (
-              <Text
-                style={{
-                  textAlign: "center",
-                  color: Colors.WHITE,
-                  fontFamily: "outfitMedium",
-                  fontSize: width * 0.05,
-                  marginTop: 8,
-                }}
-              >
-                Continue
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+              <View style={styles.card}>
+                <Image source={item.image} style={styles.cardImage} />
+                <View style={styles.imageOverlay} />
+                <Text 
+                style={[
+                  styles.cardText, 
+                  { fontSize: item.title.length > 12 ? 13 : 16 }
+                  ]}>{item.title}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       </View>
+      
+      {artist.trim().length > 2 && (
+        <TouchableOpacity
+          onPress={() => onSelectArtist(artist)}
+          style={styles.continueButton}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.WHITE} />
+          ) : (
+            <Text style={[ 
+              styles.continueText,
+              { fontSize: artist.trim().length > 12 ? 13 : 16 }
+              ]}>Search "{artist}"</Text>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: width * 0.06,
+    paddingTop: height * 0.12,
+    backgroundColor: Colors.WHITE,
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: width * 0.085,
+    fontFamily: "outfitBold",
+  },
+  subHeader: {
+    fontFamily: "outfitMedium",
+    fontSize: 18,
+    marginBottom: 10,
+    color: Colors.GRAY,
+  },
+  searchBar: {
+    height: 55,
+    borderColor: "#E5E5E5",
+    borderWidth: 1,
+    borderRadius: 15,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    marginTop: 10,
+    fontFamily: "outfit",
+    backgroundColor: "#F9F9F9",
+  },
+  cardContainer: {
+    flex: 1,
+    margin: 8,
+    height: height * 0.2,
+  },
+  card: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  cardImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  cardText: {
+    position: "absolute",
+    justifyContent: "center",
+    alignContent: "center",
+    bottom: 15,
+    left: 30,
+    color: "white",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
+  continueButton: {
+    position: "absolute",
+    bottom: 30,
+    left: width * 0.06,
+    right: width * 0.06,
+    height: 60,
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    marginBottom: 25,
+  },
+  continueText: {
+    color: Colors.WHITE,
+    fontFamily: "outfitMedium",
+    fontSize: 18,
+  },
+});

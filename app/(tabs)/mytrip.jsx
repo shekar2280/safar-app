@@ -72,63 +72,41 @@ export default function Mytrip() {
   }, [isOffline]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || isOffline) return;
 
     const tripsRef = collection(db, "UserTrips", user.uid, "trips");
     const q = query(tripsRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      setLoading(true);
-
-      const userTripsData = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
+      const baseTrips = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       }));
 
-      const tripsWithDetails = await Promise.all(
-        userTripsData.map(async (trip) => {
-          try {
-            const originalTimestamp = trip.createdAt;
-
-            if (!trip.savedTripId) {
-              return { ...trip };
-            }
-
-            const savedTripRef = doc(db, "SavedTripData", trip.savedTripId);
-            const savedTripSnap = await getDoc(savedTripRef);
-
-            if (savedTripSnap.exists()) {
-              const saved = savedTripSnap.data();
-
-              return {
-                ...saved,
-                ...trip,
-                createdAt: originalTimestamp,
-              };
-            }
-            return { ...trip };
-          } catch (err) {
-            return { ...trip };
-          }
-        })
-      );
-
-      const sortedTrips = tripsWithDetails.sort((a, b) => {
-        const dateA = a.createdAt?.seconds || 0;
-        const dateB = b.createdAt?.seconds || 0;
-        return dateB - dateA;
-      });
+      setUserTrips(baseTrips);
+      setLoading(false);
 
       await AsyncStorage.setItem(
         `userTrips_${user.email}`,
-        JSON.stringify(sortedTrips)
+        JSON.stringify(baseTrips)
       );
-      setUserTrips(sortedTrips);
-      setLoading(false);
+
+      baseTrips.forEach(async (trip) => {
+        if (!trip.savedTripId) return;
+
+        try {
+          const snap = await getDoc(doc(db, "SavedTripData", trip.savedTripId));
+          if (!snap.exists()) return;
+
+          setUserTrips((prev) =>
+            prev.map((t) => (t.id === trip.id ? { ...t, ...snap.data() } : t))
+          );
+        } catch {}
+      });
     });
 
-    return () => unsubscribe();
-  }, [user]);
+    return unsubscribe;
+  }, [user, isOffline]);
 
   useEffect(() => {
     const loadCachedTrips = async () => {
@@ -136,6 +114,7 @@ export default function Mytrip() {
       const cachedData = await AsyncStorage.getItem(`userTrips_${user.email}`);
       if (cachedData) {
         setUserTrips(JSON.parse(cachedData));
+        setLoading(false);
       }
     };
 

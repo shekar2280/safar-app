@@ -10,23 +10,7 @@ export default function ActiveTripCard({ trip }) {
 
   const router = useRouter();
 
-  const concertImages = [
-    require("../../assets/images/concert-trips/concert-images/concert-1.jpg"),
-    require("../../assets/images/concert-trips/concert-images/concert-2.jpg"),
-    require("../../assets/images/concert-trips/concert-images/concert-3.jpg"),
-  ];
-
-  const tripData =
-    trip?.tripData ||
-    trip?.discoverData ||
-    trip?.festiveData ||
-    trip?.concertData ||
-    trip?.trendingData ||
-    {};
-
-  const tripImageSource = trip?.concertData
-    ? concertImages[Math.floor(Math.random() * concertImages.length)]
-    : trip?.imageUrl
+  const tripImageSource = trip?.imageUrl
     ? { uri: trip.imageUrl }
     : require("../../assets/images/homepage.jpg");
 

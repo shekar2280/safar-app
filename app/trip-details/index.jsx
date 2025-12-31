@@ -17,8 +17,8 @@ import PlannedTrip from "../../components/TripDetails/PlannedTrip";
 import RestaurantsInfo from "../../components/TripDetails/RestaurantsInfo";
 import TransportInfo from "../../components/TripDetails/TransportInfo";
 import ConcertInfo from "../../components/TripDetails/ConcertInfo";
-import { doc, updateDoc, getDoc } from "firebase/firestore"; 
-import { db } from "../../config/FirebaseConfig";
+import { doc, updateDoc, getDoc, collection } from "firebase/firestore";
+import { auth, db } from "../../config/FirebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
@@ -26,6 +26,7 @@ import { Image } from "expo-image";
 const { width, height } = Dimensions.get("window");
 
 export default function TripDetails() {
+  const user = auth.currentUser;
   const router = useRouter();
   const navigation = useNavigation();
   const { trip, imageUrl } = useLocalSearchParams();
@@ -86,7 +87,8 @@ export default function TripDetails() {
   const handleActivateTrip = async () => {
     if (!tripDetails.id) return;
     try {
-      const tripRef = doc(db, "UserTrips", tripDetails.id);
+      const tripRef = doc(db, "UserTrips", user.uid, "trips", tripDetails.id);
+
       await updateDoc(tripRef, {
         isActive: true,
         activatedAt: new Date(),
@@ -95,6 +97,7 @@ export default function TripDetails() {
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       router.push({ pathname: "/wallet", params: { tripId: tripDetails.id } });
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Failed to activate trip.");
     }
   };
@@ -111,32 +114,44 @@ export default function TripDetails() {
       </View>
     );
   }
+  
+  const getHeaderImage = () => {
+    if (tripDetails?.concertData) {
+      const concertImg =
+        tripDetails?.concertData?.artistImageUrl ||
+        tripDetails?.concertData?.locationInfo?.imageUrl ||
+        imageUrl;
+
+      if (concertImg && typeof concertImg === "string") {
+        return { uri: concertImg };
+      }
+      return require("../../assets/images/concert.jpg");
+    }
+    if (imageUrl) {
+      return { uri: imageUrl };
+    }
+    return imageSource;
+  };
 
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       style={{ backgroundColor: Colors.WHITE }}
     >
-      <Image
-        source={
-          tripDetails?.concertData
-            ? require("../../assets/images/concert.jpg")
-            : imageUrl
-            ? { uri: imageUrl }
-            : imageSource
-        }
-        style={styles.headerImage}
-      />
+      <Image source={getHeaderImage()} style={styles.headerImage} />
 
       <View style={styles.container}>
         <Text style={styles.title}>
-          {tripDetails?.tripPlan?.tripName || "Trip Details"}
+          {tripDetails?.tripPlan?.tripName ||
+            `${tripDetails?.concertData.artist} Concert` ||
+            "Trip Details"}
         </Text>
 
         <View style={styles.infoRow}>
           <Text style={styles.dateText}>
-            {moment(tripDetails?.startDate).format("DD MMM YYYY")} -{" "}
-            {moment(tripDetails?.endDate).format("DD MMM YYYY")}
+            {moment(tripDetails.startDate).format("DD MMM YYYY")}
+            {" - "}
+            {moment(tripDetails.endDate).format("DD MMM YYYY")}
           </Text>
         </View>
 

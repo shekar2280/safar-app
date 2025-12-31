@@ -55,37 +55,34 @@ export default function SelectDestination() {
   }, [concertData.locationOptions]);
 
   const onClickContinue = () => {
-    if (!selectedOption) {
-      ToastAndroid.show("Select a concert date", ToastAndroid.LONG);
-      return;
-    }
+  if (!selectedOption) {
+    ToastAndroid.show("Select a concert date", ToastAndroid.LONG);
+    return;
+  }
 
-    const selected = selectedOption;
+  const selected = selectedOption;
 
-    const updatedData = {
-      ...concertData,
-      locationInfo: {
-        title: selected.concertCity,
-        coordinates: selected.geoCoordinates,
-        venueName: selected.venueName,
-        venueAddress: selected.venueAddress,
-        concertDate: selected.concertDate,
-        concertImageURL: selected.concertImageURL,
-        ticketPrice: selected.ticketPrice,
-      },
-      startDate:
-        selected.concertDate && selected.concertDate !== "TBA"
-          ? getDayBefore(selected.concertDate)
-          : null,
-      endDate:
-        selected.concertDate && selected.concertDate !== "TBA"
-          ? selected.concertDate
-          : null,
-    };
-
-    setConcertData(updatedData);
-    router.push("/discover-trip/concert-trips/select-traveler");
+  const updatedData = {
+    ...concertData,
+    locationInfo: {
+      title: selected.title,             
+      venueName: selected.venueName,     
+      venueAddress: selected.venueAddress,
+      venueZip: selected.venueZip,        
+      concertDate: selected.concertDate,  
+      concertTime: selected.concertTime, 
+      imageUrl: selected.image,          
+      bookingUrl: selected.bookingUrl,  
+      coordinates: selected.coordinates, 
+      priceRange: selected.priceRange,  
+    },
+    startDate: selected.concertDate !== "TBA" ? getDayBefore(selected.concertDate) : null,
+    endDate: selected.concertDate !== "TBA" ? selected.concertDate : null,
   };
+
+  setConcertData(updatedData);
+  router.push("/discover-trip/concert-trips/select-traveler"); 
+};
 
   return (
     <View
