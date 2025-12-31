@@ -25,8 +25,7 @@ export default function UserTripCard({ trip, onDelete }) {
   const tripPlan = trip?.tripPlan;
 
   const randomFallback = useMemo(() => {
-    const randomUrl = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-    return randomUrl;
+    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
   }, [trip?.id]);
 
   const concertFallback = useMemo(() => {
@@ -35,6 +34,14 @@ export default function UserTripCard({ trip, onDelete }) {
 
   const getFinalImageSource = () => {
     if (trip?.concertData) {
+      const concertImg = 
+        trip?.concertData?.artistImageUrl || 
+        trip?.concertData?.locationInfo?.imageUrl || 
+        trip?.imageUrl;
+
+      if (concertImg) {
+        return { uri: concertImg };
+      }
       return concertFallback;
     }
     if (trip?.imageUrl) {
@@ -55,7 +62,6 @@ export default function UserTripCard({ trip, onDelete }) {
           try {
             const user = auth.currentUser;
             const tripRef = doc(db, "UserTrips", user.uid, "trips", trip.id);
-
             await deleteDoc(tripRef);
             onDelete?.(trip.id);
           } catch (error) {
@@ -88,7 +94,7 @@ export default function UserTripCard({ trip, onDelete }) {
             pathname: "/trip-details",
             params: {
               trip: JSON.stringify(trip),
-              imageUrl: trip.imageUrl || "",
+              imageUrl: typeof finalSource === 'object' ? finalSource.uri : finalSource,
             },
           })
         }

@@ -61,6 +61,89 @@ export const trendingTripCardImages = [
   require("../assets/images/trending-places/trending-place5.jpg"),
 ];
 
+export const singerOptions = [
+  {
+    id: 1,
+    title: "Taylor Swift",
+    image: require("../assets/images/concert-trips/taylor-swift.jpeg"),
+  },
+  {
+    id: 2,
+    title: "Weeknd",
+    image: require("../assets/images/concert-trips/weeknd.jpg"),
+  },
+  {
+    id: 3,
+    title: "Coldplay",
+    image: require("../assets/images/concert-trips/coldplay.jpg"),
+  },
+  {
+    id: 4,
+    title: "Sabrina Carpentar",
+    image: require("../assets/images/concert-trips/sabrina.jpg"),
+  },
+  {
+    id: 5,
+    title: "Post Malone",
+    image: require("../assets/images/concert-trips/post-malone.jpg"),
+  },
+  {
+    id: 6,
+    title: "Dua Lipa",
+    image: require("../assets/images/concert-trips/dua.jpg"),
+  },
+  {
+    id: 7,
+    title: "Ariana Grande",
+    image: require("../assets/images/concert-trips/ariana-grande.jpg"),
+  },
+  {
+    id: 8,
+    title: "Bruno Mars",
+    image: require("../assets/images/concert-trips/bruno-mars.jpeg"),
+  },
+  {
+    id: 9,
+    title: "Ed Sheeran",
+    image: require("../assets/images/concert-trips/ed-sheeran.webp"),
+  },
+  {
+    id: 10,
+    title: "Linkin Park",
+    image: require("../assets/images/concert-trips/linkin-park.jpeg"),
+  },
+  {
+    id: 11,
+    title: "Shakira",
+    image: require("../assets/images/concert-trips/shakira.jpeg"),
+  },
+  {
+    id: 12,
+    title: "Miley Cyrus",
+    image: require("../assets/images/concert-trips/miley.jpg"),
+  },
+  {
+    id: 13,
+    title: "Justin Bieber",
+    image: require("../assets/images/concert-trips/justin-bieber.jpeg"),
+  },
+  {
+    id: 14,
+    title: "Maroon 5",
+    image: require("../assets/images/concert-trips/maroon-5.jpeg"),
+  },
+  {
+    id: 15,
+    title: "Katy Perry",
+    image: require("../assets/images/concert-trips/katy-perry.jpeg"),
+  },
+  {
+    id: 16,
+    title: "Lorde",
+    image: require("../assets/images/concert-trips/lorde.jpeg"),
+  },
+];
+
 export const SelectBudgetOptions = [
   {
     id: 1,

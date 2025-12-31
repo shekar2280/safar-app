@@ -37,7 +37,7 @@ export default function Wallet() {
       return;
     }
 
-    const tripsRef = collection(db, "UserTrips");
+    const tripsRef = collection(db, "UserTrips", user.uid, "trips");
     const q = query(
       tripsRef,
       where("userEmail", "==", user.email),
