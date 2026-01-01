@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/Colors";
 import { LOCAL_HOTEL_IMAGES } from "../../constants/Options";
+import { useState } from "react";
 
 const { width } = Dimensions.get("window");
 
 const IMAGE_COUNT = LOCAL_HOTEL_IMAGES.length - 1;
 
 export default function HotelInfo({ hotelData }) {
+  const [loading, setLoading] = useState(true);
   const handleBooking = (url) => {
     if (url) {
       Linking.openURL(url).catch((err) =>
@@ -74,18 +76,30 @@ export default function HotelInfo({ hotelData }) {
               marginLeft: index === 0 ? 10 : 0,
             }}
           >
-            <Image
-              source={
-                LOCAL_HOTEL_IMAGES[index % IMAGE_COUNT]
-              }
+            <View
               style={{
                 width: "100%",
                 height: 120,
+                backgroundColor: "#d1d1d1ff",
                 borderRadius: 10,
-                marginBottom: 10,
               }}
-              resizeMode="cover"
-            />
+            >
+              <Image
+                source={LOCAL_HOTEL_IMAGES[index % IMAGE_COUNT]}
+                onLoadEnd={() => setLoading(false)}
+                style={{
+                  width: "100%",
+                  height: 120,
+                  borderRadius: 10,
+                  opacity: loading ? 0 : 1,
+                }}
+              />
+              {loading && (
+                <View style={{ position: "absolute", top: "40%", left: "45%" }}>
+                  <Text style={{ fontSize: 10 }}>Loading...</Text>
+                </View>
+              )}
+            </View>
 
             <Text
               style={{

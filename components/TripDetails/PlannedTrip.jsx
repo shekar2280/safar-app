@@ -1,5 +1,4 @@
 import { View, Text, Image, Dimensions } from "react-native";
-import React from "react";
 import { Colors } from "../../constants/Colors";
 
 export default function PlannedTrip({ itineraryDetails }) {
@@ -36,17 +35,26 @@ export default function PlannedTrip({ itineraryDetails }) {
         🗓️ Trip Plan
       </Text>
 
-      <Image
-        source={require("../../assets/images/daily-plan.jpeg")}
+      <View
         style={{
+          alignSelf: "center",
+          marginBottom: 10,
           width: screenWidth - 40,
           height: 200,
-          marginBottom: 10,
+          backgroundColor: "#F0F0F0",
           borderRadius: 20,
-          alignSelf: "center",
+          overflow: "hidden",
         }}
-        resizeMode="cover"
-      />
+      >
+        <Image
+          source={require("../../assets/images/daily-plan.jpeg")}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+          resizeMode="cover"
+        />
+      </View>
 
       {filteredDays.map(([dayKey, dayValue]) => (
         <View
