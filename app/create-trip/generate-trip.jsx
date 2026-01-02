@@ -181,7 +181,7 @@ export default function GenerateTrip() {
         throw new Error("Failed to parse transport details.");
       }
 
-      const userTripRef = doc(collection(db, "UserTrips"));
+      const userTripRef = doc(collection(db, "UserTrips", user.uid, "trips"));
       const { icon, ...cleanTraveler } = tripData.traveler;
 
       await setDoc(userTripRef, {
