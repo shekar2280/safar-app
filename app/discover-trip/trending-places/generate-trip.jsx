@@ -177,7 +177,7 @@ export default function GenerateTrip() {
         const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
         const transportData = JSON.parse(cleanAiResponse(transportRes));
 
-        const userTripRef = doc(collection(db, "UserTrips"));
+        const userTripRef = doc(collection(db, "UserTrips", user.uid, "trips"));
         const { icon, ...cleanTraveler } = trendingData.traveler;
 
         await setDoc(userTripRef, {
