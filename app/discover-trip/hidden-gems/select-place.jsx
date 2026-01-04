@@ -4,6 +4,7 @@ import {
   Dimensions,
   ActivityIndicator,
   TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigation, useRouter } from "expo-router";
@@ -11,16 +12,17 @@ import { Colors } from "../../../constants/Colors";
 import { DiscoverTripContext } from "../../../context/DiscoverTripContext";
 import * as Location from "expo-location";
 import Autocomplete from "react-native-autocomplete-input";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SearchPlace() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { setDiscoverData } = useContext(DiscoverTripContext);
-
+  const { discoverData, setDiscoverData } = useContext(DiscoverTripContext);
+  const [loading, setLoading] = useState(false);
   const [tripType, setTripType] = useState("Oneway");
-  const [location, setLocation] = useState(null); 
+  const [location, setLocation] = useState(null);
   const [state, setState] = useState({
     loading: true,
     manualMode: false,
@@ -37,10 +39,20 @@ export default function SearchPlace() {
 
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") throw new Error("Permission denied");
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") {
+          const response = await Location.requestForegroundPermissionsAsync();
+          status = response.status;
+        }
 
-        const loc = await Location.getCurrentPositionAsync({});
+        if (status !== "granted") {
+          setState((s) => ({ ...s, loading: false, manualMode: true }));
+          return;
+        }
+
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
         const { latitude, longitude } = loc.coords;
 
         const res = await fetch(
@@ -53,10 +65,11 @@ export default function SearchPlace() {
           }
         );
         const data = await res.json();
-        setLocation({
+        const detectedLocation = {
           name: data.display_name || "Current Location",
           coordinates: { lat: latitude, lon: longitude },
-        });
+        };
+        setLocation(detectedLocation);
         setState((s) => ({ ...s, loading: false, manualMode: false }));
       } catch (err) {
         console.log("GPS failed → switching to manual:", err.message);
@@ -93,27 +106,28 @@ export default function SearchPlace() {
   }, [state.query]);
 
   const handleSelect = (item) => {
-    setLocation({
+    const selected = {
       name: item.display_name,
       coordinates: { lat: item.lat, lon: item.lon },
-    });
-    setState((s) => ({ ...s, results: [] }));
+    };
+    setLocation(selected);
+    setState((s) => ({ ...s, query: item.display_name, results: [] }));
   };
 
   const handleContinue = () => {
     if (!location) return;
-
+    setLoading(true);
     setDiscoverData((prev) => ({
       ...prev,
       departureInfo: location,
       tripType,
     }));
-
+    setLoading(false);
     router.push("/discover-trip/hidden-gems/select-traveler");
   };
-
+  
   return (
-    <View
+     <View
       style={{
         padding: width * 0.06,
         paddingTop: height * 0.12,
@@ -174,7 +188,7 @@ export default function SearchPlace() {
       </View>
 
       {state.manualMode ? (
-        <>
+        <View style={{ zIndex: 10 }}>
           <Text
             style={{
               fontSize: width * 0.065,
@@ -182,7 +196,7 @@ export default function SearchPlace() {
               marginBottom: height * 0.015,
             }}
           >
-            Enter your departure location:
+            Enter your departure:
           </Text>
           <Autocomplete
             data={state.results}
@@ -200,7 +214,7 @@ export default function SearchPlace() {
               marginTop: height * 0.01,
             }}
             flatListProps={{
-              keyExtractor: (item) => item.place_id,
+              keyExtractor: (item) => String(item.place_id),
               renderItem: ({ item }) => (
                 <TouchableOpacity
                   onPress={() => handleSelect(item)}
@@ -218,48 +232,152 @@ export default function SearchPlace() {
               ),
             }}
           />
-        </>
+        </View>
       ) : (
-        <>
-          <Text
-            style={{
-              fontSize: width * 0.065,
-              fontFamily: "outfitBold",
-              marginBottom: height * 0.015,
-            }}
+        <View>
+          <View
+            style={[styles.statusCard, !state.loading && styles.activeCard]}
           >
-            Detecting your location...
-          </Text>
-          {state.loading && (
-            <ActivityIndicator size="large" color={Colors.PRIMARY} />
-          )}
-          {!state.loading && location && (
-            <Text style={{ fontSize: width * 0.04 }}>{location.name}</Text>
-          )}
-        </>
+            {state.loading ? (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                <Text style={styles.loadingText}>
+                  Detecting your location...
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <View style={styles.locationHeader}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="navigate" size={20} color="white" />
+                  </View>
+                  <Text style={styles.label}>LIVE DETECTION</Text>
+                </View>
+
+                <Text style={styles.addressText} numberOfLines={3}>
+                  {location?.name}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setState((s) => ({ ...s, manualMode: true }))}
+                  style={styles.changeButton}
+                >
+                  <Text style={styles.changeButtonText}>
+                    Not correct? Edit manually
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
       )}
-      {location && (
-        <TouchableOpacity
-          onPress={handleContinue}
-          style={{
-            marginTop: height * 0.04,
-            backgroundColor: Colors.PRIMARY,
-            paddingVertical: 14,
-            borderRadius: width * 0.025,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: width * 0.045,
-              fontFamily: "outfitBold",
-              color: "white",
-            }}
-          >
-            Continue
-          </Text>
-        </TouchableOpacity>
-      )}
+
+      <TouchableOpacity
+        onPress={handleContinue}
+        disabled={loading || !location}
+        style={[
+          styles.continueBtn,
+          (loading || !location) && styles.disabledBtn,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Text style={styles.continueText}>Continue</Text>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: width * 0.065,
+    fontFamily: "outfitBold",
+    marginBottom: height * 0.015,
+    color: "#000",
+  },
+  statusCard: {
+    backgroundColor: "#F8F9FA",
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 150,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderStyle: "dashed",
+  },
+  activeCard: {
+    backgroundColor: "#FFF",
+    borderColor: Colors.PRIMARY,
+    borderStyle: "solid",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  center: {
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 15,
+    fontFamily: "outfit",
+    color: "#777",
+    fontSize: 14,
+  },
+  locationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  iconCircle: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 6,
+    borderRadius: 50,
+    marginRight: 10,
+  },
+  label: {
+    fontFamily: "outfitBold",
+    fontSize: 12,
+    color: Colors.PRIMARY,
+    letterSpacing: 1,
+  },
+  addressText: {
+    fontSize: 16,
+    fontFamily: "outfit",
+    color: "#333",
+    lineHeight: 22,
+  },
+  changeButton: {
+    marginTop: 15,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
+  },
+  changeButtonText: {
+    color: "#777",
+    fontFamily: "outfit",
+    fontSize: 13,
+    textDecorationLine: "underline",
+  },
+  continueBtn: {
+    position: "absolute",
+    bottom: 40,
+    left: width * 0.06,
+    right: width * 0.06,
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 16,
+    borderRadius: 15,
+    alignItems: "center",
+    marginBottom: 25,
+  },
+  disabledBtn: {
+    opacity: 0.5,
+  },
+  continueText: {
+    fontSize: 18,
+    fontFamily: "outfitBold",
+    color: "white",
+  },
+});
