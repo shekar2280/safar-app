@@ -89,7 +89,7 @@ export default function SpendingsInput() {
 
     const fetchBudget = async () => {
       try {
-        const tripDocRef = doc(db, "UserTrips", tripId);
+        const tripDocRef = doc(db, "UserTrips", user.uid, "trips", tripId);
         const tripSnapshots = await getDoc(tripDocRef);
         if (tripSnapshots.exists()) {
           const data = tripSnapshots.data();
@@ -102,11 +102,15 @@ export default function SpendingsInput() {
 
     fetchBudget();
 
-    const transactionsCollectionRef = collection(db, "Transactions");
-    const q = query(
-      transactionsCollectionRef,
-      where("tripId", "==", tripId)
+    const transactionsCollectionRef = collection(
+      db,
+      "UserTrips",
+      user.uid,
+      "trips",
+      tripId,
+      "transactions"
     );
+    const q = query(transactionsCollectionRef, where("tripId", "==", tripId));
 
     const unsubscribe = onSnapshot(
       q,
@@ -116,13 +120,15 @@ export default function SpendingsInput() {
           const data = doc.data();
           const dateObject = data.date?.toDate() || new Date();
           firestoreSpendings.push({
-            id: doc.id, 
+            id: doc.id,
             name: data.name,
             amount: data.amount,
             timestamp: dateObject.getTime(),
-            date: data.date?.toDate().toLocaleString() || new Date().toLocaleString(),
+            date:
+              data.date?.toDate().toLocaleString() ||
+              new Date().toLocaleString(),
             imageUri: data.imageUri,
-            synced: true, 
+            synced: true,
           });
         });
 
@@ -149,7 +155,7 @@ export default function SpendingsInput() {
       return;
     }
     try {
-      const tripDocRef = doc(db, "UserTrips", tripId);
+      const tripDocRef = doc(db, "UserTrips", user.uid, "trips", tripId);
       await setDoc(tripDocRef, { totalBudget: newBudget }, { merge: true });
 
       setTotalBudget(newBudget);
@@ -288,14 +294,21 @@ export default function SpendingsInput() {
     }
 
     try {
-      const transactionsCollectionRef = collection(db, "Transactions");
+      const transactionsCollectionRef = collection(
+        db,
+        "UserTrips",
+        user.uid,
+        "trips",
+        tripId,
+        "transactions"
+      );
 
       await addDoc(transactionsCollectionRef, {
         tripId: tripId,
         userId: user.uid,
         name: spendingName.trim(),
         amount: amount,
-        date: serverTimestamp(), 
+        date: serverTimestamp(),
         imageUri: image,
       });
 
@@ -312,15 +325,12 @@ export default function SpendingsInput() {
     setIsFormVisible(false);
   };
 
-
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
       <View style={{ gap: 10 }}>
-        <Text style={styles.header}>💰 Record Spending</Text>
-
         {totalBudget <= 0 ? (
           <View style={styles.setupContainer}>
             <Text style={styles.setupHeader}>Set Your Initial Budget</Text>
@@ -399,7 +409,7 @@ export default function SpendingsInput() {
                 : "Set your budget above to begin tracking."}
             </Text>
           ) : (
-            spendings.map((item) => <SpendingItem key={item.id} item={item}  />)
+            spendings.map((item) => <SpendingItem key={item.id} item={item} />)
           )}
         </View>
       </View>
@@ -472,11 +482,11 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
   },
   historySection: {
-    marginTop: 15,
-    marginBottom: 25,
+    marginTop: 10,
+    marginBottom: 20,
   },
   historyHeader: {
-    fontSize: width * 0.06,
+    fontSize: width * 0.05,
     fontWeight: "bold",
     marginBottom: 10,
     borderBottomWidth: 1,
