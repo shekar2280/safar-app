@@ -117,7 +117,7 @@ export default function RestaurantsInfo({ restaurantsInfo }) {
   const { localExperiences = [], restaurants = [] } = restaurantsInfo;
 
   return (
-    <View style={{ marginBottom: 30 }}>
+    <View style={{ marginBottom: 10 }}>
       {/* 🌟 Local Experiences */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>🌟 Local Experiences</Text>
@@ -163,7 +163,7 @@ export default function RestaurantsInfo({ restaurantsInfo }) {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginBottom: 30,
+    marginBottom: 20,
     borderWidth: 2,
     borderColor: Colors.LIGHT_GRAY,
     borderRadius: 12,
