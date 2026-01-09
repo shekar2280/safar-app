@@ -10,7 +10,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import { SelectTravelerList } from "../../../constants/Options";
 import OptionCard from "../../../components/CreateTrip/OptionCard";
-import { FestiveTripContext } from "../../../context/FestiveTripContext";
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -18,7 +18,7 @@ export default function SelectTraveler() {
   const navigation = useNavigation();
   const router = useRouter();
   const [selectedTraveler, setSelectedTraveler] = useState();
-  const { festiveData, setFestiveData } = useContext(FestiveTripContext);
+  const { setTripDetails } = useContext(CommonTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -30,18 +30,20 @@ export default function SelectTraveler() {
 
   useEffect(() => {
     if (selectedTraveler) {
-      setFestiveData((prev) => ({
+      const { icon, ...safeTraveler } = selectedTraveler;
+
+      setTripDetails((prev) => ({
         ...prev,
-        traveler: selectedTraveler,
+        traveler: safeTraveler,
       }));
     }
   }, [selectedTraveler]);
-  
+
   return (
     <View
       style={{
         padding: width * 0.06,
-        paddingTop: height * 0.10,
+        paddingTop: height * 0.1,
         backgroundColor: Colors.WHITE,
         flex: 1,
       }}
@@ -56,7 +58,7 @@ export default function SelectTraveler() {
         Who's Traveling
       </Text>
 
-      <View style={{ marginTop: height * 0.010, flex: 1 }}>
+      <View style={{ marginTop: height * 0.01, flex: 1 }}>
         <Text
           style={{
             fontFamily: "outfitBold",
@@ -87,13 +89,13 @@ export default function SelectTraveler() {
           paddingVertical: height * 0.02,
           backgroundColor: selectedTraveler ? Colors.PRIMARY : "#ccc",
           borderRadius: width * 0.04,
-          marginTop: height * 0.020,
+          marginTop: height * 0.02,
           marginBottom: height * 0.025,
         }}
         disabled={!selectedTraveler}
         onPress={() => {
           if (selectedTraveler) {
-            router.push("/discover-trip/festive-trips/select-dates");
+            router.push("/discover-trip/trip-manager/select-dates");
           }
         }}
       >

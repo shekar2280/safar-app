@@ -5,11 +5,9 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import React from "react";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
 import { DiscoverIdeasList } from "../../constants/Options";
-import OptionCard from "../../components/CreateTrip/OptionCard";
 import DiscoverCard from "../../components/CreateTrip/DiscoverCard";
 
 const { width, height } = Dimensions.get("window");
@@ -42,9 +40,14 @@ export default function Discover() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={{ marginVertical: height * 0.012 }}
-            onPress={() => router.push(item.route)} 
+            onPress={() =>
+              router.push({
+                pathname: "/discover-trip/trip-manager/select-destination",
+                params: { tripCategory: item.tripCategory },
+              })
+            }
           >
-             <DiscoverCard option={item} cardHeight={height * 0.18} />
+            <DiscoverCard option={item} cardHeight={height * 0.18} />
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item.title}

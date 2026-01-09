@@ -1,25 +1,10 @@
-import {
-  View,
-  Text,
-  Alert,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import React, {
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
-import {
-  useRouter,
-  useNavigation,
-  useFocusEffect,
-} from "expo-router";
+import { View, Text, Alert, TouchableOpacity, Dimensions } from "react-native";
+import React, { useContext, useEffect, useState, useCallback } from "react";
+import { useRouter, useNavigation, useFocusEffect } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import { Calendar } from "react-native-calendars";
 import dayjs from "dayjs";
-import { FestiveTripContext } from "../../../context/FestiveTripContext";
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const MAX_RANGE_DAYS = 5;
 const { width, height } = Dimensions.get("window");
@@ -30,7 +15,7 @@ export default function SelectDates() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [calendarKey, setCalendarKey] = useState(0);
-  const { festiveData, setFestiveData } = useContext(FestiveTripContext);
+  const { setTripDetails } = useContext(CommonTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -44,9 +29,9 @@ export default function SelectDates() {
     useCallback(() => {
       setStartDate(null);
       setEndDate(null);
-      setCalendarKey(prevKey => prevKey + 1);
+      setCalendarKey((prevKey) => prevKey + 1);
 
-      setFestiveData(prev => ({
+      setTripDetails((prev) => ({
         ...prev,
         startDate: null,
         endDate: null,
@@ -65,7 +50,10 @@ export default function SelectDates() {
       const rangeLength = dayjs(dateString).diff(dayjs(startDate), "day") + 1;
 
       if (rangeLength > MAX_RANGE_DAYS) {
-        Alert.alert("Range Limit", `You can select up to ${MAX_RANGE_DAYS} days.`);
+        Alert.alert(
+          "Range Limit",
+          `You can select up to ${MAX_RANGE_DAYS} days.`
+        );
         return;
       }
 
@@ -114,20 +102,23 @@ export default function SelectDates() {
 
   const OnDatesSelection = () => {
     if (!startDate || !endDate) {
-      Alert.alert("Incomplete Selection", "Please select both start and end dates.");
+      Alert.alert(
+        "Incomplete Selection",
+        "Please select both start and end dates."
+      );
       return;
     }
 
     const totalDays = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
 
-    setFestiveData((prev) => ({
+    setTripDetails((prev) => ({
       ...prev,
       startDate,
       endDate,
       totalDays,
     }));
 
-    router.push("/discover-trip/festive-trips/select-budget");
+    router.push("/discover-trip/trip-manager/select-budget");
   };
 
   return (
@@ -168,8 +159,8 @@ export default function SelectDates() {
             textMonthFontFamily: "outfitBold",
             textDayHeaderFontFamily: "outfitMedium",
             textDayFontFamily: "outfitRegular",
-            textMonthFontSize: width * 0.045, 
-            textDayHeaderFontSize: width * 0.035, 
+            textMonthFontSize: width * 0.045,
+            textDayHeaderFontSize: width * 0.035,
             textDayFontSize: width * 0.04,
             textDisabledColor: Colors.GRAY,
           }}

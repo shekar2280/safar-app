@@ -8,30 +8,19 @@ import {
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
-import {
-  AI_PROMPT,
-  DiscoverTripImages,
-  fallbackImages,
-  TRAVEL_AI_PROMPT,
-} from "../../../constants/Options";
+import {fallbackImages,FESTIVE_AI_PROMPT,TRAVEL_AI_PROMPT,AI_PROMPT,HIDDEN_GEMS_AI_PROMPT,HiddenGemsTripImages,} from "../../../constants/Options";
 import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  collection,
-  getDoc,
-} from "firebase/firestore";
+import {doc,setDoc,serverTimestamp,collection,getDoc,} from "firebase/firestore";
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
-import { DiscoverTripContext } from "../../../context/DiscoverTripContext";
 import Constants from "expo-constants";
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { discoverData } = useContext(DiscoverTripContext);
+  const { tripDetails } = useContext(CommonTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -41,12 +30,13 @@ export default function GenerateTrip() {
 
   useEffect(() => {
     const isTripReady =
-      discoverData?.locationInfo?.title &&
-      discoverData?.totalDays &&
-      discoverData?.traveler?.title &&
-      discoverData?.budget &&
-      discoverData?.startDate &&
-      discoverData?.endDate;
+      tripDetails?.departureInfo?.name &&
+      tripDetails?.destinationInfo?.title &&
+      tripDetails?.totalDays &&
+      tripDetails?.traveler?.title &&
+      tripDetails?.budget &&
+      tripDetails?.startDate &&
+      tripDetails?.endDate;
 
     if (isTripReady && user && !hasGenerated.current) {
       hasGenerated.current = true;
@@ -54,39 +44,53 @@ export default function GenerateTrip() {
     } else if (!user) {
       setError("User not authenticated.");
     }
-  }, [discoverData]);
+  }, [tripDetails]);
 
   const cleanAiResponse = (rawText) => {
     if (!rawText) return "{}";
-    try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return jsonMatch[0]
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    return jsonMatch
+      ? jsonMatch[0]
           .replace(/```json/g, "")
           .replace(/```/g, "")
-          .trim();
-      }
-      return "{}";
-    } catch (e) {
-      return "{}";
+          .trim()
+      : "{}";
+  };
+
+  const getPromptByCategory = (category) => {
+    switch (category) {
+      case "FESTIVE":
+        return FESTIVE_AI_PROMPT;
+      case "HIDDEN":
+        return HIDDEN_GEMS_AI_PROMPT;
+      default:
+        return AI_PROMPT;
     }
   };
+
+  const activePromptTemplate = getPromptByCategory(tripDetails?.tripCategory);
 
   function formatDateForMMT(dateStr, transportType) {
     const date = new Date(dateStr);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    if (transportType === "flight") return `${day}/${month}/${year}`;
-    if (transportType === "train") return `${year}${month}${day}`;
-    return "";
+    return transportType === "flight"
+      ? `${day}/${month}/${year}`
+      : `${year}${month}${day}`;
   }
 
-  const fetchUnsplashImage = async (locationName) => {
+  const fetchUnsplashImage = async (locationName, category) => {
+    if (category === "HIDDEN" && HiddenGemsTripImages[tripDetails?.destinationInfo?.title]) {
+      return HiddenGemsTripImages[tripDetails?.destinationInfo?.title];
+    }
+
+    const querySuffix =
+      category === "FESTIVE" ? " festival cultural" : " nature hidden gems";
     try {
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName + " famous place"
+          locationName + querySuffix
         )}&per_page=1&orientation=landscape`,
         {
           headers: {
@@ -99,7 +103,7 @@ export default function GenerateTrip() {
       return raw
         ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
         : fallbackImages[0];
-    } catch (e) {
+    } catch (error) {
       return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
@@ -115,12 +119,15 @@ export default function GenerateTrip() {
     const maxAttempts = 3;
     let success = false;
 
-    const flightDate = formatDateForMMT(discoverData.startDate, "flight");
-    const trainDate = formatDateForMMT(discoverData.startDate, "train");
+    const locationTitle = tripDetails?.destinationInfo?.title || "Destination";
+    const locationName = tripDetails?.destinationInfo?.name || "Location";
 
-    const normalizedKey = `${discoverData.locationInfo.title.toLowerCase()}-${
-      discoverData.totalDays
-    }-${discoverData.budget.toLowerCase()}`;
+    const flightDate = formatDateForMMT(tripDetails.startDate, "flight");
+    const trainDate = formatDateForMMT(tripDetails.startDate, "train");
+
+    const normalizedKey = `${locationName.toLowerCase()}-${
+      tripDetails.totalDays
+    }-${tripDetails.budget.toLowerCase()}`;
 
     while (attempts < maxAttempts && !success) {
       try {
@@ -137,27 +144,27 @@ export default function GenerateTrip() {
           itineraryData = cachedData.tripPlan;
           finalImageUrl = cachedData.imageUrl;
         } else {
-          const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
-            /{location}/g,
-            discoverData?.locationInfo?.title
-          )
-            .replace(/{totalDays}/g, discoverData?.totalDays)
-            .replace(/{totalNight}/g, discoverData?.totalDays - 1)
-            .replace(/{traveler}/g, discoverData?.traveler?.title)
-            .replace(/{budget}/g, discoverData?.budget);
+          let finalPrompt = (activePromptTemplate || AI_PROMPT)
+            .replace(/{location}/g, locationTitle)
+            .replace(/{totalDays}/g, tripDetails?.totalDays)
+            .replace(/{totalNight}/g, tripDetails?.totalDays - 1)
+            .replace(/{traveler}/g, tripDetails?.traveler?.title)
+            .replace(/{budget}/g, tripDetails?.budget);
 
-          const locationTitle = discoverData?.locationInfo?.title;
+          if (finalPrompt.includes("{festival}")) {
+            finalPrompt = finalPrompt.replace(
+              /{festival}/g,
+              tripDetails?.destinationInfo?.festival || "local events"
+            );
+          }
 
           const [itineraryRes, unsplashUrl] = await Promise.all([
-            generateTripPlan(FINAL_ITINERARY_PROMPT),
-            DiscoverTripImages[locationTitle]
-              ? Promise.resolve(DiscoverTripImages[locationTitle])
-              : fetchUnsplashImage(locationTitle),
+            generateTripPlan(finalPrompt),
+            fetchUnsplashImage(locationName, tripDetails?.tripCategory),
           ]);
 
-          itineraryData = normalizeItinerary(
-            JSON.parse(cleanAiResponse(itineraryRes))
-          );
+          const cleaned = cleanAiResponse(itineraryRes);
+          itineraryData = normalizeItinerary(JSON.parse(cleaned));
           finalImageUrl = unsplashUrl;
 
           await setDoc(savedTripRef, {
@@ -170,11 +177,11 @@ export default function GenerateTrip() {
 
         const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
           /{tripType}/g,
-          discoverData?.tripType
+          tripDetails?.tripType
         )
-          .replace(/{departure}/g, discoverData?.departureInfo?.name)
-          .replace(/{location}/g, discoverData?.locationInfo?.title)
-          .replace(/{date}/g, discoverData.startDate)
+          .replace(/{departure}/g, tripDetails?.departureInfo?.name)
+          .replace(/{location}/g, locationTitle)
+          .replace(/{date}/g, tripDetails.startDate)
           .replace(/{flightDate}/g, flightDate)
           .replace(/{trainDate}/g, trainDate);
 
@@ -182,16 +189,18 @@ export default function GenerateTrip() {
         const transportData = JSON.parse(cleanAiResponse(transportRes));
 
         const userTripRef = doc(collection(db, "UserTrips", user.uid, "trips"));
-        const { icon, ...cleanTraveler } = discoverData.traveler;
+
+        const cleanTraveler = { ...tripDetails.traveler };
+        delete cleanTraveler.icon;
 
         await setDoc(userTripRef, {
           userEmail: user.email,
           userId: user.uid,
           savedTripId: normalizedKey,
-          startDate: discoverData.startDate,
-          endDate: discoverData.endDate,
+          startDate: tripDetails.startDate,
+          endDate: tripDetails.endDate,
           traveler: cleanTraveler,
-          transportDetails: transportData.transportDetails,
+          transportDetails: transportData.transportDetails || [],
           imageUrl: finalImageUrl,
           isActive: false,
           createdAt: serverTimestamp(),
@@ -202,21 +211,17 @@ export default function GenerateTrip() {
         router.replace("/(tabs)/mytrip");
       } catch (err) {
         attempts++;
-        console.error(`Discover Trip Attempt ${attempts} failed:`, err);
-        if (attempts < maxAttempts) {
-          await delay(attempts * 2500);
-        } else {
-          setError("Failed to discover your trip. Please try again.");
+        console.error(`Attempt ${attempts} failed:`, err);
+
+        if (attempts >= maxAttempts) {
+          setError(
+            "Failed to generate trip. Please check your internet or try again."
+          );
           setLoading(false);
           hasGenerated.current = false;
+        } else {
+          await delay(attempts * 2500);
         }
-
-        await setDoc(savedTripRef, {
-          savedTripId: normalizedKey,
-          tripPlan: itineraryData,
-          imageUrl: finalImageUrl,
-          createdAt: serverTimestamp(),
-        });
       }
     }
   };
@@ -227,16 +232,33 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        flex: 1,
+        padding: width * 0.06,
+        backgroundColor: Colors.WHITE,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       {loading && (
         <View style={{ alignItems: "center" }}>
           <LottieView
-            source={require("../../../assets/animations/travel.json")}
+            source={require("../../../assets/animations/festive-loading.json")}
             autoPlay
             loop
             style={{ width: width * 0.7, height: width * 0.7 }}
           />
-          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
+          <Text
+            style={{
+              fontSize: width * 0.07,
+              fontFamily: "outfitBold",
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            {getLoadingMessage()}
+          </Text>
         </View>
       )}
 
@@ -248,7 +270,6 @@ export default function GenerateTrip() {
               fontFamily: "outfitMedium",
               textAlign: "center",
               marginVertical: 10,
-              paddingHorizontal: 20,
             }}
           >
             {error}
@@ -259,6 +280,7 @@ export default function GenerateTrip() {
           >
             <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/mytrip")}
             style={styles.secondaryButton}

@@ -36,7 +36,7 @@ export default function ReviewTrip() {
     {
       icon: "📍",
       label: "Destination",
-      value: tripData?.locationInfo?.name,
+      value: tripData?.destinationInfo?.name,
     },
     {
       icon: <Ionicons name="repeat-outline" size={iconSize} color={Colors.PRIMARY} />,
@@ -62,14 +62,14 @@ export default function ReviewTrip() {
       value: tripData?.budget,
     },
   ];
-
+  
   return (
     <ScrollView
       style={{
         flex: 1,
         backgroundColor: Colors.WHITE,
         padding: width * 0.06,
-        paddingTop: height * 0.12,
+        paddingTop: height * 0.10,
       }}
       showsVerticalScrollIndicator={false}
     >
@@ -143,7 +143,7 @@ export default function ReviewTrip() {
           paddingVertical: height * 0.02,
           backgroundColor: Colors.PRIMARY,
           borderRadius: width * 0.04,
-          marginTop: height * 0.05,
+          marginTop: height * 0.02,
           marginBottom: height * 0.45,
           shadowColor: Colors.PRIMARY,
           shadowOffset: { width: 0, height: 5 },
