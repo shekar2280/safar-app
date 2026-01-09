@@ -5,19 +5,19 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigation, useRouter } from "expo-router";
-import { Colors } from "../../constants/Colors";
-import { CreateTripContext } from "../../context/CreateTripContext";
-import TripTypeToggle from "../../components/CreateTrip/TripTypeToggle";
-import DestinationPicker from "../../components/CreateTrip/DestinationPicker";
+import { CommonTripContext } from "../../../context/CommonTripContext";
+import { Colors } from "../../../constants/Colors";
+import LocationPicker from "../../../components/CreateTrip/LocationPicker";
+import TripTypeToggle from "../../../components/CreateTrip/TripTypeToggle";
 
 const { width, height } = Dimensions.get("window");
 
-export default function SearchDestination() {
+export default function SearchDeparture() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { setTripData } = useContext(CreateTripContext);
+  const { setTripDetails } = useContext(CommonTripContext);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [tripType, setTripType] = useState("Oneway");
 
@@ -25,35 +25,34 @@ export default function SearchDestination() {
     navigation.setOptions({
       headerShown: true,
       headerTransparent: true,
-      headerTitle: "Destination",
+      headerTitle: "Departure",
     });
   }, []);
 
   const handleContinue = () => {
     if (!selectedLocation) return;
 
-    setTripData((prev) => ({
+    setTripDetails((prev) => ({
       ...prev,
-      destinationInfo: selectedLocation,
+      departureInfo: selectedLocation,
       tripType: tripType,
     }));
 
-    router.push("/create-trip/select-traveler");
+    router.push("/discover-trip/trip-manager/select-traveler");
   };
 
   return (
     <View style={styles.container}>
-
       <TripTypeToggle
         selectedType={tripType}
         onSelectType={(type) => setTripType(type)}
       />
 
-      <View style={{ zIndex: 1000, elevation: 1000, height: 70 }}>
-        <DestinationPicker
-          onLocationSelect={(loc) => setSelectedLocation(loc)}
-        />
-      </View>
+      <LocationPicker
+        title="Where are you starting from?"
+        placeholder="Type city or airport..."
+        onLocationChange={(loc) => setSelectedLocation(loc)}
+      />
 
       <TouchableOpacity
         onPress={handleContinue}
@@ -73,22 +72,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontFamily: "outfitBold",
-    marginBottom: 20,
-  },
   continueBtn: {
     position: "absolute",
     bottom: 40,
     left: width * 0.06,
     right: width * 0.06,
-    backgroundColor: "black",
+    backgroundColor: Colors.PRIMARY,
     paddingVertical: 16,
     borderRadius: 15,
     alignItems: "center",
     marginBottom: 35,
   },
-  disabledBtn: { opacity: 0.5 },
-  continueText: { fontSize: 18, fontFamily: "outfitBold", color: "white" },
+  disabledBtn: {
+    opacity: 0.5,
+    backgroundColor: "#CCC",
+  },
+  continueText: {
+    fontSize: 18,
+    fontFamily: "outfitBold",
+    color: "white",
+  },
 });
