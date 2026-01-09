@@ -11,8 +11,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import { SelectBudgetOptions } from "../../../constants/Options";
 import OptionCard from "../../../components/CreateTrip/OptionCard";
-import { DiscoverTripContext } from "../../../context/DiscoverTripContext";
-
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -20,7 +19,7 @@ export default function SelectBudget() {
   const navigation = useNavigation();
   const router = useRouter();
   const [selectedOption, setSelectedOption] = useState();
-  const { discoverData, setDiscoverData } = useContext(DiscoverTripContext);
+  const { setTripDetails } = useContext(CommonTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -32,7 +31,7 @@ export default function SelectBudget() {
 
   useEffect(() => {
     if (selectedOption) {
-      setDiscoverData((prev) => ({
+      setTripDetails((prev) => ({
         ...prev,
         budget: selectedOption.title,
       }));
@@ -44,7 +43,7 @@ export default function SelectBudget() {
       ToastAndroid.show("Select Your Budget", ToastAndroid.LONG);
       return;
     }
-    router.push("/discover-trip/hidden-gems/review-trip");
+    router.push("/discover-trip/trip-manager/review-trip");
   };
 
   return (

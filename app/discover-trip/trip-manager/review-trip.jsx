@@ -3,22 +3,21 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
-  StyleSheet,
   ScrollView,
 } from "react-native";
 import React, { useContext, useEffect } from "react";
 import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "../../../constants/Colors";
-import { DiscoverTripContext } from "../../../context/DiscoverTripContext";
 import moment from "moment";
 import { Ionicons } from "@expo/vector-icons";
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function ReviewTrip() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { discoverData } = useContext(DiscoverTripContext);
+  const { tripDetails, setTripDetails } = useContext(CommonTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -37,7 +36,7 @@ export default function ReviewTrip() {
     {
       icon: "📍",
       label: "Destination",
-      value: discoverData?.locationInfo?.title,
+      value: tripDetails?.destinationInfo?.title,
     },
     {
       icon: (
@@ -48,27 +47,35 @@ export default function ReviewTrip() {
         />
       ),
       label: "Trip Type",
-      value: discoverData?.tripType,
+      value: tripDetails?.tripType,
     },
     {
-      icon: <Ionicons name="person" size={iconSize} color={Colors.PRIMARY} />,
+      icon: "🧑‍🤝‍🧑",
       label: "Traveler",
-      value: discoverData?.traveler?.title,
+      value: tripDetails?.traveler?.title,
     },
     {
       icon: "📅",
-      label: "Travel Dates",
-      value:
-        `${moment(discoverData?.startDate).format("DD MMM")} To ` +
-        `${moment(discoverData?.endDate).format("DD MMM")} ` +
-        `(${discoverData?.totalDays} days)`,
+      label: "Concert Date",
+      value: moment(tripDetails?.locationInfo?.concertDate).format(
+        "ddd, DD MMM YYYY"
+      ),
     },
     {
       icon: "💰",
       label: "Budget",
-      value: discoverData?.budget,
+      value: tripDetails?.budget,
     },
   ];
+
+  const onBuildTrip = () => {
+    const cleanedData = {
+      ...tripDetails,
+      locationOptions: [],
+    };
+    setTripDetails(cleanedData);
+    router.replace("discover-trip/trip-manager/generate-trip");
+  };
 
   return (
     <ScrollView
@@ -85,6 +92,7 @@ export default function ReviewTrip() {
           fontSize: headingFontSize,
           fontFamily: "outfitBold",
           marginBottom: height * 0.03,
+          color: Colors.PRIMARY,
         }}
       >
         Review Your Trip
@@ -118,7 +126,11 @@ export default function ReviewTrip() {
               marginRight: width * 0.04,
             }}
           >
-            <Text style={{ fontSize: iconSize * 0.8 }}>{item.icon}</Text>
+            {typeof item.icon === "string" ? (
+              <Text style={{ fontSize: iconSize * 0.8 }}>{item.icon}</Text>
+            ) : (
+              item.icon
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text
@@ -145,7 +157,7 @@ export default function ReviewTrip() {
       ))}
 
       <TouchableOpacity
-        onPress={() => router.replace("discover-trip/hidden-gems/generate-trip")}
+        onPress={onBuildTrip}
         style={{
           paddingVertical: height * 0.02,
           backgroundColor: Colors.PRIMARY,
@@ -173,4 +185,3 @@ export default function ReviewTrip() {
     </ScrollView>
   );
 }
-
