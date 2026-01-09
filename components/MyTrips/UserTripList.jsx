@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
-import { concertImages, fallbackImages } from "../../constants/Options"; // Added concertImages
+import { concertImages, fallbackImages } from "../../constants/Options"; 
 import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");

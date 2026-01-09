@@ -86,10 +86,7 @@ export default function Mytrip() {
       setUserTrips(baseTrips);
       setLoading(false);
 
-      await AsyncStorage.setItem(
-        `userTrips_${user.email}`,
-        JSON.stringify(baseTrips)
-      );
+      await AsyncStorage.setItem(`userTrips_${user.email}`,JSON.stringify(baseTrips));
 
       baseTrips.forEach(async (trip) => {
         if (!trip.savedTripId) return;
@@ -130,12 +127,12 @@ export default function Mytrip() {
   return (
     <ScrollView
       style={{
-        paddingTop: height * 0.09,
+        paddingTop: height * 0.03,
         backgroundColor: Colors.WHITE,
       }}
       contentContainerStyle={{
         padding: width * 0.06,
-        paddingBottom: height * 0.15,
+        paddingBottom: height * 0.10,
         flexGrow: 1,
       }}
     >
@@ -152,7 +149,7 @@ export default function Mytrip() {
             fontSize: width * 0.07,
           }}
         >
-          🎇 My Trips
+           My Trips
         </Text>
         <TouchableOpacity
           onPress={() => {
