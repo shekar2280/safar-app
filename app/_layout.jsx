@@ -1,12 +1,10 @@
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import { CreateTripContext } from "../context/CreateTripContext";
-import { DiscoverTripProvider } from "../context/DiscoverTripContext";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConcertTripProvider } from "../context/ConcertTripContext";
-import { FestiveTripProvider } from "../context/FestiveTripContext";
-import { SportsTripProvider } from "../context/SportsTripContext";
+import { TripProvider } from "../context/CommonTripContext";
 import { TrendingTripProvider } from "../context/TrendingTripContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/config/FirebaseConfig";
@@ -62,11 +60,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <CreateTripContext.Provider value={{ tripData, setTripData }}>
-        <DiscoverTripProvider>
           <ConcertTripProvider>
-            <FestiveTripProvider>
-              <SportsTripProvider>
-                <TrendingTripProvider>
+              <TrendingTripProvider>
+                <TripProvider>
                   <Stack screenOptions={{ headerShown: false }}>
                     {showLogin ? (
                       <Stack.Screen name="auth/Login" />
@@ -76,11 +72,9 @@ export default function RootLayout() {
                       <Stack.Screen name="(tabs)" />
                     )}
                   </Stack>
-                </TrendingTripProvider>
-              </SportsTripProvider>
-            </FestiveTripProvider>
+                </TripProvider>
+              </TrendingTripProvider>
           </ConcertTripProvider>
-        </DiscoverTripProvider>
       </CreateTripContext.Provider>
     </GestureHandlerRootView>
   );

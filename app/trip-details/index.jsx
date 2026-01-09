@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY,
     padding: 18,
     borderRadius: 12,
-    marginBottom: 25,
+    marginBottom: 10,
   },
   activateButtonText: {
     color: Colors.WHITE,
