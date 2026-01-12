@@ -40,12 +40,16 @@ export default function Discover() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={{ marginVertical: height * 0.012 }}
-            onPress={() =>
-              router.push({
-                pathname: "/discover-trip/trip-manager/select-destination",
-                params: { tripCategory: item.tripCategory },
-              })
-            }
+            onPress={() => {
+              if (item.tripCategory) {
+                router.push({
+                  pathname: item.route,
+                  params: { tripCategory: item.tripCategory },
+                });
+              } else {
+                router.push(item.route);
+              }
+            }}
           >
             <DiscoverCard option={item} cardHeight={height * 0.18} />
           </TouchableOpacity>

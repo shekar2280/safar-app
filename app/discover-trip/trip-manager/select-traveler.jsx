@@ -4,6 +4,7 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  StyleSheet,
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigation, useRouter } from "expo-router";
@@ -17,7 +18,7 @@ const { width, height } = Dimensions.get("window");
 export default function SelectTraveler() {
   const navigation = useNavigation();
   const router = useRouter();
-  const [selectedTraveler, setSelectedTraveler] = useState();
+  const [selectedTraveler, setSelectedTraveler] = useState(null);
   const { setTripDetails } = useContext(CommonTripContext);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function SelectTraveler() {
     });
   }, []);
 
-  useEffect(() => {
+  const handleContinue = () => {
     if (selectedTraveler) {
       const { icon, ...safeTraveler } = selectedTraveler;
 
@@ -36,38 +37,17 @@ export default function SelectTraveler() {
         ...prev,
         traveler: safeTraveler,
       }));
+
+      router.push("/discover-trip/trip-manager/select-dates");
     }
-  }, [selectedTraveler]);
+  };
 
   return (
-    <View
-      style={{
-        padding: width * 0.06,
-        paddingTop: height * 0.1,
-        backgroundColor: Colors.WHITE,
-        flex: 1,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: width * 0.075,
-          fontFamily: "outfitBold",
-          marginTop: height * 0.01,
-        }}
-      >
-        Who's Traveling
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.heading}>Who's Traveling</Text>
 
       <View style={{ marginTop: height * 0.01, flex: 1 }}>
-        <Text
-          style={{
-            fontFamily: "outfitBold",
-            fontSize: width * 0.05,
-            marginBottom: height * 0.01,
-          }}
-        >
-          Choose your traveler's
-        </Text>
+        <Text style={styles.subHeading}>Choose your traveler's</Text>
 
         <FlatList
           data={SelectTravelerList}
@@ -85,31 +65,46 @@ export default function SelectTraveler() {
       </View>
 
       <TouchableOpacity
-        style={{
-          paddingVertical: height * 0.02,
-          backgroundColor: selectedTraveler ? Colors.PRIMARY : "#ccc",
-          borderRadius: width * 0.04,
-          marginTop: height * 0.02,
-          marginBottom: height * 0.025,
-        }}
+        style={[
+          styles.continueButton,
+          { backgroundColor: selectedTraveler ? Colors.PRIMARY : "#ccc" }
+        ]}
         disabled={!selectedTraveler}
-        onPress={() => {
-          if (selectedTraveler) {
-            router.push("/discover-trip/trip-manager/select-dates");
-          }
-        }}
+        onPress={handleContinue}
       >
-        <Text
-          style={{
-            textAlign: "center",
-            color: Colors.WHITE,
-            fontFamily: "outfitMedium",
-            fontSize: width * 0.05,
-          }}
-        >
-          Continue
-        </Text>
+        <Text style={styles.buttonText}>Continue</Text>
       </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: width * 0.06,
+    paddingTop: height * 0.1,
+    backgroundColor: Colors.WHITE,
+    flex: 1,
+  },
+  heading: {
+    fontSize: width * 0.075,
+    fontFamily: "outfitBold",
+    marginTop: height * 0.01,
+  },
+  subHeading: {
+    fontFamily: "outfitBold",
+    fontSize: width * 0.05,
+    marginBottom: height * 0.01,
+  },
+  continueButton: {
+    paddingVertical: height * 0.02,
+    borderRadius: width * 0.04,
+    marginTop: height * 0.02,
+    marginBottom: height * 0.025,
+  },
+  buttonText: {
+    textAlign: "center",
+    color: Colors.WHITE,
+    fontFamily: "outfitMedium",
+    fontSize: width * 0.05,
+  },
+});

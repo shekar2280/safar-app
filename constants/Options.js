@@ -291,7 +291,8 @@ export const DiscoverIdeasList = [
     id: 1,
     title: "Trending Places",
     desc: "Trending places near you",
-    route: "/discover-trip/trending-places/select-departure",
+    tripCategory: "TRENDING",
+    route: "/discover-trip/trip-manager/select-trending-departure",
     image:
       "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933449/trending_zz1svj.png",
   },
@@ -1011,6 +1012,7 @@ Current Location: {location}
    - Include a **variety of experiences** (nature, culture, history, adventure, relaxation).
    - Have all of the following fields:
      - id (unique number starting from 1)
+     - name (place name)
      - title (place name + state)
      - desc (Short description of why this place is trending now in 20 words.)
 
@@ -1018,6 +1020,7 @@ Current Location: {location}
 [
   {
     "id": 1,
+    "name": "Place",
     "title": "Place, State",
     "desc": "Short description of why this place is trending now in 20 words."
   }

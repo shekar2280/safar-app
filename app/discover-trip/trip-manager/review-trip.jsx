@@ -72,11 +72,12 @@ export default function ReviewTrip() {
     const cleanedData = {
       ...tripDetails,
       locationOptions: [],
+      trendingPlaces: [],
     };
     setTripDetails(cleanedData);
     router.replace("discover-trip/trip-manager/generate-trip");
   };
-
+  
   return (
     <ScrollView
       style={{
