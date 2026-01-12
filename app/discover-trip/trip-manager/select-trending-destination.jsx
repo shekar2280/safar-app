@@ -2,15 +2,14 @@ import { View, Text, Dimensions, FlatList, TouchableOpacity } from "react-native
 import React, { useContext, useEffect, useState } from "react";
 import { router, useNavigation } from "expo-router";
 import { Colors } from "../../../constants/Colors";
-import { TrendingTripContext } from "../../../context/TrendingTripContext";
 import TrendingTripCard from "../../../components/CreateTrip/TrendingTripsCard";
+import { CommonTripContext } from "../../../context/CommonTripContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SelectTrendingPlace() {
   const navigation = useNavigation();
-  const { trendingData, setTrendingData } = useContext(TrendingTripContext);
-
+  const { tripDetails, setTripDetails } = useContext(CommonTripContext);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [trendingPlaces, setTrendingPlaces] = useState([]);
 
@@ -21,9 +20,9 @@ export default function SelectTrendingPlace() {
       headerTitle: "Select Trending Place",
     });
 
-    if (trendingData?.trendingPlaces) {
+    if (tripDetails?.trendingPlaces) {
       try {
-        let parsedPlaces = trendingData.trendingPlaces;
+        let parsedPlaces = tripDetails.trendingPlaces;
         if (typeof parsedPlaces === "string") {
           parsedPlaces = parsedPlaces.replace(/```json/g, "").replace(/```/g, "").trim();
           parsedPlaces = JSON.parse(parsedPlaces);
@@ -33,19 +32,19 @@ export default function SelectTrendingPlace() {
         console.error("Failed to parse trending places JSON:", err);
       }
     }
-  }, [trendingData]);
+  }, [tripDetails]);
 
   const handleSelect = (place) => {
     setSelectedPlace(place);
 
-    setTrendingData((prev) => ({
+    setTripDetails((prev) => ({
       ...prev,
-      locationInfo: place,
+      destinationInfo: place,
     }));
 
-    router.push("/discover-trip/trending-places/select-traveler"); 
+    router.push("/discover-trip/trip-manager/select-traveler"); 
   };
-
+  
   return (
     <View
       style={{

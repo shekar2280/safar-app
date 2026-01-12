@@ -20,7 +20,7 @@ import { CommonTripContext } from "../../../context/CommonTripContext";
 const { width, height } = Dimensions.get("window");
 
 export default function GenerateTrip() {
-  const { tripDetails } = useContext(CommonTripContext);
+  const { tripDetails, resetTripDetails } = useContext(CommonTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function GenerateTrip() {
 
   useEffect(() => {
     const isTripReady =
-      tripDetails?.departureInfo?.name &&
+      (tripDetails?.departureInfo?.name || tripDetails?.departureInfo?.label) &&
       tripDetails?.destinationInfo?.title &&
       tripDetails?.totalDays &&
       tripDetails?.traveler?.title &&
@@ -175,11 +175,9 @@ export default function GenerateTrip() {
           });
         }
 
-        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
-          /{tripType}/g,
-          tripDetails?.tripType
-        )
-          .replace(/{departure}/g, tripDetails?.departureInfo?.name)
+        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT
+          .replace(/{tripType}/g,tripDetails?.tripType)
+          .replace(/{departure}/g, tripDetails?.departureInfo?.name || tripDetails?.departureInfo?.label)
           .replace(/{location}/g, locationTitle)
           .replace(/{date}/g, tripDetails.startDate)
           .replace(/{flightDate}/g, flightDate)
@@ -208,6 +206,9 @@ export default function GenerateTrip() {
 
         success = true;
         setLoading(false);
+
+        resetTripDetails();
+
         router.replace("/(tabs)/mytrip");
       } catch (err) {
         attempts++;
@@ -227,7 +228,7 @@ export default function GenerateTrip() {
   };
 
   const getLoadingMessage = () => {
-    if (retryCount > 0) return "Connection slow, retrying...";
+    if (retryCount > 0) return "Connection slow, Retrying...";
     return "Generating your trip...";
   };
 
