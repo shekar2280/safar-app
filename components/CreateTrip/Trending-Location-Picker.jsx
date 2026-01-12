@@ -12,7 +12,7 @@ import Autocomplete from "react-native-autocomplete-input";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../constants/Colors";
 
-export default function LocationPicker({
+export default function TrendingLocationPicker({
   title,
   onLocationChange,
   placeholder = "Search city...",
@@ -46,16 +46,21 @@ export default function LocationPicker({
 
     const aliases = {
       "mumbai city": "Mumbai",
-      bombay: "Mumbai",
+      "bombay": "Mumbai",
       "new york city": "New York",
       "bengaluru city": "Bengaluru",
     };
 
     const finalCity = aliases[cleanCity.toLowerCase()] || cleanCity;
     const stateName = address.state || "";
+    const country = address.country || "";
 
     return {
       name: finalCity,
+      city: finalCity,
+      state: stateName,
+      country,
+      normalizedKey: finalCity.toLowerCase().trim(), 
       label: `${finalCity}, ${stateName}`,
       fullAddress: data.display_name || "",
       coordinates: { lat, lon },
@@ -70,6 +75,7 @@ export default function LocationPicker({
           const response = await Location.requestForegroundPermissionsAsync();
           status = response.status;
         }
+
         if (status !== "granted") {
           setState((s) => ({ ...s, loading: false, manualMode: true }));
           return;
@@ -108,7 +114,7 @@ export default function LocationPicker({
   }, []);
 
   useEffect(() => {
-    if (state.query.length < 3) {
+    if (state.query.length < 3 || !state.manualMode) {
       setState((s) => ({ ...s, results: [] }));
       return;
     }
@@ -125,7 +131,7 @@ export default function LocationPicker({
       }
     }, 500);
     return () => clearTimeout(timeout);
-  }, [state.query]);
+  }, [state.query, state.manualMode]);
 
   const handleItemSelect = async (item) => {
     try {
@@ -134,14 +140,14 @@ export default function LocationPicker({
         { headers: { "User-Agent": "safar-travel-app" } }
       );
       const data = await res.json();
-
+      
       const formatted = formatLocationData(data, item.lat, item.lon);
       onLocationChange(formatted);
 
-      setState((s) => ({
-        ...s,
-        query: item.display_name,
-        results: [],
+      setState((s) => ({ 
+        ...s, 
+        query: item.display_name, 
+        results: [] 
       }));
     } catch (err) {
       console.error("Selection normalization failed:", err);
