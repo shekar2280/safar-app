@@ -7,7 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Constants from "expo-constants";
@@ -29,6 +29,7 @@ import { Colors } from "../../constants/Colors";
 import { ActionButton } from "../../components/WalletDetails/ActionButton";
 import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
 import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
+import { useUser } from "../../context/UserContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -42,7 +43,6 @@ const extractTotalFromPlain = (raw) => {
     const hit = keys.some((k) => up.startsWith(k));
     if (!hit) continue;
 
-    // Regex to match currency format: $1,234.56 or 1234.56
     const match = line.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+\.\d{2})/);
     if (match) return parseFloat(match[0].replace(/,/g, "")).toFixed(2);
   }
@@ -51,6 +51,7 @@ const extractTotalFromPlain = (raw) => {
 
 export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams();
+  const { userTrips } = useUser();
   const user = auth.currentUser;
 
   const [spendings, setSpendings] = useState([]);
@@ -67,42 +68,20 @@ export default function SpendingsInput() {
   const [extractedText, setExtractedText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const calculateRemainingBudget = (currentSpendings, budget) => {
-    const totalSpent = currentSpendings.reduce(
-      (sum, item) => sum + item.amount,
-      0
-    );
-
-    const remaining = budget - totalSpent;
-    return remaining;
-  };
-
   useEffect(() => {
-    const remaining = calculateRemainingBudget(spendings, totalBudget);
-    setRemBudget(remaining);
+    const totalSpent = spendings.reduce((sum, item) => sum + item.amount, 0);
+    setRemBudget(totalBudget - totalSpent);
   }, [spendings, totalBudget]);
 
   useEffect(() => {
-    if (!tripId || !user) {
-      return;
+    if (!tripId || !user) return;
+
+    const currentTrip = userTrips?.find((t) => t.id === tripId);
+    if (currentTrip) {
+      setTotalBudget(currentTrip.totalBudget || 0);
     }
 
-    const fetchBudget = async () => {
-      try {
-        const tripDocRef = doc(db, "UserTrips", user.uid, "trips", tripId);
-        const tripSnapshots = await getDoc(tripDocRef);
-        if (tripSnapshots.exists()) {
-          const data = tripSnapshots.data();
-          setTotalBudget(data.totalBudget || 0);
-        }
-      } catch (error) {
-        console.error("Error fetching trip budget: ", error);
-      }
-    };
-
-    fetchBudget();
-
-    const transactionsCollectionRef = collection(
+    const transactionsRef = collection(
       db,
       "UserTrips",
       user.uid,
@@ -110,77 +89,124 @@ export default function SpendingsInput() {
       tripId,
       "transactions"
     );
-    const q = query(transactionsCollectionRef, where("tripId", "==", tripId));
+    const q = query(transactionsRef, where("tripId", "==", tripId));
 
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const firestoreSpendings = [];
-        querySnapshot.forEach((doc) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const firestoreSpendings = snapshot.docs
+        .map((doc) => {
           const data = doc.data();
           const dateObject = data.date?.toDate() || new Date();
-          firestoreSpendings.push({
+          return {
             id: doc.id,
-            name: data.name,
-            amount: data.amount,
+            ...data,
             timestamp: dateObject.getTime(),
-            date:
-              data.date?.toDate().toLocaleString() ||
-              new Date().toLocaleString(),
-            imageUri: data.imageUri,
-            synced: true,
-          });
-        });
+            date: dateObject.toLocaleString(),
+          };
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
 
-        firestoreSpendings.sort((a, b) => b.timestamp - a.timestamp);
+      setSpendings(firestoreSpendings);
+    });
 
-        setSpendings(firestoreSpendings);
-      },
-      (error) => {
-        console.error("Error fetching transactions in real-time:", error);
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [tripId, user]);
+    return () => unsubscribe();
+  }, [tripId, userTrips]);
 
   const handleSetBudget = async () => {
     if (!tripId) return;
-
     const newBudget = parseFloat(newBudgetInput);
-    if (isNaN(newBudget) || newBudget <= 0) {
-      alert("Please enter a valid budget amount greater than zero.");
-      return;
-    }
+    if (isNaN(newBudget) || newBudget <= 0)
+      return alert("Enter a valid budget.");
+
     try {
       const tripDocRef = doc(db, "UserTrips", user.uid, "trips", tripId);
       await setDoc(tripDocRef, { totalBudget: newBudget }, { merge: true });
-
       setTotalBudget(newBudget);
       setNewBudgetInput("");
     } catch (error) {
-      console.error("Error setting budget:", error);
-      alert("Failed to save budget. Please try again.");
+      console.error(error);
     }
   };
 
-  const getPermissions = async () => {
-    const { status: galleryStatus } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (galleryStatus !== "granted") {
-      alert("Sorry, we need camera roll permissions to make this work!");
-      return false;
-    }
+  const pickImage = (type) => async () => {
+    let result =
+      type === "gallery"
+        ? await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: "images",
+            allowsEditing: true,
+            base64: true,
+          })
+        : await ImagePicker.launchCameraAsync({
+            mediaTypes: "images",
+            allowsEditing: true,
+            base64: true,
+          });
 
-    const { status: cameraStatus } =
-      await ImagePicker.requestCameraPermissionsAsync();
-    if (cameraStatus !== "granted") {
-      alert("Sorry, we need camera permissions to make this work!");
-      return false;
+    if (!result.canceled && result.assets[0]) {
+      processImageAndPerformOCR(result.assets[0]);
     }
-    return true;
+  };
+
+  const processImageAndPerformOCR = async (asset) => {
+    setIsProcessing(true);
+    setExtractedText("Processing...");
+    try {
+      const manip = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 1000 } }],
+        { base64: true }
+      );
+      setImage(manip.uri);
+
+      const formData = new FormData();
+      formData.append("base64Image", `data:image/jpg;base64,${manip.base64}`);
+      const res = await fetch("https://api.ocr.space/parse/image", {
+        method: "POST",
+        headers: { apikey: ocrApiKey },
+        body: formData,
+      });
+      const json = await res.json();
+      const total = extractTotalFromPlain(
+        json?.ParsedResults?.[0]?.ParsedText || ""
+      );
+      if (total) {
+        setAmountInput(total);
+        setExtractedText(`Found Total: ₹${total}`);
+      } else {
+        setExtractedText("Total not detected.");
+      }
+    } catch (err) {
+      setExtractedText("Error reading bill.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const recordSpending = async () => {
+    const amount = parseFloat(amountInput);
+    if (!spendingName.trim() || isNaN(amount))
+      return alert("Fill all details.");
+    try {
+      const ref = collection(
+        db,
+        "UserTrips",
+        user.uid,
+        "trips",
+        tripId,
+        "transactions"
+      );
+      await addDoc(ref, {
+        tripId,
+        userId: user.uid,
+        name: spendingName.trim(),
+        amount,
+        date: serverTimestamp(),
+        imageUri: image,
+      });
+      clearAll();
+      setIsFormVisible(false);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const clearAll = () => {
@@ -191,176 +217,47 @@ export default function SpendingsInput() {
     setIsProcessing(false);
   };
 
-  const performOCR = async (file) => {
-    if (!ocrApiKey) {
-      throw new Error("OCRSPACE_API_KEY is missing from Expo config.");
-    }
-
-    const formData = new FormData();
-    formData.append("base64Image", `data:image/jpg;base64,${file.base64}`);
-    formData.append("language", "eng");
-    formData.append("isOverlayRequired", "true");
-    formData.append("isTable", "true");
-
-    const requestOptions = {
-      method: "POST",
-      headers: { apikey: ocrApiKey },
-      body: formData,
-    };
-
-    const res = await fetch(
-      "https://api.ocr.space/parse/image",
-      requestOptions
-    );
-    const json = await res.json();
-
-    if (json.IsErroredOnProcessing) {
-      const apiError = json.ErrorMessage?.join(" ") || "Unknown API error.";
-      throw new Error(apiError);
-    }
-
-    return json?.ParsedResults?.[0]?.ParsedText || "";
-  };
-
-  const processImageAndPerformOCR = async (asset) => {
-    setIsProcessing(true);
-    setExtractedText("Resizing image and performing OCR...");
-
-    try {
-      const manipulatedImage = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 1000 } }],
-        {
-          compress: 0.85,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
-        }
-      );
-
-      if (!manipulatedImage.base64) {
-        throw new Error("Failed to generate Base64 data.");
-      }
-
-      const base64Data = manipulatedImage.base64;
-      setImage(manipulatedImage.uri);
-
-      const ocrResult = await performOCR({ base64: base64Data });
-      const total = extractTotalFromPlain(ocrResult);
-
-      if (total) {
-        setExtractedText(`Successfully extracted total: ₹${total}`);
-      } else {
-        setExtractedText(
-          `Total not found. Raw text start: ${ocrResult.substring(0, 50)}...`
-        );
-      }
-      setAmountInput(total ? total : "");
-    } catch (err) {
-      console.error("Image processing failed:", err);
-      setExtractedText(`Image processing error: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const pickImage = (type) => async () => {
-    if (!(await getPermissions())) return;
-
-    let result;
-    if (type === "gallery") {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: "images",
-        allowsEditing: true,
-        base64: false,
-      });
-    } else if (type === "camera") {
-      result = await ImagePicker.launchCameraAsync({
-        mediaTypes: "images",
-        allowsEditing: true,
-        base64: false,
-      });
-    }
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      await processImageAndPerformOCR(result.assets[0]);
-    }
-  };
-
-  const recordSpending = async () => {
-    const amount = parseFloat(amountInput);
-    if (!spendingName.trim() || isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid spending name and amount.");
-      return;
-    }
-
-    try {
-      const transactionsCollectionRef = collection(
-        db,
-        "UserTrips",
-        user.uid,
-        "trips",
-        tripId,
-        "transactions"
-      );
-
-      await addDoc(transactionsCollectionRef, {
-        tripId: tripId,
-        userId: user.uid,
-        name: spendingName.trim(),
-        amount: amount,
-        date: serverTimestamp(),
-        imageUri: image,
-      });
-
-      clearAll();
-      setIsFormVisible(false);
-    } catch (error) {
-      console.error("Error recording spending:", error);
-      alert("Failed to record spending. Please try again.");
-    }
-  };
-
   const hideForm = () => {
     clearAll();
     setIsFormVisible(false);
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={{ gap: 10 }}>
-        {totalBudget <= 0 ? (
-          <View style={styles.setupContainer}>
-            <Text style={styles.setupHeader}>Set Your Initial Budget</Text>
-            <TextInput
-              placeholder="Enter Monthly/Total Budget"
-              value={newBudgetInput}
-              onChangeText={(text) =>
-                setNewBudgetInput(text.replace(/[^0-9.]/g, ""))
-              }
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <ActionButton
-              title="Start Tracking"
-              onPress={handleSetBudget}
-              disabled={!newBudgetInput.trim()}
-              styleOverride={styles.setTotalButton}
-            />
-          </View>
-        ) : (
-          <>
+    <View style={styles.mainWrapper}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={{ gap: 10 }}>
+          {totalBudget <= 0 ? (
+            <View style={styles.setupContainer}>
+              <Text style={styles.setupHeader}>Set Your Initial Budget</Text>
+              <TextInput
+                placeholder="Enter Monthly/Total Budget"
+                value={newBudgetInput}
+                onChangeText={(text) =>
+                  setNewBudgetInput(text.replace(/[^0-9.]/g, ""))
+                }
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <ActionButton
+                title="Start Tracking"
+                onPress={handleSetBudget}
+                disabled={!newBudgetInput.trim()}
+                styleOverride={styles.setTotalButton}
+              />
+            </View>
+          ) : (
             <View style={styles.budgetSummary}>
               <Text style={styles.budgetText}>
-                Total Budget:
+                Total Budget:{" "}
                 <Text style={styles.budgetAmount}>
                   ₹{totalBudget.toFixed(2)}
                 </Text>
               </Text>
               <Text style={styles.budgetText}>
-                Remaining Budget:
+                Remaining:{" "}
                 <Text
                   style={[
                     styles.budgetAmount,
@@ -371,146 +268,158 @@ export default function SpendingsInput() {
                 </Text>
               </Text>
             </View>
-
-            {!isFormVisible && (
-              <ActionButton
-                title="➕ Add Spending"
-                onPress={() => setIsFormVisible(true)}
-                styleOverride={styles.addSpendingButton}
-              />
-            )}
-
-            {isFormVisible && (
-              <SpendingForm
-                spendingName={spendingName}
-                amountInput={amountInput}
-                image={image}
-                extractedText={extractedText}
-                isProcessing={isProcessing}
-                setSpendingName={setSpendingName}
-                setAmountInput={setAmountInput}
-                hideForm={hideForm}
-                pickImage={pickImage}
-                clearAll={clearAll}
-                recordSpending={recordSpending}
-              />
-            )}
-          </>
-        )}
-
-        <View style={styles.historySection}>
-          <Text style={styles.historyHeader}>
-            Recent Spendings ({spendings.length})
-          </Text>
-          {spendings.length === 0 ? (
-            <Text style={styles.noDataText}>
-              {totalBudget > 0
-                ? "No spendings recorded yet."
-                : "Set your budget above to begin tracking."}
-            </Text>
-          ) : (
-            spendings.map((item) => <SpendingItem key={item.id} item={item} />)
           )}
+
+          <View style={styles.historySection}>
+            <Text style={styles.historyHeader}>
+              Recent Spendings ({spendings.length})
+            </Text>
+            {spendings.map((item) => (
+              <SpendingItem key={item.id} item={item} tripId={tripId} />
+            ))}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {isFormVisible && (
+        <View style={styles.formOverlay}>
+          <TouchableOpacity
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={hideForm}
+          />
+
+          <View style={styles.floatingFormCard}>
+            <SpendingForm
+              spendingName={spendingName}
+              amountInput={amountInput}
+              image={image}
+              extractedText={extractedText}
+              isProcessing={isProcessing}
+              setSpendingName={setSpendingName}
+              setAmountInput={setAmountInput}
+              hideForm={hideForm}
+              pickImage={pickImage}
+              clearAll={clearAll}
+              recordSpending={recordSpending}
+            />
+          </View>
+        </View>
+      )}
+      {!isFormVisible && totalBudget > 0 && (
+        <View style={styles.fixedButtonContainer}>
+          <ActionButton
+            title="➕ Add Spending"
+            onPress={() => setIsFormVisible(true)}
+            styleOverride={styles.addSpendingButtonFixed}
+          />
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mainWrapper: {
+    flex: 1,
+    backgroundColor: Colors.WHITE,
+  },
   container: {
-    paddingTop: height * 0.06,
     backgroundColor: Colors.WHITE,
   },
   contentContainer: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.1,
+    paddingTop: height * 0.06,
+    paddingBottom: height * 0.15,
     flexGrow: 1,
   },
-  header: {
-    fontSize: width * 0.06,
-    fontWeight: "bold",
-    color: Colors.DARK_GRAY,
-  },
   setupContainer: {
-    padding: 10,
-    borderRadius: 10,
+    padding: 20,
+    borderRadius: 15,
     backgroundColor: Colors.LIGHT_GRAY,
     alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1,
     borderColor: Colors.PRIMARY,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
   },
   setupHeader: {
-    fontSize: width * 0.055,
-    fontWeight: "bold",
+    fontSize: width * 0.05,
+    fontFamily: "outfitBold",
     marginBottom: 20,
-    color: Colors.DARK_GRAY,
   },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 12,
     borderRadius: 8,
-    fontSize: width * 0.04,
-    marginBottom: 10,
     width: "100%",
     backgroundColor: Colors.WHITE,
+    marginBottom: 10,
   },
   budgetSummary: {
-    padding: 15,
-    borderRadius: 10,
+    padding: 20,
+    borderRadius: 15,
     backgroundColor: Colors.LIGHT_GRAY,
-    borderLeftWidth: 5,
+    borderLeftWidth: 6,
     borderLeftColor: Colors.PRIMARY,
-    borderRightWidth: 5,
-    borderRightColor: Colors.PRIMARY,
-    marginBottom: 10,
-    flexDirection: "column",
+    marginBottom: 15,
   },
   budgetText: {
     fontSize: width * 0.045,
+    fontFamily: "outfitMedium",
     marginBottom: 5,
-    fontWeight: "500",
   },
   budgetAmount: {
-    fontWeight: "bold",
+    fontFamily: "outfitBold",
     color: Colors.PRIMARY,
   },
   historySection: {
     marginTop: 10,
-    marginBottom: 20,
   },
   historyHeader: {
     fontSize: width * 0.05,
-    fontWeight: "bold",
+    fontFamily: "outfitBold",
     marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingBottom: 5,
-    color: Colors.DARK_GRAY,
-  },
-  addSpendingButton: {
-    paddingVertical: height * 0.02,
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
-    marginBottom: 10,
-  },
-  setTotalButton: {
-    padding: height * 0.02,
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
-    marginBottom: 10,
+    color: Colors.BLACK,
   },
   noDataText: {
     textAlign: "center",
-    color: Colors.MEDIUM_GRAY,
-    marginTop: 20,
+    color: Colors.GRAY,
+    marginTop: 30,
+    fontFamily: "outfit",
+  },
+  setTotalButton: {
+    padding: 15,
+    width: "100%",
+  },
+  formOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  floatingFormCard: {
+    width: width * 0.9,
+  },
+  fixedButtonContainer: {
+    position: "absolute",
+    bottom: 60,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  addSpendingButtonFixed: {
+    width: "100%",
+    paddingVertical: 15,
+    borderRadius: 50,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
   },
 });

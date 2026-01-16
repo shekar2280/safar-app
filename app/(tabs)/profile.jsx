@@ -1,350 +1,229 @@
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Dimensions,
   TouchableOpacity,
   TextInput,
   Alert,
   ScrollView,
   Modal,
+  StyleSheet,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect } from "react";
-import { Colors } from "../../constants/Colors";
-import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  deleteUser,
-  EmailAuthProvider,
   getAuth,
-  reauthenticateWithCredential,
   signOut,
   updatePassword,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import {
-  collection,
-  deleteDoc,
   doc,
-  getDoc,
-  getDocs,
-  query,
   setDoc,
+  deleteDoc,
+  collection,
+  query,
   where,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "../../config/FirebaseConfig";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import LottieView from "lottie-react-native";
-
-const { width, height } = Dimensions.get("window");
+import { Colors } from "../../constants/Colors";
+import { useUser } from "../../context/UserContext";
 
 export default function Profile() {
-  const [profilePic, setProfilePic] = useState(null);
+  const auth = getAuth();
+  const router = useRouter();
+  const { userProfile, setUserProfile } = useUser();
+  const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false); 
-
-  const auth = getAuth();
-  const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        setEmail(user.email);
-
-        try {
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
-
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setName(data.fullName || "");
-            if (data.profilePic) setProfilePic({ uri: data.profilePic });
-          }
-        } catch (error) {
-          console.log("Error fetching user data:", error);
-        }
-      }
-    };
-
-    fetchUserData();
-  }, []);
+    if (userProfile) {
+      setName(userProfile.fullName || "");
+      setEmail(auth.currentUser?.email || "");
+    }
+  }, [userProfile]);
 
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
     if (password && password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match!");
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
+    setLoading(true);
     try {
       await setDoc(
         doc(db, "users", user.uid),
-        {
-          fullName: name,
-          email: email,
-        },
+        { fullName: name },
         { merge: true }
       );
+      const updatedProfile = { ...userProfile, fullName: name };
+      setUserProfile(updatedProfile);
+      await AsyncStorage.setItem(`profile_${user.uid}`, JSON.stringify(updatedProfile));
 
       if (password) {
         await updatePassword(user, password);
       }
 
-      Alert.alert("Success", "Profile updated!");
-    } catch (error) {
-      console.log("Error updating profile:", error);
-      Alert.alert("Error", "Could not update profile");
+      Alert.alert("Success", "Profile updated");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (e) {
+      Alert.alert("Update Failed", e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel" },
-      {
-        text: "Logout",
-        onPress: async () => {
-          try {
-            await signOut(auth);
-            await AsyncStorage.removeItem("seenLogin");
-            router.replace("auth/Login");
-          } catch (error) {
-            console.log("Logout error:", error);
-          }
-        },
-      },
-    ]);
-  };
-
-  const deleteUserTrips = async (userEmail) => {
-    const tripsRef = collection(db, "UserTrips");
-    const q = query(tripsRef, where("userEmail", "==", userEmail));
-    const snapshot = await getDocs(q);
-    const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
-    await Promise.all(deletePromises);
+  const handleLogout = async () => {
+    await signOut(auth);
+    await AsyncStorage.removeItem("seenLogin");
+    setUserProfile(null); 
+    router.replace("auth/Login");
   };
 
   const handleDeleteAccount = async () => {
     if (!currentPassword) {
-      Alert.alert("Error", "Please enter your password.");
+      Alert.alert("Error", "Password required");
       return;
     }
 
+    setLoading(true);
     try {
       const user = auth.currentUser;
-      if (!user) return;
-
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
 
-      await deleteUserTrips(user.email);
+      const tripsQ = query(
+        collection(db, "UserTrips"),
+        where("userEmail", "==", user.email)
+      );
+      const snapshot = await getDocs(tripsQ);
+      await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+
       await deleteDoc(doc(db, "users", user.uid));
       await deleteUser(user);
 
       await AsyncStorage.removeItem("seenLogin");
       router.replace("auth/Login");
-
-      Alert.alert("Account Deleted", "Your account has been successfully deleted.");
-    } catch (error) {
-      console.log("Delete error:", error);
-      Alert.alert("Error", "Could not delete account. Please try again.");
+    } catch (e) {
+      Alert.alert("Error", "Account deletion failed. Check your password.");
     } finally {
+      setLoading(false);
       setShowDeleteModal(false);
-      setCurrentPassword("");
-    }
-  };
-
-  const handleChangeProfilePic = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert("Permission required", "Please allow access to your photos.");
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "Images",
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      setProfilePic({ uri: imageUri });
-
-      try {
-        const storage = getStorage();
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
-
-        const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
-        await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(storageRef);
-
-        await setDoc(
-          doc(db, "users", user.uid),
-          { profilePic: downloadURL },
-          { merge: true }
-        );
-
-        Alert.alert("Success", "Profile picture updated!");
-      } catch (error) {
-        console.log("Upload error:", error);
-        Alert.alert("Error", "Failed to upload profile picture.");
-      }
     }
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.WHITE }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        style={{
-          backgroundColor: "#7772abff",
-          height: height * 0.25,
-          borderBottomLeftRadius: 40,
-          borderBottomRightRadius: 40,
-          overflow: "hidden",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {profilePic ? (
-          <Image
-            source={profilePic}
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              borderWidth: 3,
-              borderColor: Colors.WHITE,
-            }}
-          />
-        ) : (
-          <LottieView
-            source={require("../../assets/animations/travel.json")}
-            autoPlay
-            loop
-            style={{ width: 180, height: 180 }}
-          />
-        )}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={styles.topActions}>
+          <TouchableOpacity onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={26} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
+            <Ionicons name="trash-outline" size={26} color="#c92c2c" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.iconCircle}>
+          <Ionicons name="person" size={30} color={Colors.WHITE} />
+        </View>
+        <Text style={styles.userName}>{name || "User"}</Text>
+        <Text style={styles.userEmail}>{email}</Text>
       </View>
 
-      <View style={{ padding: 20 }}>
-        <Text
-          style={{
-            fontSize: 22,
-            fontWeight: "600",
-            color: Colors.PRIMARY,
-            textAlign: "center",
-            marginVertical: 10,
-          }}
-        >
-          {name || "Your Name"}
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            color: Colors.GRAY,
-            textAlign: "center",
-            marginBottom: 10,
-          }}
-        >
-          {email}
-        </Text>
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Account Information</Text>
 
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Full Name"
-          style={styles.input}
-        />
-        <TextInput
-          value={email}
-          editable={false}
-          placeholder="Email"
-          style={[styles.input, { backgroundColor: "#f5f5f5" }]}
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Full Name</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email Address</Text>
+          <TextInput
+            value={email}
+            editable={false}
+            style={[styles.input, styles.disabledInput]}
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Security</Text>
+
         <TextInput
           value={password}
           onChangeText={setPassword}
+          style={styles.input}
           placeholder="New Password"
           secureTextEntry
-          style={styles.input}
         />
         <TextInput
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          placeholder="Confirm Password"
-          secureTextEntry
           style={styles.input}
+          placeholder="Confirm New Password"
+          secureTextEntry
         />
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>Save Changes</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.logoutBtn, { backgroundColor: "red" }]}
-          onPress={() => setShowDeleteModal(true)}
+          style={styles.saveBtn}
+          onPress={handleSave}
+          disabled={loading}
         >
-          <Text style={styles.logoutText}>Delete Account</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveBtnText}>Save Changes</Text>
+          )}
         </TouchableOpacity>
       </View>
 
-      <Modal
-        transparent
-        animationType="fade"
-        visible={showDeleteModal}
-        onRequestClose={() => setShowDeleteModal(false)}
-      >
+      <Modal visible={showDeleteModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Confirm Account Deletion</Text>
-            <Text style={styles.modalSubtitle}>
-              Enter your password to permanently delete your account.
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Account</Text>
+            <Text style={styles.modalSub}>
+              This action is irreversible. Enter password to confirm.
             </Text>
 
             <TextInput
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
+              style={styles.input}
               placeholder="Password"
               secureTextEntry
-              style={styles.input}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
             />
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: Colors.GRAY }]}
-                onPress={() => {
-                  setShowDeleteModal(false);
-                  setCurrentPassword("");
-                }}
+                style={styles.modalCancel}
+                onPress={() => setShowDeleteModal(false)}
               >
-                <Text style={styles.modalBtnText}>Cancel</Text>
+                <Text style={{ color: Colors.GRAY }}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: "red" }]}
+                style={styles.modalDelete}
                 onPress={handleDeleteAccount}
               >
-                <Text style={styles.modalBtnText}>Delete</Text>
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -354,73 +233,92 @@ export default function Profile() {
   );
 }
 
-const styles = {
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.GRAY,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    fontSize: 15,
-    width: "100%",
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.WHITE },
+  header: {
+    backgroundColor: "#7772ab",
+    paddingTop: 40,
+    paddingBottom: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
+  topActions: {
+    position: "absolute",
+    top: 45,
+    right: 20,
+    flexDirection: "row",
+    gap: 18,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  userName: { fontSize: 24, fontWeight: "bold", color: Colors.WHITE },
+  userEmail: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 4 },
+  content: { padding: 25 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 8,
+  },
+  inputGroup: { marginBottom: 10 },
+  label: { fontSize: 13, color: Colors.GRAY, marginBottom: 4 },
+  input: {
+    backgroundColor: "#F7F7F7",
+    borderRadius: 12,
+    padding: 20,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#EEE",
+    marginBottom: 10,
+  },
+  disabledInput: { color: "#999", backgroundColor: "#EBEBEB" },
   saveBtn: {
     backgroundColor: Colors.PRIMARY,
-    padding: 15,
+    padding: 20,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 10,
-    marginBottom: 15,
   },
-  saveText: { color: Colors.WHITE, fontSize: 16, fontWeight: "600" },
-  logoutBtn: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  logoutText: { color: Colors.WHITE, fontSize: 16, fontWeight: "600" },
-
-  // Modal styles
+  saveBtnText: { color: Colors.WHITE, fontSize: 16, fontWeight: "bold" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
-    alignItems: "center",
+    padding: 20,
   },
-  modalContainer: {
-    width: "85%",
-    backgroundColor: Colors.WHITE,
-    borderRadius: 20,
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 25,
     padding: 25,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: Colors.PRIMARY,
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 10,
     color: "red",
-    textAlign: "center",
-    marginBottom: 15,
   },
-  modalBtn: {
+  modalSub: { color: "#666", marginBottom: 20 },
+  modalActions: { flexDirection: "row", gap: 12 },
+  modalCancel: {
     flex: 1,
-    padding: 12,
-    borderRadius: 10,
+    padding: 15,
     alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: "#F0F0F0",
   },
-  modalBtnText: {
-    color: Colors.WHITE,
-    fontSize: 15,
-    fontWeight: "600",
+  modalDelete: {
+    flex: 1,
+    padding: 15,
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: "red",
   },
-};
+});

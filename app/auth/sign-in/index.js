@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ToastAndroid,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useNavigation, useRouter } from "expo-router";
@@ -15,13 +16,16 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../../../config/FirebaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "../../../context/UserContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
+  const { loadUser } = useUser();
 
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -53,15 +57,16 @@ export default function SignIn() {
       ToastAndroid.show("Please enter Email and Password", ToastAndroid.LONG);
       return;
     }
+    setLoading(true);
 
     signInWithEmailAndPassword(auth, email, password)
       .then(async (userCredential) => {
         const user = userCredential.user;
-
+        await loadUser(user);
         await AsyncStorage.setItem("seenLogin", "true");
 
         const userData = await fetchUserData(user.uid);
-        
+
         await setDoc(
           doc(db, "users", user.uid),
           {
@@ -73,8 +78,7 @@ export default function SignIn() {
         router.replace("/mytrip");
       })
       .catch((error) => {
-        console.log(error.code, error.message);
-
+        setLoading(false);
         if (error.code === "auth/invalid-credential") {
           ToastAndroid.show("Invalid Credentials", ToastAndroid.LONG);
         }
@@ -109,8 +113,16 @@ export default function SignIn() {
         />
       </View>
 
-      <TouchableOpacity style={styles.signInButton} onPress={OnSignIn}>
-        <Text style={styles.signInText}>Sign In</Text>
+      <TouchableOpacity
+        style={styles.signInButton}
+        onPress={OnSignIn}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={Colors.WHITE} />
+        ) : (
+          <Text style={styles.signInText}>Sign In</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity
