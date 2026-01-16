@@ -5,7 +5,7 @@ import { Colors } from "../../constants/Colors";
 import { Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
-const iconSize = width * 0.06; 
+const iconSize = width * 0.06;
 
 export default function TabLayout() {
   return (
@@ -14,16 +14,21 @@ export default function TabLayout() {
         headerShown: false,
         tabBarInactiveTintColor: Colors.GRAY,
         tabBarActiveTintColor: "black",
+        tabBarStyle: {
+          height: 115, 
+          paddingBottom: 20, 
+          paddingTop: 5, 
+        },
         tabBarLabelStyle: {
-          fontSize: width * 0.035, 
-          fontFamily: "outfit", 
+          fontSize: width * 0.035,
+          fontFamily: "outfit",
         },
       }}
     >
       <Tabs.Screen
         name="mytrip"
         options={{
-          tabBarLabel: "My Trip",
+          tabBarLabel: "My Trips",
           tabBarIcon: ({ color }) => (
             <Ionicons name="location-sharp" size={iconSize} color={color} />
           ),

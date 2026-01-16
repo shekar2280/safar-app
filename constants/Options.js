@@ -37,7 +37,6 @@ export const LOCAL_HOTEL_IMAGES = [
   require("../assets/images/hotel-images/hotel_image_3.jpg"),
   require("../assets/images/hotel-images/hotel_image_4.jpg"),
   require("../assets/images/hotel-images/hotel_image_5.jpg"),
-  require("../assets/images/hotel-images/hotel_image_6.jpg"),
   require("../assets/images/hotel-images/hotel_fallback.jpg"),
 ];
 
