@@ -6,96 +6,33 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
-import { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  orderBy,
-  getDoc,
-  doc,
-} from "firebase/firestore";
-import { auth, db } from "../../config/FirebaseConfig";
+import { useUser } from "../../context/UserContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ActiveTripCard from "../../components/WalletDetails/ActiveTripCard";
 
 const { width, height } = Dimensions.get("window");
 
 export default function Wallet() {
-  const user = auth.currentUser;
-  const [activeTrips, setActiveTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { userTrips, loading } = useUser();
 
   const boldFont = "outfitBold";
   const regularFont = "outfit";
   const mediumFont = "outfitMedium";
 
-  useEffect(() => {
-    if (!user?.email) {
-      setLoading(false);
-      return;
-    }
-
-    const tripsRef = collection(db, "UserTrips", user.uid, "trips");
-    const q = query(
-      tripsRef,
-      where("userEmail", "==", user.email),
-      where("isActive", "==", true),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      async (snapshot) => {
-        setLoading(true);
-
-        const userTripsData = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-
-        const tripsWithDetails = await Promise.all(
-          userTripsData.map(async (trip) => {
-            if (!trip.savedTripId) {
-              return trip;
-            }
-            const savedTripRef = doc(db, "SavedTripData", trip.savedTripId);
-            const savedTripSnap = await getDoc(savedTripRef);
-
-            if (savedTripSnap.exists()) {
-              const saved = savedTripSnap.data();
-              return {
-                ...trip,
-                ...saved,
-                id: trip.id,
-              };
-            } else {
-              console.warn("No SavedTripData found for", trip.savedTripId);
-              return trip;
-            }
-          })
-        );
-
-        setActiveTrips(tripsWithDetails);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching active trips: ", error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
+  const activeTrips = (userTrips || [])
+    .filter((trip) => trip.isActive === true)
+    .sort((a, b) => {
+      const dateA = new Date(a.activatedAt || 0);
+      const dateB = new Date(b.activatedAt || 0);
+      return dateB - dateA; 
+    });
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.WHITE }}>
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: width * 0.05,
-          paddingTop: height * 0.08,
-          paddingBottom: height * 0.1,
+          paddingHorizontal: width * 0.04,
+          paddingTop: height * 0.056,
           flexGrow: 1,
           backgroundColor: Colors.WHITE,
         }}
@@ -115,7 +52,7 @@ export default function Wallet() {
           <ActivityIndicator
             size="large"
             color={Colors.PRIMARY}
-            style={{ marginTop: height * 0.05 }}
+            style={{ marginTop: height * 0.04 }}
           />
         )}
 
@@ -151,7 +88,7 @@ export default function Wallet() {
           </View>
         )}
 
-        <View style={{ marginTop: height * 0.02 }}>
+        <View style={{ marginTop: height * 0.01 }}>
           {activeTrips.map((trip) => (
             <ActiveTripCard key={trip.id} trip={trip} />
           ))}

@@ -34,9 +34,9 @@ export default function UserTripCard({ trip, onDelete }) {
 
   const getFinalImageSource = () => {
     if (trip?.concertData) {
-      const concertImg = 
-        trip?.concertData?.artistImageUrl || 
-        trip?.concertData?.locationInfo?.imageUrl || 
+      const concertImg =
+        trip?.concertData?.artistImageUrl ||
+        trip?.concertData?.locationInfo?.imageUrl ||
         trip?.imageUrl;
 
       if (concertImg) {
@@ -117,9 +117,14 @@ export default function UserTripCard({ trip, onDelete }) {
             }}
             numberOfLines={1}
           >
-            {trip?.concertData
+            {trip?.concertData?.artist
               ? `${trip.concertData.artist} Concert`
-              : tripPlan?.tripName}
+              : tripPlan?.tripName ||
+                trip?.tripPlan?.tripMetadata?.location ||
+                (trip?.savedTripId
+                  ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
+                    trip.savedTripId.split("-")[0].slice(1)
+                  : "My Trip")}
           </Text>
           <Text
             style={{

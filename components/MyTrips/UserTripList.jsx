@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
-import { concertImages, fallbackImages } from "../../constants/Options"; 
+import { concertImages, fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
@@ -85,7 +85,13 @@ export default function UserTripList({ userTrips }) {
         onPress: async () => {
           try {
             const user = auth.currentUser;
-            const tripRef = doc(db,"UserTrips",user.uid,"trips",latestTrip.id);
+            const tripRef = doc(
+              db,
+              "UserTrips",
+              user.uid,
+              "trips",
+              latestTrip.id
+            );
             await deleteDoc(tripRef);
             handleDelete(latestTrip.id);
           } catch (error) {
@@ -118,9 +124,12 @@ export default function UserTripList({ userTrips }) {
         }}
         numberOfLines={1}
       >
-        {latestTrip?.concertData
+        {latestTrip?.concertData?.artist
           ? `${latestTrip.concertData.artist} Concert`
-          : latestTrip?.tripPlan?.tripName}
+          : latestTrip?.tripPlan?.tripName ||
+            latestTrip?.savedTripId?.split("-")[0].charAt(0).toUpperCase() +
+              latestTrip?.savedTripId?.split("-")[0].slice(1) ||
+            "My Trip"}
       </Text>
 
       <View

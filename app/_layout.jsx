@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConcertTripProvider } from "../context/ConcertTripContext";
 import { TripProvider } from "../context/CommonTripContext";
+import { UserProvider } from "../context/UserContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/config/FirebaseConfig";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -58,21 +59,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <CreateTripContext.Provider value={{ tripData, setTripData }}>
-        <ConcertTripProvider>
-          <TripProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              {showLogin ? (
-                <Stack.Screen name="auth/Login" />
-              ) : !isSignedIn ? (
-                <Stack.Screen name="auth/sign-in/index" />
-              ) : (
-                <Stack.Screen name="(tabs)" />
-              )}
-            </Stack>
-          </TripProvider>
-        </ConcertTripProvider>
-      </CreateTripContext.Provider>
+      <UserProvider>
+        <CreateTripContext.Provider value={{ tripData, setTripData }}>
+          <ConcertTripProvider>
+            <TripProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                {showLogin ? (
+                  <Stack.Screen name="auth/Login" />
+                ) : !isSignedIn ? (
+                  <Stack.Screen name="auth/sign-in/index" />
+                ) : (
+                  <Stack.Screen name="(tabs)" />
+                )}
+              </Stack>
+            </TripProvider>
+          </ConcertTripProvider>
+        </CreateTripContext.Provider>
+      </UserProvider>
     </GestureHandlerRootView>
   );
 }
