@@ -1,102 +1,74 @@
-import { View, Text, StyleSheet, Dimensions, Alert } from "react-native";
+import {View,Text,StyleSheet,Dimensions,Alert,TouchableOpacity,} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  runOnJS, 
-} from "react-native-reanimated";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import Animated, {useAnimatedStyle, useSharedValue, withSpring} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../config/FirebaseConfig";
+import { auth, db } from "../../config/FirebaseConfig";
 
 const { width } = Dimensions.get("window");
-const SWIPE_THRESHOLD = -width * 0.2; 
+const SWIPE_LIMIT = -width * 0.2;
 
-export const SpendingItem = ({ item }) => {
+export const SpendingItem = ({ item, tripId }) => {
   const translateX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
-    .onBegin((event) => {
-      translateX.value = event.translationX + translateX.value;
-    })
+    .activeOffsetX([-20, 20])
     .onUpdate((event) => {
-      translateX.value = Math.max(SWIPE_THRESHOLD * 1.5, event.translationX);
+      translateX.value = Math.max(SWIPE_LIMIT * 1.2, event.translationX);
     })
-    .onEnd((event) => {
-      if (translateX.value < SWIPE_THRESHOLD) {
-        translateX.value = withSpring(SWIPE_THRESHOLD);
+    .onEnd(() => {
+      if (translateX.value < SWIPE_LIMIT / 1.5) {
+        translateX.value = withSpring(SWIPE_LIMIT);
       } else {
         translateX.value = withSpring(0);
       }
     });
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
-  const actionStyle = useAnimatedStyle(() => {
-    const opacity = translateX.value < SWIPE_THRESHOLD / 2 ? 1 : 0;
-    return {
-      opacity: withSpring(opacity),
-    };
-  });
-
-  const confirmDelete = () => {
-    Alert.alert("Delete Transaction", "Are you sure you want to delete this transaction?", [
-      {text: "Cancel", style: "cancel"},
+  const deletePath = () => {
+    Alert.alert("Delete", "Remove this expense?", [
+      { text: "Cancel", onPress: () => (translateX.value = withSpring(0)) },
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          try {
-            await deleteDoc(doc(db, "Transactions", item.id));
-          } catch (error) {
-            console.error("Failed to delete transaction:", error);
-          }
+          const user = auth.currentUser;
+          await deleteDoc(
+            doc(
+              db,
+              "UserTrips",
+              user.uid,
+              "trips",
+              tripId,
+              "transactions",
+              item.id
+            )
+          );
         },
       },
     ]);
   };
 
   return (
-    <View style={styles.spendingItemContainer}>
-      <Animated.View style={[styles.deleteAction, actionStyle]}>
-        <Text
-          style={styles.deleteText}
-          onPress={confirmDelete}
-        >
-          <Ionicons
-              name="trash"
-              size={30}
-              color="#ee3434ff"
-              style={{ marginLeft: 10 }}
-            />
-        </Text>
-      </Animated.View>
-
+    <View style={styles.swipeBackground}>
+      <View style={styles.deleteAction}>
+        <TouchableOpacity onPress={deletePath} style={styles.deleteCircle}>
+          <Ionicons name="trash" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.spendingItemContent, animatedStyle]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.spendingName}>{item.name}</Text>
-            <Text style={styles.spendingDate}>{item.date}</Text>
+        <Animated.View style={[styles.content, animatedStyle]}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="card-outline" size={20} color="#666" />
           </View>
-          <Text style={styles.spendingAmount}>- ₹{item.amount.toFixed(2)}</Text>
-
-          {item.imageUri && (
-            <Ionicons
-              name="image"
-              size={20}
-              color="#888"
-              style={{ marginLeft: 10 }}
-            />
-          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.date}>{item.date}</Text>
+          </View>
+          <Text style={styles.amount}>₹{item.amount}</Text>
         </Animated.View>
       </GestureDetector>
     </View>
@@ -104,52 +76,48 @@ export const SpendingItem = ({ item }) => {
 };
 
 const styles = StyleSheet.create({
-  spendingItemContainer: {
-    width: width, 
-    justifyContent: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
+  swipeBackground: {
+    backgroundColor: "#FFEBEE",
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: "hidden",
   },
-  spendingItemContent: {
+  content: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 5,
-    marginRight: 35,
-    marginHorizontal: 10, 
+    padding: 16,
     backgroundColor: "white",
-    gap: 25,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d7d7d7",
   },
   deleteAction: {
     position: "absolute",
-    bottom: 0,
-    top: 0,
     right: 0,
-    width: width * 0.25, 
-    backgroundColor: "#fcdee2ff",
+    top: 0,
+    bottom: 0,
+    width: width * 0.2,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 5, 
   },
-  deleteText: {
-    color: "white",
-    fontWeight: "bold",
+  deleteCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FF5252",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  spendingName: {
-    fontSize: width * 0.045,
-    fontWeight: "600",
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  spendingDate: {
-    fontSize: width * 0.035,
-    color: "#888",
-    marginTop: 2,
-  },
-  spendingAmount: {
-    fontSize: width * 0.05,
-    fontWeight: "bold",
-    color: "black",
-  },
+  name: { fontSize: 16, fontWeight: "600" },
+  date: { fontSize: 12, color: "#888" },
+  amount: { fontSize: 16, fontWeight: "bold" },
 });

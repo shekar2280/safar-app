@@ -19,7 +19,7 @@ export default function Discover() {
     <View
       style={{
         padding: width * 0.06,
-        paddingTop: height * 0.065,
+        paddingTop: height * 0.050,
         backgroundColor: Colors.WHITE,
         flex: 1,
       }}

@@ -17,7 +17,7 @@ export default function Login() {
   return (
     <View style={styles.screen}>
       <Image
-        source={require("../../assets/images/login.jpg")}
+        source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764932675/login_g095qw.jpg" }}
         style={styles.image}
         resizeMode="cover"
       />

@@ -14,11 +14,16 @@ export default function ActiveTripCard({ trip }) {
     ? { uri: trip.imageUrl }
     : require("../../assets/images/homepage.jpg");
 
-  const tripName = trip?.concertData
-    ? `${trip.concertData.artist} Concert`
-    : trip?.tripPlan?.tripName;
-
-  const tripStartDate = trip?.startDate;
+  const tripName = trip?.concertData?.artist 
+    ? `${trip.concertData.artist} Concert` 
+    : (
+      trip?.tripPlan?.tripName || 
+      trip?.tripPlan?.tripMetadata?.location || 
+      (trip?.savedTripId 
+        ? trip.savedTripId.split('-')[0].charAt(0).toUpperCase() + trip.savedTripId.split('-')[0].slice(1) 
+        : "Active Trip")
+    );
+  const tripStartDate = trip?.startDate || trip?.concertData?.startDate;
 
   const navigateToWalletDetails = () => {
     router.push({
