@@ -11,6 +11,7 @@ import { auth } from "@/config/FirebaseConfig";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LOCAL_HOTEL_IMAGES } from "../constants/Options";
 import { Asset } from "expo-asset";
+import { Image } from "react-native"; 
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -22,6 +23,7 @@ export default function RootLayout() {
   const [tripData, setTripData] = useState([]);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(true);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -50,12 +52,18 @@ export default function RootLayout() {
 
   useEffect(() => {
     const loadAssets = async () => {
-      await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
+      try {
+        await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
+      } catch (e) {
+        console.warn("Error caching images", e);
+      } finally {
+        setAssetsLoaded(true);
+      }
     };
     loadAssets();
   }, []);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || !assetsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

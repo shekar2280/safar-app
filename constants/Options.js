@@ -32,12 +32,12 @@ export const SelectTravelerList = [
 ];
 
 export const LOCAL_HOTEL_IMAGES = [
-  require("../assets/images/hotel-images/hotel_image_1.jpg"),
-  require("../assets/images/hotel-images/hotel_image_2.jpg"),
-  require("../assets/images/hotel-images/hotel_image_3.jpg"),
-  require("../assets/images/hotel-images/hotel_image_4.jpg"),
-  require("../assets/images/hotel-images/hotel_image_5.jpg"),
-  require("../assets/images/hotel-images/hotel_fallback.jpg"),
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630801/hotel_image_1_bjfpsm.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630795/hotel_image_2_eu6fqo.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630795/hotel_image_3_htrimx.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630802/hotel_image_4_c1tvxp.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630800/hotel_image_5_jdt9bj.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630795/hotel_fallback_f2pvv2.jpg",
 ];
 
 export const concertImages = [
