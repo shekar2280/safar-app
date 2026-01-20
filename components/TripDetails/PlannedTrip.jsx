@@ -47,7 +47,7 @@ export default function PlannedTrip({ itineraryDetails }) {
         }}
       >
         <Image
-          source={require("../../assets/images/daily-plan.jpeg")}
+          source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1768630981/daily-plan_cmneak.jpg"}}
           style={{
             width: "100%",
             height: "100%",
