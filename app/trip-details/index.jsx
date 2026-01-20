@@ -109,8 +109,8 @@ export default function TripDetails() {
   if (loadingStaticData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY} />
-        <Text style={styles.loadingText}>Loading itinerary...</Text>
+        <ActivityIndicator size="50" color={Colors.PRIMARY} />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -143,7 +143,7 @@ export default function TripDetails() {
       <View style={styles.container}>
         <Text style={styles.title}>
           {tripDetails?.tripPlan?.tripName ||
-            `${tripDetails?.concertData.artist} Concert` ||
+            `${tripDetails?.concertData?.artist} Concert` ||
             "Trip Details"}
         </Text>
 

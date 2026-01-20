@@ -22,9 +22,13 @@ export default function Wallet() {
   const activeTrips = (userTrips || [])
     .filter((trip) => trip.isActive === true)
     .sort((a, b) => {
-      const dateA = new Date(a.activatedAt || 0);
-      const dateB = new Date(b.activatedAt || 0);
-      return dateB - dateA; 
+      const parseDate = (val) => {
+        if (!val) return 0;
+        if (val.seconds) return val.seconds * 1000;
+        return new Date(val).getTime();
+      };
+
+      return parseDate(b.activatedAt) - parseDate(a.activatedAt);
     });
 
   return (
