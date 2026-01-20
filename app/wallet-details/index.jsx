@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
@@ -30,6 +31,7 @@ import { ActionButton } from "../../components/WalletDetails/ActionButton";
 import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
 import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
 import { useUser } from "../../context/UserContext";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -58,9 +60,11 @@ export default function SpendingsInput() {
   const [spendingName, setSpendingName] = useState("");
   const [amountInput, setAmountInput] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const [totalBudget, setTotalBudget] = useState(0);
   const [remBudget, setRemBudget] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0); 
 
   const [newBudgetInput, setNewBudgetInput] = useState("");
 
@@ -69,8 +73,9 @@ export default function SpendingsInput() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const totalSpent = spendings.reduce((sum, item) => sum + item.amount, 0);
-    setRemBudget(totalBudget - totalSpent);
+    const totalSpentVal = spendings.reduce((sum, item) => sum + item.amount, 0);
+    setTotalSpent(totalSpentVal);
+    setRemBudget(totalBudget - totalSpentVal);
   }, [spendings, totalBudget]);
 
   useEffect(() => {
@@ -103,13 +108,17 @@ export default function SpendingsInput() {
             date: dateObject.toLocaleString(),
           };
         })
-        .sort((a, b) => b.timestamp - a.timestamp);
+        .sort((a, b) => {
+          return sortOrder === "desc" 
+            ? b.timestamp - a.timestamp 
+            : a.timestamp - b.timestamp;
+        });
 
       setSpendings(firestoreSpendings);
     });
 
     return () => unsubscribe();
-  }, [tripId, userTrips]);
+  }, [tripId, userTrips, sortOrder]);
 
   const handleSetBudget = async () => {
     if (!tripId) return;
@@ -224,6 +233,7 @@ export default function SpendingsInput() {
 
   return (
     <View style={styles.mainWrapper}>
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -250,30 +260,50 @@ export default function SpendingsInput() {
             </View>
           ) : (
             <View style={styles.budgetSummary}>
-              <Text style={styles.budgetText}>
-                Total Budget:{" "}
-                <Text style={styles.budgetAmount}>
-                  ₹{totalBudget.toFixed(2)}
-                </Text>
-              </Text>
-              <Text style={styles.budgetText}>
-                Remaining:{" "}
-                <Text
-                  style={[
-                    styles.budgetAmount,
-                    { color: remBudget < 0 ? Colors.RED : Colors.PRIMARY },
-                  ]}
-                >
-                  ₹{remBudget.toFixed(2)}
-                </Text>
-              </Text>
+              <View style={styles.budgetMainInfo}>
+                <View>
+                  <Text style={styles.label}>Remaining Balance</Text>
+                  <Text style={[styles.bigAmount, { color: remBudget < 0 ? "#FF5252" : "#FFFFFF" }]}>
+                    ₹{remBudget.toLocaleString()}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="integrated-circuit-chip" size={40} color="rgba(255,255,255,0.3)" />
+              </View>
+
+              <View style={styles.statsRow}>
+                <View>
+                  <Text style={styles.statLabel}>Total Budget</Text>
+                  <Text style={styles.statValue}>₹{totalBudget.toLocaleString()}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View>
+                  <Text style={styles.statLabel}>Spent So Far</Text>
+                  <Text style={styles.statValue}>₹{totalSpent.toLocaleString()}</Text>
+                </View>
+              </View>
             </View>
           )}
 
           <View style={styles.historySection}>
-            <Text style={styles.historyHeader}>
-              Recent Spendings ({spendings.length})
-            </Text>
+            <View style={styles.historyHeaderRow}>
+                <Text style={styles.historyHeader}>
+                Recent Spendings ({spendings.length})
+                </Text>
+                <TouchableOpacity 
+                    onPress={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                    style={styles.sortButton}
+                >
+                    <Ionicons 
+                        name={sortOrder === "desc" ? "arrow-down-circle" : "arrow-up-circle"} 
+                        size={20} 
+                        color={Colors.PRIMARY} 
+                    />
+                    <Text style={styles.sortText}>
+                        {sortOrder === "desc" ? "Newest" : "Oldest"}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            
             {spendings.map((item) => (
               <SpendingItem key={item.id} item={item} tripId={tripId} />
             ))}
@@ -322,10 +352,10 @@ export default function SpendingsInput() {
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
+    backgroundColor: "#F8F9FA",
   },
   container: {
-    backgroundColor: Colors.WHITE,
+    backgroundColor: "#F8F9FA",
   },
   contentContainer: {
     paddingHorizontal: width * 0.05,
@@ -356,36 +386,77 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   budgetSummary: {
-    padding: 20,
-    borderRadius: 15,
-    backgroundColor: Colors.LIGHT_GRAY,
-    borderLeftWidth: 6,
-    borderLeftColor: Colors.PRIMARY,
-    marginBottom: 15,
-  },
-  budgetText: {
-    fontSize: width * 0.045,
-    fontFamily: "outfitMedium",
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 24,
+    padding: 24,
+    elevation: 8,
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     marginBottom: 5,
   },
-  budgetAmount: {
+  budgetMainInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 25,
+  },
+  label: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontFamily: "outfit" },
+  bigAmount: { fontSize: 30, fontFamily: "outfitBold", marginTop: 4 },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    padding: 15,
+    borderRadius: 16,
+  },
+  statLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 10,
+    fontFamily: "outfit",
+  },
+  statValue: {
+    color: "#FFF",
+    fontSize: 15,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 25,
+    backgroundColor: "rgba(255, 253, 253, 0.2)",
   },
   historySection: {
     marginTop: 10,
   },
+  historyHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
   historyHeader: {
     fontSize: width * 0.05,
     fontFamily: "outfitBold",
-    marginBottom: 10,
     color: Colors.BLACK,
   },
-  noDataText: {
-    textAlign: "center",
-    color: Colors.GRAY,
-    marginTop: 30,
-    fontFamily: "outfit",
+  sortButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.WHITE,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#EEE",
+  },
+  sortText: {
+    fontSize: 12,
+    fontFamily: "outfitMedium",
+    color: Colors.PRIMARY,
+    marginLeft: 5,
   },
   setTotalButton: {
     padding: 15,
@@ -410,11 +481,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
   },
   addSpendingButtonFixed: {
     width: "100%",
-    paddingVertical: 15,
+    paddingVertical: 18,
     borderRadius: 50,
     elevation: 8,
     shadowColor: "#000",
