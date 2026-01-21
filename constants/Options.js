@@ -385,7 +385,7 @@ export const HiddenGemIdeas = [
     name: "Patan",
     title: "Patan, Gujarat",
     desc: "Step into history at Rani ki Vav, a beautifully carved stepwell.",
-    image: require("../assets/images/hidden-gems/patan.png"),
+    image: require("../assets/images/hidden-gems/patan.jpg"),
   },
   {
     id: 9,

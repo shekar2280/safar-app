@@ -106,7 +106,7 @@ export default function Mytrip() {
       style={{ paddingTop: height * 0.03, backgroundColor: Colors.WHITE }}
       contentContainerStyle={{
         padding: width * 0.06,
-        paddingBottom: height * 0.10,
+        paddingBottom: height * 0.05,
         flexGrow: 1,
       }}
     >
