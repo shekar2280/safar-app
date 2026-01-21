@@ -1,28 +1,26 @@
-import { View, Text, TouchableOpacity, Alert, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Dimensions, StyleSheet } from "react-native";
 import React, { useMemo } from "react";
 import moment from "moment";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 import { concertImages, fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 export default function UserTripCard({ trip, onDelete }) {
   const router = useRouter();
 
-  const tripData =
-    trip?.tripData ||
-    trip?.discoverData ||
-    trip?.festiveData ||
-    trip?.concertData ||
-    trip?.trendingData ||
-    {};
+  const tripData = trip?.tripData || trip?.discoverData || trip?.festiveData || trip?.concertData || trip?.trendingData || {};
 
-  const tripPlan = trip?.tripPlan;
+  const tripName = trip?.concertData?.artist
+    ? `${trip.concertData.artist} Concert`
+    : trip?.savedTripId
+        ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() + trip.savedTripId.split("-")[0].slice(1)
+        : "My Trip";
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -32,124 +30,83 @@ export default function UserTripCard({ trip, onDelete }) {
     return concertImages[Math.floor(Math.random() * concertImages.length)];
   }, [trip?.id]);
 
-  const getFinalImageSource = () => {
+  const finalSource = useMemo(() => {
     if (trip?.concertData) {
-      const concertImg =
-        trip?.concertData?.artistImageUrl ||
-        trip?.concertData?.locationInfo?.imageUrl ||
-        trip?.imageUrl;
-
-      if (concertImg) {
-        return { uri: concertImg };
-      }
-      return concertFallback;
+      const concertImg = trip?.concertData?.artistImageUrl || trip?.concertData?.locationInfo?.imageUrl || trip?.imageUrl;
+      return concertImg ? { uri: concertImg } : concertFallback;
     }
-    if (trip?.imageUrl) {
-      return { uri: trip.imageUrl };
-    }
-    return randomFallback;
-  };
-
-  const finalSource = getFinalImageSource();
+    // If regular trip image is missing, use randomFallback
+    return trip?.imageUrl ? { uri: trip.imageUrl } : randomFallback;
+  }, [trip, randomFallback, concertFallback]);
 
   const confirmDelete = () => {
-    Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
+    Alert.alert("Delete Trip", "Remove this journey?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
+      { text: "Delete", style: "destructive", onPress: async () => {
           try {
             const user = auth.currentUser;
-            const tripRef = doc(db, "UserTrips", user.uid, "trips", trip.id);
-            await deleteDoc(tripRef);
+            await deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id));
             onDelete?.(trip.id);
-          } catch (error) {
-            console.error("Delete Error:", error);
-          }
-        },
-      },
+          } catch (error) { console.error(error); }
+      }},
     ]);
   };
 
   return (
-    <View
-      style={{
-        marginTop: height * 0.025,
-        flexDirection: "row",
-        gap: width * 0.025,
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => router.push({
+        pathname: "/trip-details",
+        params: { trip: JSON.stringify(trip), imageUrl: typeof finalSource === 'object' ? finalSource.uri : finalSource },
+      })}
     >
-      <TouchableOpacity
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          flex: 1,
-          gap: width * 0.025,
-        }}
-        onPress={() =>
-          router.push({
-            pathname: "/trip-details",
-            params: {
-              trip: JSON.stringify(trip),
-              imageUrl: typeof finalSource === 'object' ? finalSource.uri : finalSource,
-            },
-          })
-        }
-      >
-        <Image
-          source={finalSource}
-          transition={500}
-          style={{
-            width: width * 0.25,
-            height: width * 0.25,
-            borderRadius: width * 0.025,
-          }}
-        />
-
-        <View style={{ flexShrink: 1 }}>
-          <Text
-            style={{
-              fontFamily: "outfitBold",
-              fontSize: width * 0.045,
-            }}
-            numberOfLines={1}
-          >
-            {trip?.concertData?.artist
-              ? `${trip.concertData.artist} Concert`
-              : tripPlan?.tripName ||
-                trip?.tripPlan?.tripMetadata?.location ||
-                (trip?.savedTripId
-                  ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
-                    trip.savedTripId.split("-")[0].slice(1)
-                  : "My Trip")}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "outfitMedium",
-              fontSize: width * 0.035,
-              color: Colors.GRAY,
-            }}
-          >
-            {moment(tripData.startDate).format("DD MMM YYYY")}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "outfitMedium",
-              fontSize: width * 0.035,
-              color: Colors.GRAY,
-            }}
-          >
-            Travelers: {trip?.traveler?.title || "1"}
+      <Image source={finalSource} style={styles.bannerImage} transition={400} />
+      <View style={styles.overlay} />
+      
+      <View style={styles.content}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title} numberOfLines={1}>{tripName}</Text>
+          <Text style={styles.dateText}>
+            {moment(tripData.startDate).format("DD MMM YYYY")} • {trip?.traveler?.title?.split(' ')[0] || "1"} Traveler
           </Text>
         </View>
-      </TouchableOpacity>
 
-      <TouchableOpacity onPress={confirmDelete}>
-        <MaterialIcons name="delete" size={width * 0.07} color="#FF6347" />
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity onPress={confirmDelete} style={styles.deleteBtn}>
+          <MaterialIcons name="delete-outline" size={22} color="rgba(247, 13, 13, 0.73)" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    height: 130, 
+    borderRadius: 20,
+    marginBottom: 15,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    elevation: 4,
+  },
+  bannerImage: { ...StyleSheet.absoluteFillObject },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)', 
+  },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  title: { color: 'white', fontFamily: "outfitBold", fontSize: 20 },
+  dateText: { color: 'rgba(255,255,255,0.8)', fontFamily: "outfit", fontSize: 14, marginTop: 2 },
+  deleteBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.63)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
+});
