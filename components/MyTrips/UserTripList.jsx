@@ -1,4 +1,11 @@
-import { View, Text, TouchableOpacity, Dimensions, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import { Colors } from "./../../constants/Colors";
@@ -17,15 +24,14 @@ export default function UserTripList({ userTrips }) {
   const router = useRouter();
 
   useEffect(() => {
-    const sorted = [...userTrips].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
+    const sorted = [...userTrips].sort(
+      (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+    );
     setTrips(sorted);
   }, [userTrips]);
 
   const latestTrip = trips[0];
+  const otherTrips = trips.slice(1);
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -37,151 +43,59 @@ export default function UserTripList({ userTrips }) {
 
   if (!latestTrip) return null;
 
-  const latestTripData =
-    latestTrip?.tripData ||
-    latestTrip?.discoverData ||
-    latestTrip?.festiveData ||
-    latestTrip?.concertData ||
-    latestTrip?.trendingData ||
-    {};
+  const finalSource = latestTrip?.concertData
+    ? latestTrip?.concertData?.artistImageUrl
+      ? { uri: latestTrip.concertData.artistImageUrl }
+      : concertFallback
+    : latestTrip?.imageUrl
+      ? { uri: latestTrip.imageUrl }
+      : randomFallback;
 
   const tripStartDate =
     latestTrip.startDate ||
-    latestTripData.startDate ||
+    latestTrip?.tripData?.startDate ||
     latestTrip?.concertData?.startDate;
-
-  const otherTrips = trips.slice(1);
-
-  const getFinalImageSource = () => {
-    if (latestTrip?.concertData) {
-      const concertImg =
-        latestTrip?.concertData?.artistImageUrl ||
-        latestTrip?.concertData?.locationInfo?.imageUrl ||
-        latestTrip?.imageUrl;
-
-      if (concertImg) {
-        return { uri: concertImg };
-      }
-      return concertFallback;
-    }
-    if (latestTrip?.imageUrl) {
-      return { uri: latestTrip.imageUrl };
-    }
-    return randomFallback;
-  };
-
-  const finalSource = getFinalImageSource();
 
   const handleDelete = (tripId) => {
     setTrips((prev) => prev.filter((t) => t.id !== tripId));
   };
 
-  const confirmDelete = () => {
-    Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const user = auth.currentUser;
-            const tripRef = doc(
-              db,
-              "UserTrips",
-              user.uid,
-              "trips",
-              latestTrip.id
-            );
-            await deleteDoc(tripRef);
-            handleDelete(latestTrip.id);
-          } catch (error) {
-            console.error("Delete Error:", error);
-          }
+  const confirmDeleteLatest = () => {
+    Alert.alert(
+      "Delete Trip",
+      "Are you sure you want to delete your latest trip?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const user = auth.currentUser;
+              const tripRef = doc(
+                db,
+                "UserTrips",
+                user.uid,
+                "trips",
+                latestTrip.id,
+              );
+              await deleteDoc(tripRef);
+              handleDelete(latestTrip.id);
+            } catch (error) {
+              console.error("Delete Error:", error);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
+
   return (
-    <View style={{ marginTop: height * 0.025 }}>
-      <Image
-        source={finalSource}
-        transition={500}
-        style={{
-          width: "100%",
-          height: height * 0.25,
-          borderRadius: width * 0.04,
-        }}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-      />
-
-      <Text
-        style={{
-          fontFamily: "outfitBold",
-          fontSize: width * 0.05,
-          marginTop: height * 0.015,
-        }}
-        numberOfLines={1}
-      >
-        {latestTrip?.concertData?.artist
-          ? `${latestTrip.concertData.artist} Concert`
-          : latestTrip?.tripPlan?.tripName ||
-            latestTrip?.savedTripId?.split("-")[0].charAt(0).toUpperCase() +
-              latestTrip?.savedTripId?.split("-")[0].slice(1) ||
-            "My Trip"}
-      </Text>
-
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: height * 0.005,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "outfit",
-            fontSize: width * 0.04,
-            color: Colors.GRAY,
-          }}
-        >
-          {tripStartDate
-            ? moment(tripStartDate).format("DD MMM YYYY")
-            : "No date"}
-        </Text>
-
-        <View style={{ flexDirection: "row", gap: width * 0.005 }}>
-          <Text
-            style={{
-              fontFamily: "outfit",
-              fontSize: width * 0.04,
-              color: Colors.GRAY,
-            }}
-          >
-            Travelers:
-          </Text>
-          <Text
-            style={{
-              fontFamily: "outfit",
-              fontSize: width * 0.04,
-              color: Colors.GRAY,
-            }}
-          >
-            {latestTrip.traveler?.title || "1"}
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginTop: height * 0.02,
-          gap: 12,
-        }}
-      >
+    <View style={listStyles.container}>
+      <View style={listStyles.featuredHeader}>
         <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() =>
             router.push({
               pathname: "/trip-details",
@@ -194,34 +108,63 @@ export default function UserTripList({ userTrips }) {
               },
             })
           }
-          style={{
-            flex: 1,
-            backgroundColor: Colors.PRIMARY,
-            height: 56,
-            borderRadius: 16,
-            justifyContent: "center",
-            alignItems: "center",
-            elevation: 3,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-          }}
+          style={listStyles.heroCard}
         >
-          <Text
-            style={{
-              color: Colors.WHITE,
-              fontFamily: "outfitBold",
-              fontSize: 16,
-            }}
-          >
-            See your plan
-          </Text>
-        </TouchableOpacity>
+          <Image
+            source={finalSource}
+            style={listStyles.heroImage}
+            transition={600}
+          />
+          <View style={listStyles.heroOverlay}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <View style={listStyles.heroBadge}>
+                <Text style={listStyles.heroBadgeText}>LATEST</Text>
+              </View>
 
-        <TouchableOpacity onPress={confirmDelete}>
-          <MaterialIcons name="delete" size={34} color="#FF6347" />
+              <TouchableOpacity
+                onPress={confirmDeleteLatest}
+                style={listStyles.heroDeleteBtn}
+              >
+                <MaterialIcons name="delete-outline" size={24} color="rgba(247, 13, 13, 0.73)"  />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={listStyles.heroTitle} numberOfLines={1}>
+              {latestTrip?.concertData?.artist
+                ? `${latestTrip.concertData.artist} Concert`
+                : latestTrip?.savedTripId
+                    ?.split("-")[0]
+                    .charAt(0)
+                    .toUpperCase() +
+                    latestTrip?.savedTripId?.split("-")[0].slice(1) ||
+                  "My Trip"}
+            </Text>
+            <View style={{
+              flexDirection: "row",
+              justifyContent: "space-between"
+            }}>
+              <Text style={listStyles.heroMeta}>
+                {tripStartDate
+                  ? moment(tripStartDate).format("DD MMM YYYY")
+                  : "Date TBD"}
+              </Text>
+              <Text style={listStyles.heroMeta}>
+                {latestTrip?.traveler?.title || Traveler}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
+      </View>
+
+      <View style={listStyles.historyHeader}>
+        <Text style={listStyles.sectionTitle}>Trip History</Text>
+        <Text style={listStyles.tripCount}>{otherTrips.length} Saved</Text>
       </View>
 
       {otherTrips.map((trip) => (
@@ -230,3 +173,59 @@ export default function UserTripList({ userTrips }) {
     </View>
   );
 }
+
+const listStyles = StyleSheet.create({
+  container: { marginTop: 20 },
+  sectionTitle: { fontSize: 22, fontFamily: "outfitBold", color: "#1A1A1A" },
+  featuredHeader: { marginBottom: 15 },
+  heroCard: {
+    height: height * 0.28,
+    borderRadius: 25,
+    marginTop: 15,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    elevation: 8,
+  },
+  heroImage: { width: "100%", height: "100%" },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "space-between",
+    padding: 20,
+  },
+  heroBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  heroDeleteBtn: {
+    backgroundColor: "rgba(0, 0, 0, 0.63)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    borderRadius: 30,
+    width: 50,
+    height: 50,
+  },
+  heroBadgeText: { color: "white", fontSize: 10, fontFamily: "outfitBold" },
+  heroTitle: {
+    color: "white",
+    fontSize: 24,
+    fontFamily: "outfitBold",
+    marginTop: "auto",
+  },
+  heroMeta: {
+    color: "white",
+    fontFamily: "outfit",
+    fontSize: 14,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  tripCount: { fontFamily: "outfit", color: Colors.GRAY, fontSize: 14 },
+});

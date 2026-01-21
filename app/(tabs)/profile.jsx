@@ -67,11 +67,14 @@ export default function Profile() {
       await setDoc(
         doc(db, "users", user.uid),
         { fullName: name },
-        { merge: true }
+        { merge: true },
       );
       const updatedProfile = { ...userProfile, fullName: name };
       setUserProfile(updatedProfile);
-      await AsyncStorage.setItem(`profile_${user.uid}`, JSON.stringify(updatedProfile));
+      await AsyncStorage.setItem(
+        `profile_${user.uid}`,
+        JSON.stringify(updatedProfile),
+      );
 
       if (password) {
         await updatePassword(user, password);
@@ -90,7 +93,7 @@ export default function Profile() {
   const handleLogout = async () => {
     await signOut(auth);
     await AsyncStorage.removeItem("seenLogin");
-    setUserProfile(null); 
+    setUserProfile(null);
     router.replace("auth/Login");
   };
 
@@ -103,12 +106,15 @@ export default function Profile() {
     setLoading(true);
     try {
       const user = auth.currentUser;
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword,
+      );
       await reauthenticateWithCredential(user, credential);
 
       const tripsQ = query(
         collection(db, "UserTrips"),
-        where("userEmail", "==", user.email)
+        where("userEmail", "==", user.email),
       );
       const snapshot = await getDocs(tripsQ);
       await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
@@ -130,9 +136,6 @@ export default function Profile() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.topActions}>
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={26} color="#fff" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
             <Ionicons name="trash-outline" size={26} color="#c92c2c" />
           </TouchableOpacity>
@@ -150,11 +153,7 @@ export default function Profile() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
+          <TextInput value={name} onChangeText={setName} style={styles.input} />
         </View>
 
         <View style={styles.inputGroup}>
@@ -194,6 +193,9 @@ export default function Profile() {
             <Text style={styles.saveBtnText}>Save Changes</Text>
           )}
         </TouchableOpacity>
+        <TouchableOpacity style={styles.logOutBtn} onPress={handleLogout}>
+          <Text style={styles.logOutBtnText}>Log Out</Text>
+        </TouchableOpacity>
       </View>
 
       <Modal visible={showDeleteModal} transparent animationType="fade">
@@ -223,7 +225,9 @@ export default function Profile() {
                 style={styles.modalDelete}
                 onPress={handleDeleteAccount}
               >
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>Delete</Text>
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                  Delete
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -238,7 +242,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#7772ab",
     paddingTop: 40,
-    paddingBottom: 20,
+    paddingBottom: 15,
     alignItems: "center",
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
@@ -263,17 +267,17 @@ const styles = StyleSheet.create({
   userEmail: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 4 },
   content: { padding: 25 },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#333",
     marginBottom: 8,
   },
-  inputGroup: { marginBottom: 10 },
+  inputGroup: { marginBottom: 5 },
   label: { fontSize: 13, color: Colors.GRAY, marginBottom: 4 },
   input: {
     backgroundColor: "#F7F7F7",
     borderRadius: 12,
-    padding: 20,
+    padding: 15,
     fontSize: 16,
     borderWidth: 1,
     borderColor: "#EEE",
@@ -282,12 +286,20 @@ const styles = StyleSheet.create({
   disabledInput: { color: "#999", backgroundColor: "#EBEBEB" },
   saveBtn: {
     backgroundColor: Colors.PRIMARY,
-    padding: 20,
+    padding: 18,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 10,
   },
   saveBtnText: { color: Colors.WHITE, fontSize: 16, fontWeight: "bold" },
+  logOutBtn: {
+    backgroundColor: "#ef5b5b",
+    padding: 18,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 15,
+  },
+  logOutBtnText: { color: Colors.WHITE, fontSize: 16, fontWeight: "bold" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",

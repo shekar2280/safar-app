@@ -2,7 +2,7 @@ import "dotenv/config";
 
 export default {
   expo: {
-    name: "safar",
+    name: "sanchari",
     slug: "safar",
     version: "1.0.0",
     orientation: "portrait",
