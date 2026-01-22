@@ -6,7 +6,7 @@ import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 
 const { width } = Dimensions.get("window");
-const SWIPE_LIMIT = -width * 0.2;
+const SWIPE_LIMIT = -width * 0.20;
 
 export const SpendingItem = ({ item, tripId }) => {
   const translateX = useSharedValue(0);

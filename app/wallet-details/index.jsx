@@ -32,21 +32,35 @@ import { SpendingForm } from "../../components/WalletDetails/SpendingForm";
 import { SpendingItem } from "../../components/WalletDetails/SpendingItem";
 import { useUser } from "../../context/UserContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import LottieView from "lottie-react-native";
 
 const { width, height } = Dimensions.get("window");
 
 const ocrApiKey = Constants.default.expoConfig.extra.OCRSPACE_API_KEY;
 
 const extractTotalFromPlain = (raw) => {
-  const keys = ["TOTAL", "GRAND TOTAL", "AMOUNT DUE", "BALANCE DUE"];
-  const lines = raw.split("\n");
-  for (const line of lines) {
-    const up = line.trim().toUpperCase();
-    const hit = keys.some((k) => up.startsWith(k));
-    if (!hit) continue;
+  const lines = raw.split("\n").map(line => line.trim());
+  const keys = ["TOTAL", "GRAND TOTAL", "AMOUNT DUE", "TOTAL PAYABLE", "TOTAL AMOUNT"];
 
-    const match = line.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+\.\d{2})/);
-    if (match) return parseFloat(match[0].replace(/,/g, "")).toFixed(2);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const upperLine = lines[i].toUpperCase();
+    const isHit = keys.some((k) => upperLine === k || upperLine.includes(k));
+
+    if (isHit) {
+      for (let j = i; j < lines.length && j <= i + 5; j++) {
+        const lineText = lines[j];
+
+        if (lineText.includes('/') || lineText.includes('-') && lineText.match(/\d{2,4}/)) {
+          continue;
+        }
+        const priceMatch = lineText.match(/(?:\$|₹|Rs)?\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2}))/);
+        
+        if (priceMatch) {
+          const cleanedValue = priceMatch[1].replace(/,/g, "");
+          return parseFloat(cleanedValue).toFixed(2);
+        }
+      }
+    }
   }
   return null;
 };
@@ -55,6 +69,7 @@ export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams();
   const { userTrips } = useUser();
   const user = auth.currentUser;
+  const [loading, setLoading] = useState(false);
 
   const [spendings, setSpendings] = useState([]);
   const [spendingName, setSpendingName] = useState("");
@@ -64,7 +79,7 @@ export default function SpendingsInput() {
 
   const [totalBudget, setTotalBudget] = useState(0);
   const [remBudget, setRemBudget] = useState(0);
-  const [totalSpent, setTotalSpent] = useState(0); 
+  const [totalSpent, setTotalSpent] = useState(0);
 
   const [newBudgetInput, setNewBudgetInput] = useState("");
 
@@ -92,7 +107,7 @@ export default function SpendingsInput() {
       user.uid,
       "trips",
       tripId,
-      "transactions"
+      "transactions",
     );
     const q = query(transactionsRef, where("tripId", "==", tripId));
 
@@ -109,8 +124,8 @@ export default function SpendingsInput() {
           };
         })
         .sort((a, b) => {
-          return sortOrder === "desc" 
-            ? b.timestamp - a.timestamp 
+          return sortOrder === "desc"
+            ? b.timestamp - a.timestamp
             : a.timestamp - b.timestamp;
         });
 
@@ -127,10 +142,12 @@ export default function SpendingsInput() {
       return alert("Enter a valid budget.");
 
     try {
+      setLoading(true);
       const tripDocRef = doc(db, "UserTrips", user.uid, "trips", tripId);
       await setDoc(tripDocRef, { totalBudget: newBudget }, { merge: true });
       setTotalBudget(newBudget);
       setNewBudgetInput("");
+      setLoading(false);
     } catch (error) {
       console.error(error);
     }
@@ -157,34 +174,47 @@ export default function SpendingsInput() {
 
   const processImageAndPerformOCR = async (asset) => {
     setIsProcessing(true);
-    setExtractedText("Processing...");
+    setExtractedText("Scanning receipt...");
+
     try {
       const manip = await ImageManipulator.manipulateAsync(
         asset.uri,
-        [{ resize: { width: 1000 } }],
-        { base64: true }
+        [{ resize: { width: 1200 } }],
+        { format: ImageManipulator.SaveFormat.JPEG, compress: 0.8 },
       );
       setImage(manip.uri);
 
       const formData = new FormData();
-      formData.append("base64Image", `data:image/jpg;base64,${manip.base64}`);
+      formData.append("file", {
+        uri: manip.uri,
+        name: "receipt.jpg",
+        type: "image/jpeg",
+      });
+      formData.append("apikey", ocrApiKey);
+      formData.append("language", "eng");
+      formData.append("OCREngine", "2");
+
+      console.log("--- OCR REQUEST START ---");
       const res = await fetch("https://api.ocr.space/parse/image", {
         method: "POST",
-        headers: { apikey: ocrApiKey },
         body: formData,
       });
+
       const json = await res.json();
-      const total = extractTotalFromPlain(
-        json?.ParsedResults?.[0]?.ParsedText || ""
-      );
-      if (total) {
-        setAmountInput(total);
-        setExtractedText(`Found Total: ₹${total}`);
+      if (json.OCRExitCode === 1) {
+        const fullText = json?.ParsedResults?.[0]?.ParsedText || "";
+        const total = extractTotalFromPlain(fullText);
+        if (total) {
+          setAmountInput(total.toString());
+          setExtractedText(`Found Total: ₹${total}`);
+        } else {
+          setExtractedText("No total found. Please enter manually.");
+        }
       } else {
-        setExtractedText("Total not detected.");
+        console.error("OCR API ERROR MESSAGE:", json.ErrorMessage);
       }
     } catch (err) {
-      setExtractedText("Error reading bill.");
+      console.error("NETWORK ERROR:", err);
     } finally {
       setIsProcessing(false);
     }
@@ -201,7 +231,7 @@ export default function SpendingsInput() {
         user.uid,
         "trips",
         tripId,
-        "transactions"
+        "transactions",
       );
       await addDoc(ref, {
         tripId,
@@ -263,22 +293,35 @@ export default function SpendingsInput() {
               <View style={styles.budgetMainInfo}>
                 <View>
                   <Text style={styles.label}>Remaining Balance</Text>
-                  <Text style={[styles.bigAmount, { color: remBudget < 0 ? "#FF5252" : "#FFFFFF" }]}>
-                    ₹{remBudget.toLocaleString()}
+                  <Text
+                    style={[
+                      styles.bigAmount,
+                      { color: remBudget < 0 ? "#FF5252" : "#FFFFFF" },
+                    ]}
+                  >
+                    ₹{remBudget.toLocaleString("en-IN")}
                   </Text>
                 </View>
-                <MaterialCommunityIcons name="integrated-circuit-chip" size={40} color="rgba(255,255,255,0.3)" />
+                <MaterialCommunityIcons
+                  name="wallet"
+                  size={40}
+                  color="rgb(255, 255, 255)"
+                />
               </View>
 
               <View style={styles.statsRow}>
                 <View>
                   <Text style={styles.statLabel}>Total Budget</Text>
-                  <Text style={styles.statValue}>₹{totalBudget.toLocaleString()}</Text>
+                  <Text style={styles.statValue}>
+                    ₹{totalBudget.toLocaleString("en-IN")}
+                  </Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View>
                   <Text style={styles.statLabel}>Spent So Far</Text>
-                  <Text style={styles.statValue}>₹{totalSpent.toLocaleString()}</Text>
+                  <Text style={styles.statValue}>
+                    ₹{totalSpent.toLocaleString("en-IN")}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -286,24 +329,30 @@ export default function SpendingsInput() {
 
           <View style={styles.historySection}>
             <View style={styles.historyHeaderRow}>
-                <Text style={styles.historyHeader}>
+              <Text style={styles.historyHeader}>
                 Recent Spendings ({spendings.length})
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  setSortOrder(sortOrder === "desc" ? "asc" : "desc")
+                }
+                style={styles.sortButton}
+              >
+                <Ionicons
+                  name={
+                    sortOrder === "desc"
+                      ? "arrow-down-circle"
+                      : "arrow-up-circle"
+                  }
+                  size={20}
+                  color={Colors.PRIMARY}
+                />
+                <Text style={styles.sortText}>
+                  {sortOrder === "desc" ? "Newest" : "Oldest"}
                 </Text>
-                <TouchableOpacity 
-                    onPress={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                    style={styles.sortButton}
-                >
-                    <Ionicons 
-                        name={sortOrder === "desc" ? "arrow-down-circle" : "arrow-up-circle"} 
-                        size={20} 
-                        color={Colors.PRIMARY} 
-                    />
-                    <Text style={styles.sortText}>
-                        {sortOrder === "desc" ? "Newest" : "Oldest"}
-                    </Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
             </View>
-            
+
             {spendings.map((item) => (
               <SpendingItem key={item.id} item={item} tripId={tripId} />
             ))}
@@ -343,6 +392,18 @@ export default function SpendingsInput() {
             onPress={() => setIsFormVisible(true)}
             styleOverride={styles.addSpendingButtonFixed}
           />
+        </View>
+      )}
+
+      {loading && (
+        <View style={styles.animationOverlay}>
+          <LottieView
+            source={require("../../assets/animations/wallet.json")}
+            autoPlay
+            loop
+            style={{ width: width * 0.8, height: width * 0.8 }}
+          />
+          <Text style={styles.activatingText}>Initializing your budget...</Text>
         </View>
       )}
     </View>
@@ -394,7 +455,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-    marginBottom: 5,
   },
   budgetMainInfo: {
     flexDirection: "row",
@@ -435,7 +495,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   historyHeader: {
     fontSize: width * 0.05,
@@ -492,5 +552,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 4 },
+  },
+  animationOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgb(255, 255, 255)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  activatingText: {
+    marginTop: 20,
+    fontFamily: "outfitBold",
+    fontSize: 18,
+    color: Colors.PRIMARY,
   },
 });

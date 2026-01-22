@@ -38,8 +38,14 @@ export default function SignUp() {
       ToastAndroid.show("Please enter all details", ToastAndroid.LONG);
       return;
     }
+    setLoading(true);
+
+    const trimmedFullName = fullName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
 
     if (password.length < 8) {
+      setLoading(false);
       ToastAndroid.show(
         "Password must be at least 8 characters",
         ToastAndroid.LONG
@@ -47,15 +53,15 @@ export default function SignUp() {
       return;
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
+    createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPassword)
       .then(async (userCredential) => {
         const user = userCredential.user;
 
         await AsyncStorage.setItem("seenLogin", "true");
 
         await setDoc(doc(db, "users", user.uid), {
-          fullName: fullName,
-          email: email,
+          fullName: trimmedFullName,
+          email: trimmedEmail,
           createdAt: new Date(),
           lastLogin: new Date(),
         });
@@ -63,6 +69,7 @@ export default function SignUp() {
         router.replace("(tabs)/mytrip");
       })
       .catch((error) => {
+        setLoading(false);
         if (error.code === "auth/email-already-in-use") {
           ToastAndroid.show("Email already in use", ToastAndroid.LONG);
         } else if (error.code === "auth/weak-password") {
@@ -99,6 +106,9 @@ export default function SignUp() {
         <TextInput
           style={styles.input}
           placeholder="Enter Email"
+          autoCapitalize="none"
+          keyboardType="email-address" 
+          autoCorrect={false} 
           onChangeText={(value) => setEmail(value)}
         />
       </View>
