@@ -2,16 +2,14 @@ import React from "react";
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Dimensions,
   Alert,
   StyleSheet,
 } from "react-native";
-import moment from "moment";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
-import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { auth, db } from "../../config/FirebaseConfig";
 import {
   doc,
@@ -20,6 +18,7 @@ import {
   writeBatch,
   deleteField,
 } from "firebase/firestore";
+import { Image } from "expo-image";
 
 const { width } = Dimensions.get("window");
 
@@ -49,17 +48,16 @@ export default function ActiveTripCard({ trip }) {
   const handleResetWallet = () => {
     Alert.alert(
       "Reset Wallet Data?",
-      "This will wipe all spending entries, clear your budget, and deactivate this trip's wallet.",
+      "This will wipe all spending and deactivate this wallet.",
       [
-        { text: "Keep Everything", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Reset Wallet",
+          text: "Reset",
           style: "destructive",
           onPress: async () => {
             try {
               const user = auth.currentUser;
               if (!user || !trip.id) return;
-
               const batch = writeBatch(db);
               const transRef = collection(
                 db,
@@ -70,7 +68,6 @@ export default function ActiveTripCard({ trip }) {
                 "transactions",
               );
               const snapshot = await getDocs(transRef);
-
               snapshot.forEach((tDoc) => batch.delete(tDoc.ref));
 
               const tripDocRef = doc(
@@ -87,12 +84,9 @@ export default function ActiveTripCard({ trip }) {
               });
 
               await batch.commit();
-              Alert.alert(
-                "Reset Complete",
-                "The wallet has been successfully cleared.",
-              );
+              Alert.alert("Success", "Wallet cleared.");
             } catch (error) {
-              Alert.alert("Error", "Failed to reset wallet data.");
+              Alert.alert("Error", "Failed to reset.");
             }
           },
         },
@@ -101,122 +95,96 @@ export default function ActiveTripCard({ trip }) {
   };
 
   return (
-    <View style={styles.cardContainer}>
-      <TouchableOpacity
-        style={styles.mainActionArea}
-        onPress={navigateToWalletDetails}
-        activeOpacity={0.7}
-      >
-        <Image source={tripImageSource} style={styles.tripImage} />
+    <TouchableOpacity
+      style={styles.card}
+      onPress={navigateToWalletDetails}
+      activeOpacity={0.9}
+    >
+      <Image
+        source={tripImageSource}
+        style={styles.bannerImage}
+        transition={400}
+      />
+      <View style={styles.overlay} />
 
-        <View style={styles.contentInfo}>
-          <Text numberOfLines={1} style={styles.tripNameText}>
+      <View style={styles.content}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title} numberOfLines={1}>
             {tripName}
           </Text>
-          {trip.totalBudget ? (
-            <View style={styles.budgetBadge}>
-              <Text style={styles.budgetText}>Budget: ₹{trip.totalBudget}</Text>
-            </View>
-          ) : (
-             <View style={styles.budgetBadge}>
-              <Text style={styles.noBudgetText}>Budget Not Set</Text>
-            </View>
-          )}
+
+          <Text style={styles.budgetText}>
+            {trip.totalBudget
+              ? `Budget: ₹${Number(trip.totalBudget).toLocaleString("en-IN")}`
+              : "Budget: ₹0"}
+          </Text>
         </View>
-      </TouchableOpacity>
 
-      <View style={styles.verticalDivider} />
-
-      <View style={styles.sideActions}>
-        <TouchableOpacity
-          onPress={navigateToWalletDetails}
-          style={[
-            styles.iconButton,
-            { backgroundColor: Colors.PRIMARY + "15" },
-          ]}
-        >
-          <FontAwesome5 name="wallet" size={18} color={Colors.PRIMARY} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleResetWallet}
-          style={[styles.iconButton, { backgroundColor: "#FFF0F0" }]}
-        >
-          <MaterialIcons name="delete" size={22} color="#FF5252" />
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <View style={styles.chevronBtn}>
+            <Ionicons name="chevron-forward" size={20} color="white" />
+          </View>
+          <TouchableOpacity onPress={handleResetWallet} style={styles.resetBtn}>
+            <MaterialIcons name="clear" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: "#FFFFFF",
+  card: {
+    height: 120,
     borderRadius: 20,
-    marginVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
+    marginBottom: 10,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
-  mainActionArea: {
+  bannerImage: { ...StyleSheet.absoluteFillObject },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  content: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
-  tripImage: {
-    width: 85,
-    height: 85,
-    borderRadius: 16,
-    backgroundColor: Colors.LIGHT_GRAY,
-  },
-  contentInfo: {
-    flex: 1,
-    marginLeft: 15,
-    justifyContent: "center",
-  },
-  tripNameText: {
+  title: {
+    color: "white",
     fontFamily: "outfitBold",
-    fontSize: 17,
-    color: "#1A1A1A",
-    marginBottom: 4,
-  },
-  budgetBadge: {
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: "flex-start",
+    fontSize: 20,
   },
   budgetText: {
-    fontFamily: "outfitMedium",
-    fontSize: 11,
-    color: "#2E7D32",
+    color: "rgba(255,255,255,0.7)",
+    fontFamily: "outfit",
+    fontSize: 13,
+    marginTop: 2,
   },
-  noBudgetText: {
-    fontFamily: "outfitMedium",
-    fontSize: 11,
-    color: "#080808",
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
   },
-  verticalDivider: {
-    width: 1,
-    height: "70%",
-    backgroundColor: "#EEEEEE",
-    marginHorizontal: 12,
+  resetBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(208, 22, 22, 0.56)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sideActions: {
-    gap: 6,
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+  chevronBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.PRIMARY,
     justifyContent: "center",
     alignItems: "center",
   },

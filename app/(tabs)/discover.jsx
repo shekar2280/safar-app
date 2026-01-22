@@ -19,17 +19,17 @@ export default function Discover() {
     <View
       style={{
         padding: width * 0.06,
-        paddingTop: height * 0.050,
+        paddingTop: height * 0.05,
         backgroundColor: Colors.WHITE,
         flex: 1,
       }}
     >
       <Text
         style={{
-          fontSize: width * 0.08,
-          fontFamily: "ui-sans-serif",
-          fontWeight: "bold",
-          marginBottom: height * 0.02,
+          fontFamily: "outfitBold",
+          fontSize: 34,
+          color: "#000",
+          marginBottom: height * 0.01,
         }}
       >
         Discover Ideas
@@ -39,7 +39,7 @@ export default function Discover() {
         data={DiscoverIdeasList}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={{ marginVertical: height * 0.012 }}
+            style={{ marginVertical: height * 0.010 }}
             onPress={() => {
               if (item.tripCategory) {
                 router.push({

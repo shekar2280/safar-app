@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width, height } = Dimensions.get("window");
 
 export default function Mytrip() {
-  const { userTrips, setUserTrips } = useUser(); 
+  const { userTrips, setUserTrips } = useUser();
   const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
@@ -57,9 +57,17 @@ export default function Mytrip() {
 
   const triggerOnlineAnimation = () => {
     Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
       Animated.delay(2000),
-      Animated.timing(fadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start(() => setShowBackOnline(false));
   };
 
@@ -77,7 +85,10 @@ export default function Mytrip() {
 
       setUserTrips(baseTrips);
 
-      await AsyncStorage.setItem(`trips_${user.uid}`, JSON.stringify(baseTrips));
+      await AsyncStorage.setItem(
+        `trips_${user.uid}`,
+        JSON.stringify(baseTrips),
+      );
 
       baseTrips.forEach(async (trip) => {
         if (!trip.savedTripId) return;
@@ -85,7 +96,9 @@ export default function Mytrip() {
           const snap = await getDoc(doc(db, "SavedTripData", trip.savedTripId));
           if (snap.exists()) {
             setUserTrips((prev) =>
-              prev.map((t) => (t.id === trip.id ? { ...t, ...snap.data() } : t))
+              prev.map((t) =>
+                t.id === trip.id ? { ...t, ...snap.data() } : t,
+              ),
             );
           }
         } catch (e) {
@@ -105,48 +118,75 @@ export default function Mytrip() {
     <ScrollView
       style={{ paddingTop: height * 0.03, backgroundColor: Colors.WHITE }}
       contentContainerStyle={{
-        padding: width * 0.06,
+        padding: width * 0.05,
         paddingBottom: height * 0.05,
         flexGrow: 1,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontFamily: "outfitBold", fontSize: width * 0.07 }}>My Trips</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: "outfitBold",
+            fontSize: 34,
+            color: "#000",
+            letterSpacing: -0.5,
+          }}
+        >
+          My Trips
+        </Text>
         <TouchableOpacity
           onPress={() => {
             setTripData({});
             router.push("/create-trip/select-departure");
           }}
         >
-          <Ionicons name="add-circle" size={width * 0.11} color="black" />
+          <Ionicons name="add-circle" size={width * 0.14} color="black" />
         </TouchableOpacity>
       </View>
 
       {isOffline && (
         <View style={styles.offlineBanner}>
-          <Ionicons name="cloud-offline-outline" size={20} color="white" style={{ marginRight: 6 }} />
-          <Text style={{ color: Colors.WHITE, fontFamily: "outfit" }}>You are offline</Text>
+          <Ionicons
+            name="cloud-offline-outline"
+            size={20}
+            color="white"
+            style={{ marginRight: 6 }}
+          />
+          <Text style={{ color: Colors.WHITE, fontFamily: "outfit" }}>
+            You are offline
+          </Text>
         </View>
       )}
 
       {showBackOnline && (
         <Animated.View style={[styles.onlineToast, { opacity: fadeAnim }]}>
           <Ionicons name="cloud-outline" size={20} color="white" />
-          <Text style={{ color: "white", fontFamily: "outfit" }}>Back Online</Text>
+          <Text style={{ color: "white", fontFamily: "outfit" }}>
+            Back Online
+          </Text>
         </Animated.View>
       )}
 
       {loading && (
-        <ActivityIndicator size="large" color={Colors.PRIMARY} style={{ marginTop: height * 0.05 }} />
+        <ActivityIndicator
+          size="large"
+          color={Colors.PRIMARY}
+          style={{ marginTop: height * 0.05 }}
+        />
       )}
 
-      {!loading && (
-        userTrips?.length === 0 ? (
+      {!loading &&
+        (userTrips?.length === 0 ? (
           <StartNewTripCard />
         ) : (
           <UserTripList userTrips={userTrips} onDelete={handleDelete} />
-        )
-      )}
+        ))}
     </ScrollView>
   );
 }
@@ -171,5 +211,5 @@ const styles = {
     flexDirection: "row",
     gap: 5,
     zIndex: 10,
-  }
+  },
 };
