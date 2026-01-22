@@ -68,7 +68,7 @@ export const SpendingForm = ({
       </View>
 
       {/* OCR / Image Section */}
-      <View style={styles.scanSection}>
+      {/* <View style={styles.scanSection}>
         <Text style={styles.sectionLabel}>Or scan your receipt</Text>
         <View style={styles.scanRow}>
           <TouchableOpacity style={styles.scanButton} onPress={pickImage("camera")}>
@@ -101,7 +101,7 @@ export const SpendingForm = ({
             )}
           </View>
         )}
-      </View>
+      </View> */}
       
       <View style={styles.footerActions}>
         <TouchableOpacity 
