@@ -57,9 +57,17 @@ export default function SignIn() {
       ToastAndroid.show("Please enter Email and Password", ToastAndroid.LONG);
       return;
     }
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
+      ToastAndroid.show("Please enter Email and Password", ToastAndroid.LONG);
+      return;
+    }
+
     setLoading(true);
 
-    signInWithEmailAndPassword(auth, email, password)
+    signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword)
       .then(async (userCredential) => {
         const user = userCredential.user;
         await loadUser(user);
@@ -72,7 +80,7 @@ export default function SignIn() {
           {
             lastLogin: new Date(),
           },
-          { merge: true }
+          { merge: true },
         );
 
         router.replace("/mytrip");
@@ -99,6 +107,9 @@ export default function SignIn() {
         <TextInput
           style={styles.input}
           placeholder="Enter Email"
+          autoCapitalize="none" 
+          keyboardType="email-address" 
+          autoCorrect={false}
           onChangeText={(value) => setEmail(value)}
         />
       </View>

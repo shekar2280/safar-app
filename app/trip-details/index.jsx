@@ -22,6 +22,7 @@ import { auth, db } from "../../config/FirebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
+import LottieView from "lottie-react-native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,6 +42,7 @@ export default function TripDetails() {
 
   const [tripDetails, setTripDetails] = useState(parsedTrip);
   const [loadingStaticData, setLoadingStaticData] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const tripData =
     tripDetails?.tripData ||
@@ -87,6 +89,7 @@ export default function TripDetails() {
   const handleActivateTrip = async () => {
     if (!tripDetails.id) return;
     try {
+      setIsAnimating(true);
       const tripRef = doc(db, "UserTrips", user.uid, "trips", tripDetails.id);
 
       await updateDoc(tripRef, {
@@ -95,8 +98,15 @@ export default function TripDetails() {
       });
 
       setTripDetails((prev) => ({ ...prev, isActive: true }));
-      router.push({ pathname: "/wallet", params: { tripId: tripDetails.id } });
+      setTimeout(() => {
+        setIsAnimating(false);
+        router.push({
+          pathname: "/wallet",
+          params: { tripId: tripDetails.id },
+        });
+      }, 3000);
     } catch (error) {
+      setIsAnimating(false);
       console.error(error);
       Alert.alert("Error", "Failed to activate trip.");
     }
@@ -114,7 +124,7 @@ export default function TripDetails() {
       </View>
     );
   }
-  
+
   const getHeaderImage = () => {
     if (tripDetails?.concertData) {
       const concertImg =
@@ -134,84 +144,98 @@ export default function TripDetails() {
   };
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      style={{ backgroundColor: Colors.WHITE }}
-    >
-      <Image source={getHeaderImage()} style={styles.headerImage} />
+    <>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: Colors.WHITE }}
+      >
+        <Image source={getHeaderImage()} style={styles.headerImage} />
 
-      <View style={styles.container}>
-        <Text style={styles.title}>
-          {tripDetails?.tripPlan?.tripName ||
-            `${tripDetails?.concertData?.artist} Concert` ||
-            "Trip Details"}
-        </Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.dateText}>
-            {moment(tripDetails.startDate).format("DD MMM YYYY")}
-            {" - "}
-            {moment(tripDetails.endDate).format("DD MMM YYYY")}
+        <View style={styles.container}>
+          <Text style={styles.title}>
+            {tripDetails?.tripPlan?.tripName ||
+              `${tripDetails?.concertData?.artist} Concert` ||
+              "Trip Details"}
           </Text>
-        </View>
 
-        {/* Wallet Activation Section */}
-        {!tripDetails.isActive ? (
-          <TouchableOpacity
-            onPress={handleActivateTrip}
-            style={styles.activateButton}
-          >
-            <Text style={styles.activateButtonText}>
-              🚀 Activate Trip & Open Wallet
+          <View style={styles.infoRow}>
+            <Text style={styles.dateText}>
+              {moment(tripDetails.startDate).format("DD MMM YYYY")}
+              {" - "}
+              {moment(tripDetails.endDate).format("DD MMM YYYY")}
             </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.activeBadge}>
-            <Ionicons
-              name="wallet-outline"
-              size={width * 0.06}
-              color="#00A86B"
-            />
-            <Text style={styles.activeText}>Trip is Active.</Text>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/wallet",
-                  params: { tripId: tripDetails.id },
-                })
-              }
-              style={{ marginLeft: "auto" }}
-            >
-              <Text style={styles.linkText}>Go to Wallet</Text>
-            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Concert Section */}
-        {tripDetails?.tripPlan?.concertDetails && (
-          <ConcertInfo concertData={tripDetails.tripPlan.concertDetails} />
-        )}
+          {/* Wallet Activation Section */}
+          {!tripDetails.isActive ? (
+            <TouchableOpacity
+              onPress={handleActivateTrip}
+              style={styles.activateButton}
+            >
+              <Text style={styles.activateButtonText}>
+                🚀 Activate Trip & Open Wallet
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.activeBadge}>
+              <Ionicons
+                name="wallet-outline"
+                size={width * 0.06}
+                color="#00A86B"
+              />
+              <Text style={styles.activeText}>Trip is Active.</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/wallet",
+                    params: { tripId: tripDetails.id },
+                  })
+                }
+                style={{ marginLeft: "auto" }}
+              >
+                <Text style={styles.linkText}>Go to Wallet</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* Transport Section */}
-        <TransportInfo transportData={tripDetails?.transportDetails} />
+          {/* Concert Section */}
+          {tripDetails?.tripPlan?.concertDetails && (
+            <ConcertInfo concertData={tripDetails.tripPlan.concertDetails} />
+          )}
 
-        {/* Hotels Section */}
-        <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} />
+          {/* Transport Section */}
+          <TransportInfo transportData={tripDetails?.transportDetails} />
 
-        {/* Itinerary & Food Section */}
-        <View style={{ paddingTop: height * 0.02 }}>
-          <PlannedTrip
-            itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
-          />
-          <RestaurantsInfo
-            restaurantsInfo={{
-              ...tripDetails?.tripPlan?.recommendations,
-              cityName: tripData?.locationInfo?.name,
-            }}
-          />
+          {/* Hotels Section */}
+          <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} />
+
+          {/* Itinerary & Food Section */}
+          <View style={{ paddingTop: height * 0.02 }}>
+            <PlannedTrip
+              itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
+            />
+            <RestaurantsInfo
+              restaurantsInfo={{
+                ...tripDetails?.tripPlan?.recommendations,
+                cityName: tripData?.locationInfo?.name,
+              }}
+            />
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {isAnimating && (
+        <View style={styles.animationOverlay}>
+          <LottieView
+            source={require("../../assets/animations/wallet.json")}
+            autoPlay
+            loop
+            style={{ width: width * 0.8, height: width * 0.8 }}
+          />
+          <Text style={styles.activatingText}>Preparing your wallet...</Text>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -270,5 +294,22 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "outfitMedium",
     textDecorationLine: "underline",
+  },
+  animationOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  activatingText: {
+    marginTop: 20,
+    fontFamily: "outfitBold",
+    fontSize: 18,
+    color: Colors.PRIMARY,
   },
 });
