@@ -10,14 +10,12 @@ export default async function handler(req, res) {
   const { itineraryPrompt, locationName } = req.body;
 
   try {
-    // 1. Call Gemini
     const { text } = await generateText({
       model: google('gemini-2.5-flash'),
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
       prompt: itineraryPrompt,
     });
 
-    // 2. Call Unsplash
     let imageUrl = "fallback_image_url";
     const unsplashRes = await axios.get(`https://api.unsplash.com/search/photos`, {
       params: { query: locationName, per_page: 1 },
