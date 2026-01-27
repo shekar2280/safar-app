@@ -10,9 +10,9 @@ function assertJson(text) {
   }
 }
 
-async function generateWithGemini(prompt) {
+async function generateWithGeminiModel(model, prompt) {
   const { text } = await generateText({
-    model: google("gemini-3.5-turbo"), // latest Gemini
+    model: google(model),
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     system: "You must respond with ONLY valid minified JSON. No text outside JSON.",
     prompt,
@@ -21,13 +21,29 @@ async function generateWithGemini(prompt) {
   return text;
 }
 
+async function generateWithGeminiFallback(prompt) {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let lastError;
+
+  for (const model of models) {
+    try {
+      return await generateWithGeminiModel(model, prompt);
+    } catch (err) {
+      console.warn(`Model ${model} failed: ${err.message}`);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   const { itineraryPrompt, locationName } = req.body;
 
   try {
-    const itinerary = await generateWithGemini(itineraryPrompt);
+    const itinerary = await generateWithGeminiFallback(itineraryPrompt);
 
     let imageUrl = "fallback_image_url";
     const unsplashRes = await axios.get(
