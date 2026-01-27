@@ -4,6 +4,13 @@ import axios from "axios";
 import fetch from "node-fetch";
 import "dotenv/config";
 
+function assertJson(text) {
+  const t = text.trim();
+  if (!t.startsWith("{") || !t.endsWith("}")) {
+    throw new Error("Model returned non-JSON output");
+  }
+}
+
 async function generateWithGroq(prompt) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -14,7 +21,7 @@ async function generateWithGroq(prompt) {
     body: JSON.stringify({
       model: "llama-3.1-70b-versatile",
       messages: [
-        { role: "system", content: "Return ONLY valid JSON. No markdown." },
+        { role: "system", content: "Return ONLY valid JSON. No markdown. No prose." },
         { role: "user", content: prompt },
       ],
       max_tokens: 2048,
@@ -23,22 +30,29 @@ async function generateWithGroq(prompt) {
   });
 
   if (!res.ok) throw new Error("Groq failed");
+
   const data = await res.json();
-  return data.choices[0].message.content;
+  const text = data.choices[0].message.content.trim();
+  
+  assertJson(text);  
+  return text;
 }
+
 
 async function generateWithGemini(model, prompt) {
   const { text } = await generateText({
     model: google(model),
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    system:
+      "You must respond with ONLY valid minified JSON. No text outside JSON.",
     prompt,
   });
+  assertJson(text);
   return text;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).send("Method Not Allowed");
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   const { itineraryPrompt, locationName } = req.body;
 
@@ -51,12 +65,12 @@ export default async function handler(req, res) {
       try {
         itinerary = await generateWithGemini(
           "gemini-2.5-flash-lite",
-          itineraryPrompt
+          itineraryPrompt,
         );
       } catch {
         itinerary = await generateWithGemini(
           "gemini-2.5-flash",
-          itineraryPrompt
+          itineraryPrompt,
         );
       }
     }
@@ -69,7 +83,7 @@ export default async function handler(req, res) {
         headers: {
           Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`,
         },
-      }
+      },
     );
 
     imageUrl = unsplashRes.data.results[0]?.urls?.regular || imageUrl;
