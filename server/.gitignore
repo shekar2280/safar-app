@@ -1,0 +1,15 @@
+# Local environment variables
+.env
+.env.local
+
+# Vercel folders
+.vercel
+
+# Node modules
+node_modules/
+
+# Expo / React Native
+.expo/
+dist/
+android/
+ios/
