@@ -142,7 +142,7 @@ export default function TripDetails() {
     }
     return imageSource;
   };
-
+  
   return (
     <>
       <ScrollView
@@ -204,10 +204,10 @@ export default function TripDetails() {
           )}
 
           {/* Transport Section */}
-          <TransportInfo transportData={tripDetails?.transportDetails} />
+          <TransportInfo transportData={tripDetails} />
 
           {/* Hotels Section */}
-          <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} />
+          <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} cityName={tripDetails?.tripPlan?.tripName} />
 
           {/* Itinerary & Food Section */}
           <View style={{ paddingTop: height * 0.02 }}>
@@ -219,6 +219,7 @@ export default function TripDetails() {
                 ...tripDetails?.tripPlan?.recommendations,
                 cityName: tripData?.locationInfo?.name,
               }}
+              cityName={tripDetails?.tripPlan?.tripName}
             />
           </View>
         </View>

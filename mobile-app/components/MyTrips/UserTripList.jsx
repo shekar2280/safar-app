@@ -24,9 +24,15 @@ export default function UserTripList({ userTrips }) {
   const router = useRouter();
 
   useEffect(() => {
-    const sorted = [...userTrips].sort(
-      (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
-    );
+    const sorted = [...userTrips].sort((a, b) => {
+      const aTime = a.createdAt
+        ? a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1e6
+        : 0;
+      const bTime = b.createdAt
+        ? b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1e6
+        : 0;
+      return bTime - aTime;
+    });
     setTrips(sorted);
   }, [userTrips]);
 
@@ -90,7 +96,6 @@ export default function UserTripList({ userTrips }) {
     );
   };
 
-
   return (
     <View style={listStyles.container}>
       <View style={listStyles.featuredHeader}>
@@ -131,7 +136,11 @@ export default function UserTripList({ userTrips }) {
                 onPress={confirmDeleteLatest}
                 style={listStyles.heroDeleteBtn}
               >
-                <MaterialIcons name="delete-outline" size={24} color="rgba(247, 13, 13, 0.73)"  />
+                <MaterialIcons
+                  name="delete-outline"
+                  size={24}
+                  color="rgba(247, 13, 13, 0.73)"
+                />
               </TouchableOpacity>
             </View>
 
@@ -145,17 +154,19 @@ export default function UserTripList({ userTrips }) {
                     latestTrip?.savedTripId?.split("-")[0].slice(1) ||
                   "My Trip"}
             </Text>
-            <View style={{
-              flexDirection: "row",
-              justifyContent: "space-between"
-            }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
               <Text style={listStyles.heroMeta}>
                 {tripStartDate
                   ? moment(tripStartDate).format("DD MMM YYYY")
                   : "Date TBD"}
               </Text>
               <Text style={listStyles.heroMeta}>
-                {latestTrip?.traveler?.title || Traveler}
+                {latestTrip?.traveler?.title || "Traveler"}
               </Text>
             </View>
           </View>

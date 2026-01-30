@@ -2,162 +2,219 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Linking,
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Alert,
+  StyleSheet,
 } from "react-native";
+import { Image } from "expo-image"; // Updated for consistency with your TransportInfo
 import { Colors } from "../../constants/Colors";
 import { LOCAL_HOTEL_IMAGES } from "../../constants/Options";
 
 const { width } = Dimensions.get("window");
 
 const getOptimizedCloudinaryUrl = (url) => {
-  if (!url.includes("cloudinary.com")) return url;
+  if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", "/upload/f_auto,q_auto,w_500,h_300,c_fill/");
 };
 
-export default function HotelInfo({ hotelData }) {
-  const handleBooking = (url) => {
-    if (url) {
-      Linking.openURL(url).catch((err) =>
-        console.error("Failed to open URL:", err)
-      );
-    }
+export default function HotelInfo({ hotelData, cityName }) {
+  const openHotelInMaps = (city) => {
+    const query = encodeURIComponent(`Hotels in ${city}`);
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+
+    Linking.openURL(url).catch((err) => {
+      console.error("Linking Error:", err);
+      Alert.alert("Error", "Could not open maps.");
+    });
   };
 
-  if (!Array.isArray(hotelData) || hotelData.length === 0) {
-    return (
-      <View style={{ padding: 20 }}>
-        <Text style={{ fontSize: 18, fontFamily: "outfitBold" }}>🏨 Hotels</Text>
-        <Text style={{ fontFamily: "outfit", color: Colors.GRAY }}>No hotels found.</Text>
-      </View>
-    );
-  }
+  if (!Array.isArray(hotelData) || hotelData.length === 0) return null;
 
   return (
-    <View style={{ marginTop: 25 }}>
-      <View style={{ paddingHorizontal: 20, marginBottom: 15 }}>
-        <Text style={{ fontSize: 22, fontFamily: "outfitBold", color: "#1A1A1A" }}>
-          Nearby Stays
-        </Text>
-        <Text style={{ fontSize: 13, fontFamily: "outfit", color: Colors.GRAY }}>
-          Curated hotels based on your preferences
-        </Text>
-      </View>
+    <View style={styles.wrapper}>
+      <View style={styles.outlineContainer}>
+        <View style={styles.labelWrapper}>
+          <Text style={styles.outlineLabel}>HOTEL DETAILS</Text>
+        </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 20, paddingRight: 5 }}
-      >
-        {hotelData.map((hotel, index) => (
-          <HotelCard 
-            key={index} 
-            hotel={hotel} 
-            index={index} 
-            onBook={handleBooking} 
-          />
-        ))}
-      </ScrollView>
+        <View style={{ marginBottom: 15, paddingRight: 10 }}>
+          <Text
+            style={styles.sectionTitle}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            Nearby Stays in {cityName}
+          </Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 5 }}
+        >
+          {hotelData.map((hotel, index) => (
+            <HotelCard
+              key={index}
+              hotel={hotel}
+              index={index}
+              cityName={cityName}
+              onOpenMaps={() => openHotelInMaps(cityName)}
+            />
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 }
 
-const HotelCard = ({ hotel, index, onBook }) => {
+const HotelCard = ({ hotel, index, cityName, onOpenMaps }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const imageUri = LOCAL_HOTEL_IMAGES[index % (LOCAL_HOTEL_IMAGES.length - 1)];
+  const imageUri = LOCAL_HOTEL_IMAGES[index % LOCAL_HOTEL_IMAGES.length];
 
   return (
-    <View style={{
-      width: width * 0.75,
-      marginRight: 15,
-      borderRadius: 20,
-      backgroundColor: "#fff",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 5,
-      marginBottom: 20,
-      overflow: 'hidden'
-    }}>
-      <View style={{ width: "100%", height: 160, backgroundColor: "#F0F0F0" }}>
+    <View style={styles.card}>
+      <View style={styles.imageContainer}>
         <Image
           source={{ uri: getOptimizedCloudinaryUrl(imageUri) }}
-          style={{ width: "100%", height: "100%" }}
+          style={styles.cardImage}
           onLoadEnd={() => setIsImageLoading(false)}
         />
-        
         {isImageLoading && (
-          <ActivityIndicator 
-            style={{ position: "absolute", alignSelf: 'center', top: '40%' }} 
-            color={Colors.PRIMARY} 
-          />
+          <ActivityIndicator style={styles.loader} color={Colors.PRIMARY} />
         )}
-        <View style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          backgroundColor: 'rgba(255,255,255,0.9)',
-          paddingHorizontal: 10,
-          paddingVertical: 5,
-          borderRadius: 10
-        }}>
-          <Text style={{ fontFamily: 'outfitBold', fontSize: 14 }}>
-            ₹{hotel.pricePerNight}
+        <View style={styles.priceTag}>
+          <Text style={styles.priceText}>
+            {hotel.price ? `₹${hotel.price}` : "Check Price"}
           </Text>
         </View>
       </View>
 
       <View style={{ padding: 15 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text numberOfLines={1} style={{ fontSize: 17, fontFamily: "outfitBold", flex: 1 }}>
+        <View style={styles.cardHeader}>
+          <Text numberOfLines={1} style={styles.hotelName}>
             {hotel.hotelName}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontFamily: 'outfitMedium', color: '#FFB300' }}>★</Text>
-            <Text style={{ fontFamily: 'outfit', fontSize: 13, marginLeft: 3 }}>{hotel.rating}</Text>
+          <View style={styles.ratingBox}>
+            <Text style={styles.star}>★</Text>
+            <Text style={styles.ratingText}>{hotel.rating}</Text>
           </View>
         </View>
 
-        <Text numberOfLines={1} style={{ fontSize: 13, fontFamily: "outfit", color: Colors.GRAY, marginTop: 2 }}>
-          📍 {hotel.hotelAddress}
+        <Text numberOfLines={1} style={styles.address}>
+          📍 {hotel.hotelAddress || cityName}
         </Text>
 
-        <Text numberOfLines={2} style={{ 
-          fontSize: 13, 
-          fontFamily: "outfit", 
-          color: "#666", 
-          marginTop: 8,
-          lineHeight: 18,
-          height: 36
-        }}>
+        <Text numberOfLines={2} style={styles.description}>
           {hotel.description}
         </Text>
 
         <TouchableOpacity
           activeOpacity={0.8}
-          style={{
-            backgroundColor: Colors.PRIMARY,
-            paddingVertical: 12,
-            borderRadius: 12,
-            marginTop: 15,
-          }}
-          onPress={() => onBook(hotel.bookingURL)}
+          style={styles.mapButton}
+          onPress={onOpenMaps}
         >
-          <Text style={{
-            color: Colors.WHITE,
-            textAlign: "center",
-            fontFamily: "outfitBold",
-            fontSize: 14
-          }}>
-            View Availability
-          </Text>
+          <Text style={styles.mapButtonText}>View on Maps</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrapper: { marginTop: 25 },
+  outlineContainer: {
+    borderWidth: 1.5,
+    borderColor: "#E0E0E0",
+    borderRadius: 22,
+    padding: 15,
+    paddingTop: 25,
+  },
+  labelWrapper: {
+    position: "absolute",
+    top: -12,
+    left: 20,
+    backgroundColor: Colors.WHITE,
+    paddingHorizontal: 10,
+  },
+  outlineLabel: {
+    fontFamily: "outfitBold",
+    fontSize: 12,
+    color: Colors.PRIMARY,
+    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: "outfitBold",
+    color: "#1A1A1A",
+    lineHeight: 24,
+    flexWrap: "wrap",
+  },
+  card: {
+    width: width * 0.5,
+    marginRight: 15,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  imageContainer: { width: "100%", height: 140, backgroundColor: "#F0F0F0" },
+  cardImage: { width: "100%", height: "100%" },
+  loader: { position: "absolute", alignSelf: "center", top: "40%" },
+  priceTag: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  priceText: { fontFamily: "outfitBold", fontSize: 13 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  hotelName: { fontSize: 16, fontFamily: "outfitBold", flex: 1 },
+  ratingBox: { flexDirection: "row", alignItems: "center" },
+  star: { fontFamily: "outfitMedium", color: "#FFB300" },
+  ratingText: { fontFamily: "outfit", fontSize: 12, marginLeft: 3 },
+  address: {
+    fontSize: 12,
+    fontFamily: "outfit",
+    color: Colors.GRAY,
+    marginTop: 2,
+  },
+  description: {
+    fontSize: 12,
+    fontFamily: "outfit",
+    color: "#666",
+    marginTop: 8,
+    lineHeight: 16,
+    height: 32,
+  },
+  mapButton: {
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 15,
+  },
+  mapButtonText: {
+    color: "white",
+    textAlign: "center",
+    fontFamily: "outfitBold",
+    fontSize: 13,
+  },
+});
