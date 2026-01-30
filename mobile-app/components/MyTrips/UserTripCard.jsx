@@ -67,7 +67,7 @@ export default function UserTripCard({ trip, onDelete }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>{tripName}</Text>
           <Text style={styles.dateText}>
-            {moment(tripData.startDate).format("DD MMM YYYY")} • {trip?.traveler?.title?.split(' ')[0] || "1"} Traveler
+            {moment(tripData.startDate).format("DD MMM YYYY")} • {trip?.traveler?.title|| "1"} 
           </Text>
         </View>
 

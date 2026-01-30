@@ -60,6 +60,11 @@ export const trendingTripCardImages = [
   require("../assets/images/trending-places/trending-place5.jpg"),
 ];
 
+export const RESTAURANT_AND_LOCAL_IMAGES = {
+  Food: "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797322/default-food_fnapb2.jpg",
+  Experience: "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797318/default-experience_hfbvpe.jpg"
+};
+
 export const singerOptions = [
   {
     id: 1,
@@ -223,7 +228,12 @@ Follow these instructions carefully:
    - "Moderate" (₹10,000–₹25,000)
    - "Luxury" (> ₹25,000)
 
-6. Include a field called "tripDuration" formatted like "3 days, 2 nights".
+6. Include a field called "tripDuration" formatted like "{totalDays} days, {totalNight} nights".
+
+7. Transport Metadata (REQUIRED):
+   Include these two specific fields at the VERY TOP of your JSON response:
+   - "departureIata": "3-letter origin code"
+   - "destinationIata": "3-letter destination code"
 
 Ensure:
 - All content is realistic and based on actual locations and data.
