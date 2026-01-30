@@ -16,20 +16,19 @@ export default async function handler(req, res) {
 
   try {
     const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-2.0-flash"),
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
       prompt: itineraryPrompt,
     });
 
-    let imageUrl =
-      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1080&h=720&q=80";
+    let imageUrl = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1080&h=720&q=80";
 
     try {
       const unsplashRes = await axios.get(
         `https://api.unsplash.com/search/photos`,
         {
           params: {
-            query: `${locationName} travel landmark scenery`,
+            query: locationName,
             per_page: 1,
             orientation: "landscape",
           },
@@ -44,14 +43,13 @@ export default async function handler(req, res) {
         imageUrl = `${rawUrl}&auto=format&fit=crop&w=1080&h=720&q=80`;
       }
     } catch (imgError) {
-      console.error("Unsplash Fetch Error:", imgError.message);
+      console.error(imgError.message);
     }
 
     res.status(200).json({ itinerary: text, imageUrl: imageUrl });
   } catch (error) {
-    console.error("General Handler Error:", error.message);
     res.status(500).json({
-      error: "Failed to generate trip. Please try again.",
+      error: "Failed to generate trip.",
       details: error.message,
     });
   }
