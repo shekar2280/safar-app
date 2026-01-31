@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     const { text } = await generateText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-2.5-flash"),
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
       prompt: itineraryPrompt,
     });
