@@ -65,9 +65,6 @@ npx expo start
 🔒 Security
 This repository uses strict .gitignore policies to ensure sensitive configuration files (like google-services.json) are never leaked in the version history.
 
-📸 UI Preview
-(Optional: You can add screenshots here later)
-
 Planned Route: Minimalist timeline with pulsing active indicators. Discovery Pool: Clean cards with primary actions for navigation and dining.
 
 Safar — Don't just travel, experience.
