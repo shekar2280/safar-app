@@ -40,7 +40,7 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }) {
   );
 
   return (
-    <View style={{ marginBottom: 40 }}>
+    <View style={{ marginBottom: 10 }}>
       {/* 🌟 Local Experiences */}
       <View style={styles.mainCard}>
         <SectionHeader
