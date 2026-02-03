@@ -9,12 +9,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../constants/Colors";
 import { CreateTripContext } from "../../context/CreateTripContext";
-import {
-  AI_PROMPT,
-  fallbackImages,
-  TRAVEL_AI_PROMPT,
-} from "../../constants/Options";
-import { generateTripPlan } from "../../config/AiModel";
+import { AI_PROMPT, CITY_TO_IATA } from "../../constants/Options";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../config/FirebaseConfig";
 import {
@@ -25,8 +20,9 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { normalizeItinerary } from "../../utils/normalizeItinerary";
-import Constants from "expo-constants";
-const { width, height } = Dimensions.get("window");
+import { jsonrepair } from "jsonrepair";
+
+const { width } = Dimensions.get("window");
 
 export default function GenerateTrip() {
   const { tripData } = useContext(CreateTripContext);
@@ -58,51 +54,23 @@ export default function GenerateTrip() {
   const cleanAiResponse = (rawText) => {
     if (!rawText) return "{}";
     try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        let cleaned = jsonMatch[0]
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
-        return cleaned;
-      }
+      const firstBracket = rawText.indexOf("{");
+      const lastBracket = rawText.lastIndexOf("}");
+
+      if (firstBracket === -1 || lastBracket === -1) return "{}";
+
+      let jsonString = rawText.substring(firstBracket, lastBracket + 1);
+
+      jsonString = jsonString
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .replace(/,\s*([\]}])/g, "$1")
+        .trim();
+
+      return jsonString;
+    } catch (err) {
+      console.error("Cleaning error:", err);
       return "{}";
-    } catch (e) {
-      console.error("Cleaning Error:", e);
-      return "{}";
-    }
-  };
-
-  function formatDateForMMT(dateStr, transportType) {
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    if (transportType === "flight") return `${day}/${month}/${year}`;
-    if (transportType === "train") return `${year}${month}${day}`;
-    return "";
-  }
-
-  const fetchUnsplashImage = async (locationName) => {
-    try {
-      const response = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-          locationName
-        )}&per_page=1&orientation=landscape`,
-        {
-          headers: {
-            Authorization: `Client-ID ${Constants.expoConfig.extra.UNSPLASH_API_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-      const raw = data?.results?.[0]?.urls?.raw;
-      return raw
-        ? `${raw}&auto=format&fit=crop&w=900&h=600&q=70`
-        : fallbackImages[0];
-    } catch (e) {
-      return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     }
   };
 
@@ -114,14 +82,17 @@ export default function GenerateTrip() {
     setRetryCount(0);
 
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2;
     let success = false;
 
-    const flightDate = formatDateForMMT(tripData.startDate, "flight");
-    const trainDate = formatDateForMMT(tripData.startDate, "train");
-
-    
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
     const normalizedKey = `${tripData.destinationInfo.shortName.toLowerCase()}-${tripData.totalDays}-${tripData.budget.toLowerCase()}`;
+    const localDepartureIata =
+      tripData.departureInfo?.iataCode ||
+      CITY_TO_IATA[tripData.departureInfo.name.split(",")[0].toLowerCase()] ||
+      "BOM";
+
+    let itineraryData, finalImageUrl, destinationIata;
 
     while (attempts < maxAttempts && !success) {
       try {
@@ -130,64 +101,51 @@ export default function GenerateTrip() {
         const savedTripRef = doc(db, "SavedTripData", normalizedKey);
         const existingTrip = await getDoc(savedTripRef);
 
-        let itineraryData;
-        let finalImageUrl;
-
         if (existingTrip.exists()) {
-          const cachedData = existingTrip.data();
-          itineraryData = cachedData.tripPlan;
-          finalImageUrl = cachedData.imageUrl;
+          const cached = existingTrip.data();
+          itineraryData = cached.tripPlan;
+          finalImageUrl = cached.imageUrl;
+          destinationIata = cached.destinationIata;
         } else {
           const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
             /{location}/g,
-            tripData?.destinationInfo?.name
+            tripData.destinationInfo.name,
           )
-            .replace(/{totalDays}/g, tripData?.totalDays)
-            .replace(/{totalNight}/g, tripData?.totalDays - 1)
-            .replace(/{traveler}/g, tripData?.traveler?.title)
-            .replace(/{budget}/g, tripData?.budget);
+            .replace(/{totalDays}/g, tripData.totalDays)
+            .replace(/{totalNight}/g, tripData.totalDays - 1)
+            .replace(/{traveler}/g, tripData.traveler.title)
+            .replace(/{budget}/g, tripData.budget);
 
-          const [itineraryRes, unsplashUrl] = await Promise.all([
-            generateTripPlan(FINAL_ITINERARY_PROMPT),
-            fetchUnsplashImage(tripData?.destinationInfo?.shortName),
-          ]);
+          const response = await fetch(API_BASE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itineraryPrompt: FINAL_ITINERARY_PROMPT,
+              locationName: tripData.destinationInfo.name,
+            }),
+          });
 
-          try {
-            const cleanedItinerary = cleanAiResponse(itineraryRes);
-            itineraryData = normalizeItinerary(JSON.parse(cleanedItinerary));
-          } catch (parseErr) {
-            console.error("Itinerary Parse Error:", parseErr);
-            throw new Error("Failed to parse itinerary details.");
-          }
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Backend failed");
 
-          finalImageUrl = unsplashUrl;
+          const rawAiResponse = cleanAiResponse(result.itinerary);
 
+          // JSON REPAIR BLOCK
+          const repairedJson = jsonrepair(rawAiResponse);
+          const aiData = JSON.parse(repairedJson);
+
+          itineraryData = normalizeItinerary(aiData);
+          finalImageUrl = result.imageUrl;
+          destinationIata = aiData.destinationIata || "N/A";
+
+          // Save to shared cache
           await setDoc(savedTripRef, {
             savedTripId: normalizedKey,
             tripPlan: itineraryData,
             imageUrl: finalImageUrl,
+            destinationIata,
             createdAt: serverTimestamp(),
           });
-        }
-
-        const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
-          /{tripType}/g,
-          tripData?.tripType
-        )
-          .replace(/{departure}/g, tripData?.departureInfo?.name)
-          .replace(/{location}/g, tripData?.destinationInfo?.name)
-          .replace(/{date}/g, tripData.startDate)
-          .replace(/{flightDate}/g, flightDate)
-          .replace(/{trainDate}/g, trainDate);
-
-        const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
-        let transportData;
-        try {
-          const cleanedTransport = cleanAiResponse(transportRes);
-          transportData = JSON.parse(cleanedTransport);
-        } catch (parseErr) {
-          console.error("Transport Parse Error:", parseErr);
-          throw new Error("Failed to parse transport details.");
         }
 
         const userTripRef = doc(collection(db, "UserTrips", user.uid, "trips"));
@@ -200,8 +158,13 @@ export default function GenerateTrip() {
           startDate: tripData.startDate,
           endDate: tripData.endDate,
           traveler: cleanTraveler,
-          transportDetails: transportData.transportDetails,
           imageUrl: finalImageUrl,
+          isInternational: tripData.isInternational || false,
+          flightDate: tripData.startDate,
+          returnDate: tripData.endDate,
+          departureIata: localDepartureIata,
+          destinationIata, 
+          tripType: tripData.tripType || "planned",
           isActive: false,
           createdAt: serverTimestamp(),
         });
@@ -212,21 +175,10 @@ export default function GenerateTrip() {
       } catch (err) {
         attempts++;
         console.error(`Attempt ${attempts} failed:`, err);
-
         if (attempts < maxAttempts) {
-          await delay(attempts * 2500);
+          await delay(2000);
         } else {
-          let message = "Failed to generate trip. Please try again.";
-          if (err?.message?.includes("parse")) {
-            message = "AI response was malformed. Retrying might fix it.";
-          } else if (
-            err?.message?.includes("503") ||
-            err?.message?.includes("429")
-          ) {
-            message =
-              "AI server is currently busy. Please try again in a moment.";
-          }
-          setError(message);
+          setError(err.message || "Failed to generate trip.");
           setLoading(false);
           hasGenerated.current = false;
         }
@@ -258,35 +210,17 @@ export default function GenerateTrip() {
             loop
             style={{ width: width * 0.7, height: width * 0.7 }}
           />
-          <Text
-            style={{
-              fontSize: width * 0.07,
-              fontFamily: "outfitBold",
-              textAlign: "center",
-              marginTop: 20,
-            }}
-          >
-            {getLoadingMessage()}
-          </Text>
+          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
         </View>
       )}
 
       {error && (
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text
-            style={{
-              fontFamily: "outfitMedium",
-              textAlign: "center",
-              marginVertical: 10,
-              paddingHorizontal: 20,
-            }}
-          >
-            {error}
-          </Text>
+          <Text style={styles.errorText}>{error}</Text>
 
           <TouchableOpacity
-            onPress={() => generateAiTrip()}
+            onPress={generateAiTrip}
             style={styles.primaryButton}
           >
             <Text style={styles.buttonText}>Try Again</Text>
@@ -304,13 +238,6 @@ export default function GenerateTrip() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: width * 0.06,
-    backgroundColor: Colors.WHITE,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   loadingText: {
     fontSize: width * 0.07,
     fontFamily: "outfitBold",

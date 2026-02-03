@@ -53,11 +53,11 @@ export const fallbackImages = [
 ];
 
 export const trendingTripCardImages = [
-  require("../assets/images/trending-places/trending-place1.jpg"),
-  require("../assets/images/trending-places/trending-place2.jpg"),
-  require("../assets/images/trending-places/trending-place3.jpg"),
-  require("../assets/images/trending-places/trending-place4.jpg"),
-  require("../assets/images/trending-places/trending-place5.jpg"),
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048386/trending-place4_pi7poy.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048385/trending-place3_lgqnfk.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048384/trending-place1_tkhift.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048383/trending-place2_djbxu7.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048382/trending-place5_n062ft.jpg",
 ];
 
 export const RESTAURANT_AND_LOCAL_IMAGES = {
@@ -184,41 +184,20 @@ Follow these instructions carefully:
      - rating (0–5)
      - description (short)
 
-2. Daily itinerary:
-   - Use a top-level key called "dailyItinerary"
-   - Include a plan for each day of the trip using keys: day1, day2, ..., day{totalDays}
-   - Do not skip any day, even if it overlaps with travel
-   - If arrival is late on day1 or departure is early on the last day, suggest light/local activities accordingly
-   - For each day, include an object with a key "places" that holds an array of 2–3 real places to visit in/around the location
-   - Each item inside "places" must follow this structure:
-     - placeName: Name of the place
-     - placeDetails: A brief description
-     - placeImageURL: A real image URL if available, or use a relevant placeholder
-     - geoCoordinates: Accurate format {"latitude": number, "longitude": number}
-     - ticketPricing: Cost in ₹, or 0 if free
-     - estimatedTravelTime: Time to reach from previous location or hotel (e.g., "20 minutes")
-     - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)"
+2. Daily itinerary (The "Pool" Logic):
+   - Use the key "dailyItinerary".
+   - Instead of specific days, provide a large collection of attractions.
+   - Include exactly 15 "places" objects in a single array under "dailyItinerary".
+   - Each "place" must include a new field "timeSlot" with values: "Morning", "Afternoon", or "Evening" (5 places for each slot).
+   - Structure for each item in "places":
+     - placeName, placeDetails
+     - geoCoordinates: {"latitude": number, "longitude": number}
+     - ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot
 
 3. Recommendations:
-   Use a top-level key called "recommendations".
-  It must contain two arrays: "restaurants" and "localExperiences".
-
- - For "restaurants":  
-    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
-    - Each entry must include:  
-    - restaurantName (real, existing place if possible)  
-      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - address (with city/area)  
-      - approximateCost (per person in ₹)  
-
-  - For "localExperiences":  
-    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
-    - Each entry must include:  
-      - experienceName  
-      - description (2–3 sentences about what the traveler will do/see/learn)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - approximateCost (per person in ₹, or 0 if free)  
+   - Use the key "recommendations".
+   - "restaurants": Provide exactly 10 authentic restaurants. Each must include: restaurantName, description, priceRange, address, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
+   - "localExperiences": Provide exactly 10 unique experiences. Each must include: experienceName, description, priceRange, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
 
 
 4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
@@ -234,6 +213,14 @@ Follow these instructions carefully:
    Include these two specific fields at the VERY TOP of your JSON response:
    - "departureIata": "3-letter origin code"
    - "destinationIata": "3-letter destination code"
+
+8. JSON SYNTAX RULES (STRICT):
+- NO trailing commas after the last item in an array or object.
+- NO comments or extra text.
+- Every opening brace '{' MUST have a matching closing brace '}'.
+- Ensure "geoCoordinates" is a complete, closed object: {"latitude": 12.3, "longitude": 45.6}.
+- IMPORTANT: Verify that the "hotelOptions" array objects are fully closed before starting the "dailyItinerary".
+- Double-check that all strings are enclosed in double quotes.
 
 Ensure:
 - All content is realistic and based on actual locations and data.
@@ -346,140 +333,140 @@ export const HiddenGemIdeas = [
     name: "Tawang",
     title: "Tawang, Arunachal Pradesh",
     desc: "Explore serene monasteries and Himalayan landscapes in this remote gem.",
-    image: require("../assets/images/hidden-gems/tawang.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
   },
   {
     id: 2,
     name: "Gokarna",
     title: "Gokarna, Karnataka",
     desc: "Unwind at peaceful beaches and ancient temples away from Goa crowds.",
-    image: require("../assets/images/hidden-gems/gokarna.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
   },
   {
     id: 3,
     name: "Chopta",
     title: "Chopta, Uttarakhand",
     desc: "Trek through alpine meadows to Tungnath, the world’s highest Shiva temple.",
-    image: require("../assets/images/hidden-gems/chopta.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
   },
   {
     id: 4,
     name: "Majuli",
     title: "Majuli, Assam",
     desc: "Visit the world’s largest river island with rich culture and monasteries.",
-    image: require("../assets/images/hidden-gems/majuli.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
   },
   {
     id: 5,
     name: "Halebidu",
     title: "Halebidu, Karnataka",
     desc: "Marvel at exquisite Hoysala-era temple carvings and architecture.",
-    image: require("../assets/images/hidden-gems/halebidu.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
   },
   {
     id: 6,
     name: "Ziro Valley",
     title: "Ziro Valley, Arunachal Pradesh",
     desc: "Experience Apatani tribal culture amidst rolling hills and rice fields.",
-    image: require("../assets/images/hidden-gems/ziro_valey.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
   },
   {
     id: 7,
     name: "Mawlynnong",
     title: "Mawlynnong, Meghalaya",
     desc: "Stroll through Asia’s cleanest village and see living root bridges.",
-    image: require("../assets/images/hidden-gems/mawlynnong.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
   },
   {
     id: 8,
     name: "Patan",
     title: "Patan, Gujarat",
     desc: "Step into history at Rani ki Vav, a beautifully carved stepwell.",
-    image: require("../assets/images/hidden-gems/patan.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
   },
   {
     id: 9,
     name: "Lepakshi",
     title: "Lepakshi, Andhra Pradesh",
     desc: "See the hanging pillar and Vijayanagara-style murals at Veerabhadra Temple.",
-    image: require("../assets/images/hidden-gems/lepakshi.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
   },
   {
     id: 10,
     name: "Chandratal",
     title: "Chandratal, Himachal Pradesh",
     desc: "Camp by the moon-shaped lake in Spiti for a surreal high-altitude escape.",
-    image: require("../assets/images/hidden-gems/chandratal-lake.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
   },
   {
     id: 11,
     name: "Hampi",
     title: "Hampi, Karnataka",
     desc: "Walk among the ruins of the Vijayanagara Empire, a UNESCO heritage site.",
-    image: require("../assets/images/hidden-gems/hampi.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
   },
   {
     id: 12,
     name: "Velas",
     title: "Velas, Maharashtra",
     desc: "Witness the Olive Ridley turtle festival in this peaceful Konkan village.",
-    image: require("../assets/images/hidden-gems/velas.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
   },
   {
     id: 13,
     name: "Dzukou Valley",
     title: "Dzukou Valley, Nagaland",
     desc: "Trek across lush valleys and seasonal flowers on the Nagaland–Manipur border.",
-    image: require("../assets/images/hidden-gems/dzukou_valley.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
   },
   {
     id: 14,
     name: "Chalakudy",
     title: "Chalakudy, Kerala",
     desc: "Discover Athirappilly Falls and lush greenery known as the 'Niagara of India'.",
-    image: require("../assets/images/hidden-gems/chalakudy.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
   },
   {
     id: 15,
     name: "Mandu",
     title: "Mandu, Madhya Pradesh",
     desc: "Explore Afghan-style architecture and romantic ruins of this historic fort city.",
-    image: require("../assets/images/hidden-gems/mandu.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
   },
   {
     id: 16,
     name: "Khimsar",
     title: "Khimsar, Rajasthan",
     desc: "Stay in a desert fort and experience dunes away from Jaisalmer crowds.",
-    image: require("../assets/images/hidden-gems/khimsar.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
   },
   {
     id: 17,
     name: "Tirthan Valley",
     title: "Tirthan Valley, Himachal Pradesh",
     desc: "Relax by rivers and waterfalls in a less commercialized Himalayan valley.",
-    image: require("../assets/images/hidden-gems/tirthan.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
   },
   {
     id: 18,
     name: "Lonar Crater",
     title: "Lonar Crater, Maharashtra",
     desc: "See a unique lake formed by a meteor impact over 50,000 years ago.",
-    image: require("../assets/images/hidden-gems/lonar.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
   },
   {
     id: 19,
     name: "Araku Valley",
     title: "Araku Valley, Andhra Pradesh",
     desc: "Ride the scenic train and visit tribal coffee plantations in the Eastern Ghats.",
-    image: require("../assets/images/hidden-gems/araku.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
   },
   {
     id: 20,
     name: "Kibber",
     title: "Kibber, Himachal Pradesh",
     desc: "Spot snow leopards and visit one of the world’s highest inhabited villages.",
-    image: require("../assets/images/hidden-gems/kibber.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
   },
 ];
 
@@ -1035,3 +1022,474 @@ Current Location: {location}
   }
 ]
 `;
+
+
+export const CITY_TO_IATA = {
+  "Aalborg": "AAL",
+  "Aarhus": "AAR",
+  "Abadan": "ABD",
+  "Abakan": "ABA",
+  "Aberdeen": "ABZ", 
+  "Abha": "AHB",
+  "Abu Dhabi": "AUH",
+  "Abidjan": "ABJ",
+  "Abilene": "ABI",
+  "Abuja": "ABV",
+  "Acapulco": "ACA",
+  "Acarigua": "AGV",
+  "Accra": "ACC",
+  "Adak Island": "ADK",
+  "Adana": "ADA",
+  "Addis Ababa": "ADD",
+  "Adelaide": "ADL",
+  "Aden": "ADE",
+  "Adler": "AER",
+  "Agadir": "AGA",
+  "Aguascaliente": "AGU",
+  "Ahmedabad": "AMD",
+  "Ajaccio": "AJA",
+  "Akita": "AXT",
+  "Akron/Canton": "CAK",
+  "Al-Baha": "ABT",
+  "Al-Fujairah": "FJR",
+  "Albany": "ALB",
+  "Albuquerque": "ABQ",
+  "Aleppo": "ALP",
+  "Alexandria": "ESF",
+  "Algiers": "ALG",
+  "Alicante": "ALC",
+  "Allentown": "ABE",
+  "Alma Ata": "ALA",
+  "Alor Setar": "AOR",
+  "Altoona": "AOO",
+  "Amarillo": "AMA",
+  "Amman": "AMM",
+  "Amritsar": "ATQ",
+  "Amsterdam": "AMS",
+  "Anchorage": "ANC",
+  "Ancona": "AOI",
+  "Andahuaylas": "ANS",
+  "Anguilla": "AZA",
+  "Aniak": "ANI",
+  "Ankara": "ANK",
+  "Antalya": "AYT",
+  "Antananarivo": "TNR",
+  "Antofagasta": "ANF",
+  "Antwerp": "ANR",
+  "Aomori": "AOJ",
+  "Apia": "APW",
+  "Appleton": "ATW",
+  "Aqaba": "AQJ",
+  "Arequipa": "AQP",
+  "Arica": "ARI",
+  "Aruba": "AUA",
+  "Asheville": "AVL",
+  "Asmara": "ASM",
+  "Asuncion": "ASU",
+  "Aswan": "ASW",
+  "Athens": "ATH",
+  "Atlanta": "ATL",
+  "Atlantic City": "ACY",
+  "Auckland": "AKL",
+  "Augusta": "AGS",
+  "Austin": "AUS",
+  "Ayacucho": "AYP",
+  "Baghdad": "BGW",
+  "Bahrain": "BAH",
+  "Bakersfield": "BFL",
+  "Bali Island": "DPS",
+  "Baltimore": "BWI",
+  "Bamako": "BKO",
+  "Bandar Abbas": "BND",
+  "Bandar Seri Bagawan": "BWN",
+  "Bangalore": "BLR",
+  "Bangkok": "BKK",
+  "Bangor": "BGR",
+  "Bangui": "BGF",
+  "Banjul": "BJL",
+  "Barbados": "BGI",
+  "Barcelona": "BCN",
+  "Bari": "BRI",
+  "Barinas": "BNS",
+  "Barquisimeto": "BRM",
+  "Barranquilla": "BAQ",
+  "Barrow": "BRW",
+  "Basle": "BSL",
+  "Basra": "BSR",
+  "Bastia": "BIA",
+  "Baton Rouge": "BTR",
+  "Beijing": "BJS",
+  "Beira": "BEW",
+  "Beirut": "BEY",
+  "Belem": "BEL",
+  "Belfast": "BFS",
+  "Belgrade": "BEG",
+  "Belize": "BZE",
+  "Bellingham": "BLI",
+  "Belo Horizonte": "BHZ",
+  "Benghazi": "BEN",
+  "Bergen": "BGO",
+  "Berlin": "BER",
+  "Bermuda": "BDA",
+  "Bern": "BRN",
+  "Bethel": "BET",
+  "Biak": "BIK",
+  "Biarritz": "BIQ",
+  "Bilbao": "BIO",
+  "Billings": "BIL",
+  "Billund": "BLL",
+  "Birmingham": "BHM", 
+  "Bissau": "BXO",
+  "Blantyre": "BLZ",
+  "Bloemfontein": "BFN",
+  "Bloomington": "BMI",
+  "Boa Vista": "BVB",
+  "Bodo": "BOO",
+  "Bogota": "BOG",
+  "Boise": "BOI",
+  "Bologna": "BLQ",
+  "Bombay": "BOM",
+  "Bordeaux": "BOD",
+  "Boston": "BOS",
+  "Bratislava": "BTS",
+  "Brazzaville": "BZV",
+  "Bremen": "BRE",
+  "Brest": "BES",
+  "Brisbane": "BNE",
+  "Bristol": "BRS",
+  "Brussels": "BRU",
+  "Bucharest": "BUH",
+  "Budapest": "BUD",
+  "Buenos Aires": "BUE",
+  "Cairo": "CAI",
+  "Calcutta": "CCU",
+  "Calgary": "YYC",
+  "Cali": "CLO",
+  "Calicut": "CCJ",
+  "Cancun": "CUN",
+  "Cape Town": "CPT",
+  "Caracas": "CCS",
+  "Casablanca": "CAS",
+  "Catania": "СТА",
+  "Cebu": "CEB",
+  "Chengdu": "CTU",
+  "Chiang Mai": "CNX",
+  "Chicago": "CHI",
+  "Cincinnati": "CVG",
+  "Cleveland": "CLE",
+  "Cochin": "COK",
+  "Cologne": "CGN",
+  "Colombo": "CMB",
+  "Copenhagen": "CPH",
+  "Cork": "ORK",
+  "Dakar": "DKR",
+  "Dallas/Ft. Worth": "DFW",
+  "Damascus": "DAM",
+  "Dar Es Salaam": "DAR",
+  "Darwin": "DRW",
+  "Delhi": "DEL",
+  "Denver": "DEN",
+  "Detroit": "DTT",
+  "Dhahran": "DHA",
+  "Dhaka": "DAC",
+  "Dubai": "DXB",
+  "Dublin": "DUB",
+  "Dusseldorf": "DUS",
+  "Edinburgh": "EDI",
+  "Edmonton": "YEA",
+  "Eindhoven": "EIN",
+  "Florence": "FLR",
+  "Frankfurt": "FRA",
+  "Fukuoka": "FUK",
+  "Geneva": "GVA",
+  "Genoa": "GOA",
+  "Glasgow": "GLA",
+  "Gothenburg": "GOT",
+  "Guadalajara": "GDL",
+  "Guangzhou": "CAN",
+  "Guatemala City": "GUA",
+  "Guayaquil": "GYE",
+  "Halifax": "YHZ",
+  "Hamburg": "HAM",
+  "Hanoi": "HAN",
+  "Hanover": "HAJ",
+  "Harare": "HRE",
+  "Helsinki": "HEL",
+  "Ho Chi Minh City": "SGN",
+  "Hong Kong": "HKG",
+  "Honolulu": "HNL",
+  "Houston": "HOU",
+  "Hyderabad": "HYD",
+  "Indianapolis": "IND",
+  "Innsbruck": "INN",
+  "Islamabad": "ISB",
+  "Istanbul": "IST",
+  "Jacksonville": "JAX",
+  "Jaipur": "JAI",
+  "Jakarta": "JKT",
+  "Jeddah": "JED",
+  "Johannesburg": "JNB",
+  "Kabul": "KBL",
+  "Karachi": "KHI",
+  "Kathmandu": "KTM",
+  "Kochi": "KCZ",
+  "Kuala Lumpur": "KUL",
+  "Kuwait": "KWI",
+  "Lagos": "LOS",
+  "Lahore": "LHE",
+  "Las Vegas": "LAS",
+  "Leipzig": "LEJ",
+  "Lima": "LIM",
+  "Lisbon": "LIS",
+  "Liverpool": "LPL",
+  "London": "LON",
+  "Los Angeles": "LAX",
+  "Luxembourg": "LUX",
+  "Lyon": "LYS",
+  "Madras": "MAA",
+  "Madrid": "MAD",
+  "Malaga": "AGP",
+  "Male": "MLE",
+  "Manchester": "MAN",
+  "Manila": "MNL",
+  "Marseille": "MRS",
+  "Melbourne": "MEL",
+  "Memphis": "MEM",
+  "Mexico City": "MEX",
+  "Milan": "MIL",
+  "Minneapolis": "MSP",
+  "Montevideo": "MVD",
+  "Montreal": "YMQ",
+  "Moscow": "MOW",
+  "Munich": "MUC",
+  "Muscat": "MCT",
+  "Nairobi": "NBO",
+  "Naples": "NAP",
+  "Nashville": "BNA",
+  "Nassau": "NAS",
+  "New York": "NYC",
+  "Nice": "NCE",
+  "Oklahoma City": "OKC",
+  "Orlando": "ORL",
+  "Osaka": "OSA",
+  "Oslo": "OSL",
+  "Ottawa": "YOW",
+  "Palermo": "PMO",
+  "Paris": "PAR",
+  "Perth": "PER",
+  "Philadelphia": "PHL",
+  "Phoenix": "PHX",
+  "Pittsburgh": "PIT",
+  "Prague": "PRG",
+  "Quebec": "YQB",
+  "Rabat": "RBA",
+  "Rio de Janeiro": "RIO",
+  "Riyadh": "RUH",
+  "Rome": "ROM",
+  "Sacramento": "SAC",
+  "Salt Lake City": "SLC",
+  "San Antonio": "SAT",
+  "San Diego": "SAN",
+  "San Francisco": "SFO",
+  "San Jose": "SJC",
+  "San Juan": "SJU",
+  "Santiago": "SCL",
+  "Sao Paulo": "SAO",
+  "Seattle": "SEA",
+  "Seoul": "SEL",
+  "Shanghai": "SHA",
+  "Singapore": "SIN",
+  "St. Petersburg": "LED",
+  "Stockholm": "STO",
+  "Stuttgart": "STR",
+  "Sydney": "SYD",
+  "Taipei": "ΤΡΕ",
+  "Tel Aviv Yafo": "TLV",
+  "Tokyo": "TYO",
+  "Toronto": "YTO",
+  "Trivandrum": "TRV",
+  "Tunis": "TUN",
+  "Turin": "TRN",
+  "Vancouver": "YVR",
+  "Venice": "VCE",
+  "Vienna": "VIE",
+  "Warsaw": "WAW",
+  "Washington": "WAS",
+  "Wellington": "WLG",
+  "Winnipeg": "YWG",
+  "Zurich": "ZRH",
+
+  "Delhi": "DEL",
+  "New Delhi": "DEL",
+  "Mumbai": "BOM",
+  "Bengaluru": "BLR",
+  "Bangalore": "BLR",
+  "Hyderabad": "HYD",
+  "Chennai": "MAA",
+  "Kolkata": "CCU",
+  "Ahmedabad": "AMD",
+  "Kochi": "COK",
+  "Goa": "GOI",
+  "Mopa": "GOX", 
+  
+  // --- Andhra Pradesh ---
+  "Visakhapatnam": "VTZ",
+  "Tirupati": "TIR",
+  "Vijayawada": "VGA",
+  "Rajahmundry": "RJA",
+  "Kadapa": "CDP",
+  "Kurnool": "KJB",
+
+  // --- Arunachal Pradesh ---
+  "Itanagar": "HGI",
+  "Pasighat": "IXT",
+  "Tezu": "TEI",
+
+  // --- Assam ---
+  "Guwahati": "GAU",
+  "Dibrugarh": "DIB",
+  "Silchar": "IXS",
+  "Jorhat": "JRH",
+  "Tezpur": "TEZ",
+  "North Lakhimpur": "IXI",
+
+  // --- Bihar ---
+  "Patna": "PAT",
+  "Gaya": "GAY",
+  "Darbhanga": "DBR",
+
+  // --- Chandigarh ---
+  "Chandigarh": "IXC",
+
+  // --- Chhattisgarh ---
+  "Raipur": "RPR",
+  "Jagdalpur": "JGB",
+  "Bilaspur": "PAB",
+
+  // --- Gujarat ---
+  "Surat": "STV",
+  "Vadodara": "BDQ",
+  "Rajkot": "RAJ",
+  "Bhavnagar": "BHU",
+  "Jamnagar": "JGA",
+  "Bhuj": "BHJ",
+  "Kandla": "IXY",
+  "Porbandar": "PBD",
+
+  // --- Haryana ---
+  "Hisar": "HSS",
+
+  // --- Himachal Pradesh ---
+  "Kullu": "KUU",
+  "Shimla": "SLV",
+  "Kangra": "DHM",
+
+  // --- Jammu & Kashmir ---
+  "Srinagar": "SXR",
+  "Jammu": "IXJ",
+
+  // --- Jharkhand ---
+  "Ranchi": "IXR",
+  "Deoghar": "DGH",
+  "Jamshedpur": "IXW",
+
+  // --- Karnataka ---
+  "Mangaluru": "IXE",
+  "Hubli": "HBX",
+  "Belgaum": "IXG",
+  "Mysore": "MYQ",
+  "Kalaburagi": "GBI",
+
+  // --- Kerala ---
+  "Thiruvananthapuram": "TRV",
+  "Kozhikode": "CCJ",
+  "Kannur": "CNN",
+
+  // --- Ladakh ---
+  "Leh": "IXL",
+
+  // --- Madhya Pradesh ---
+  "Indore": "IDR",
+  "Bhopal": "BHO",
+  "Gwalior": "GWL",
+  "Jabalpur": "JLR",
+  "Khajuraho": "HJR",
+
+  // --- Maharashtra ---
+  "Pune": "PNQ",
+  "Nagpur": "NAG",
+  "Nashik": "ISK",
+  "Aurangabad": "IXU",
+  "Shirdi": "SAG",
+  "Kolhapur": "KLH",
+  "Nanded": "NDC",
+
+  // --- Manipur ---
+  "Imphal": "IMF",
+
+  // --- Meghalaya ---
+  "Shillong": "SHL",
+
+  // --- Mizoram ---
+  "Aizawl": "AJL",
+
+  // --- Nagaland ---
+  "Dimapur": "DMU",
+
+  // --- Odisha ---
+  "Bhubaneswar": "BBI",
+  "Jharsuguda": "JSA",
+
+  // --- Punjab ---
+  "Amritsar": "ATQ",
+  "Bathinda": "BUP",
+  "Pathankot": "IXP",
+  "Ludhiana": "LUH",
+  "Jalandhar": "AIP",
+
+  // --- Rajasthan ---
+  "Jaipur": "JAI",
+  "Udaipur": "UDR",
+  "Jodhpur": "JDH",
+  "Jaisalmer": "JSA",
+  "Bikaner": "BKB",
+  "Ajmer": "KQH",
+
+  // --- Sikkim ---
+  "Gangtok": "PYG",
+
+  // --- Tamil Nadu ---
+  "Coimbatore": "CJB",
+  "Madurai": "IXM",
+  "Tiruchirappalli": "TRZ",
+  "Tuticorin": "TCR",
+  "Salem": "SXV",
+
+  // --- Tripura ---
+  "Agartala": "IXA",
+
+  // --- Uttar Pradesh ---
+  "Lucknow": "LKO",
+  "Varanasi": "VNS",
+  "Ayodhya": "AYJ",
+  "Kanpur": "KNU",
+  "Agra": "AGR",
+  "Gorakhpur": "GOP",
+  "Prayagraj": "IXD",
+  "Bareilly": "BEK",
+  "Kushinagar": "KJU",
+  "Noida": "DXN",
+
+  // --- Uttarakhand ---
+  "Dehradun": "DED",
+
+  // --- West Bengal ---
+  "Bagdogra": "IXB",
+  "Siliguri": "IXB",
+
+  // --- UTs ---
+  "Port Blair": "IXZ",
+  "Diu": "DIU",
+  "Pondicherry": "PNY",
+  "Agatti": "AGX",
+};
