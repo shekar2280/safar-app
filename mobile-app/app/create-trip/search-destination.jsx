@@ -32,10 +32,17 @@ export default function SearchDestination() {
   const handleContinue = () => {
     if (!selectedLocation) return;
 
+    const departureCountry = tripData?.departureInfo?.countryCode;
+
+    const destinationCountry = selectedLocation?.countryCode;
+
+    const isIntl = departureCountry !== destinationCountry;
+
     setTripData((prev) => ({
       ...prev,
       destinationInfo: selectedLocation,
       tripType: tripType,
+      isInternational: isIntl,
     }));
 
     router.push("/create-trip/select-traveler");
