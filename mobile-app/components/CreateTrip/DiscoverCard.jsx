@@ -10,28 +10,21 @@ import { Colors } from "../../constants/Colors";
 
 const { width, height } = Dimensions.get("window");
 
-import trendingPlace1 from "../../assets/images/trending-places/trending-place1.jpg";
-import trendingPlace2 from "../../assets/images/trending-places/trending-place2.jpg";
-import trendingPlace3 from "../../assets/images/trending-places/trending-place3.jpg";
-import trendingPlace4 from "../../assets/images/trending-places/trending-place4.jpg";
-import trendingPlace5 from "../../assets/images/trending-places/trending-place5.jpg";
-
-const fallbackImages = [trendingPlace1, trendingPlace2, trendingPlace3, trendingPlace4, trendingPlace5];
 
 export default function DiscoverCard({ option, selectedOption, cardHeight }) {
   const isSelected = selectedOption?.id === option?.id;
   const defaultHeight = height * 0.14;
   const cardRadius = width * 0.04;
 
-  const randomFallback =
-    fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-
-  const imageSource =
-    option?.image
-      ? typeof option.image === "string"
-        ? { uri: option.image } 
-        : option.image 
-      : randomFallback; 
+  const getImageSource = () => {
+    if (option?.image) {
+      return typeof option.image === "string"
+        ? { uri: option.image }
+        : option.image;
+    }
+    const fallbackIndex = (option?.id || 0) % trendingTripCardImages.length;
+    return { uri: trendingTripCardImages[fallbackIndex] };
+  };
 
   return (
     <View
@@ -45,7 +38,7 @@ export default function DiscoverCard({ option, selectedOption, cardHeight }) {
       }}
     >
       <ImageBackground
-        source={imageSource}
+        source={getImageSource()}
         resizeMode="cover"
         style={{
           flex: 1,

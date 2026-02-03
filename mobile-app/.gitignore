@@ -85,3 +85,5 @@ android/app/src/main/res/values/styles.xml
 android/app/src/main/res/values-night/colors.xml
 android/gradle/wrapper/gradle-wrapper.jar
 android/gradle/wrapper/gradle-wrapper.properties
+
+google-services.json

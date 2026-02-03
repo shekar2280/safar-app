@@ -7,108 +7,91 @@ import {
   TouchableOpacity,
   Linking,
 } from "react-native";
-import { Image } from "expo-image";
 import { Colors } from "../../constants/Colors";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-export default function PlannedTrip({ itineraryDetails }) {
-  const filteredDays = Object.entries(itineraryDetails || {})
-    .filter(([key]) => key.toLowerCase().startsWith("day"))
-    .sort(([a], [b]) => {
-      const numA = parseInt(a.replace("day", ""));
-      const numB = parseInt(b.replace("day", ""));
-      return numA - numB;
-    });
+export default function PlannedTrip({ itineraryDetails, cityName }) {
+  const router = useRouter();
 
-  const openInMaps = (placeName) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName)}`;
+  const placesArray = Array.isArray(itineraryDetails)
+    ? itineraryDetails
+    : itineraryDetails?.places || [];
+
+  const locationNavigation = (placeName) => {
+    const query = encodeURIComponent(`${placeName} ${cityName || ""}`);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=$8{query}`;
     Linking.openURL(url);
   };
 
-  if (!filteredDays.length) return null;
+  if (!placesArray.length) {
+    return (
+      <View style={styles.wrapper}>
+        <Text style={styles.emptyText}>No discovery data available.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.wrapper}>
+      {/* <TouchableOpacity
+        style={styles.plannerLinkBtn}
+        onPress={() => router.push("/day-planner-details")}
+      >
+        <Ionicons name="calendar" size={20} color="white" />
+        <Text style={styles.plannerLinkText}>View My Day Planner</Text>
+        <Ionicons name="arrow-forward" size={18} color="white" />
+      </TouchableOpacity> */}
+
       <View style={styles.outlineContainer}>
         <View style={styles.labelWrapper}>
-          <Text style={styles.outlineLabel}>DAILY ITINERARY</Text>
+          <Text style={styles.outlineLabel}>DISCOVERY POOL</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Your Journey Plan</Text>
+        <Text style={styles.sectionTitle}>Places to Explore</Text>
 
-        {filteredDays.map(([dayKey, dayValue], dayIdx) => (
-          <View key={dayKey} style={styles.daySection}>
-            <View style={styles.dayHeader}>
-              <View style={styles.dayBadge}>
-                <Text style={styles.dayBadgeText}>
-                  {dayKey.toUpperCase().replace("DAY", "DAY ")}
-                </Text>
+        {placesArray.map((item, index) => (
+          <View key={index} style={styles.placeCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.placeTitle}>{item.placeName}</Text>
+                <Text style={styles.timeTag}>{item.timeSlot}</Text>
               </View>
-              <View style={styles.horizontalLine} />
+
+              <TouchableOpacity
+                style={styles.navIconBtn}
+                onPress={() => locationNavigation(item.placeName)}
+              >
+                <FontAwesome5 name="directions" size={18} color="white" />
+              </TouchableOpacity>
             </View>
 
-            {dayValue.places?.map((place, idx) => (
-              <View key={idx} style={styles.placeContainer}>
-                <View style={styles.timelineLeft}>
-                  <View style={styles.timelineDot}>
-                    <View style={styles.dotInner} />
-                  </View>
-                  {idx !== dayValue.places.length - 1 && (
-                    <View style={styles.timelineLine} />
-                  )}
-                </View>
+            <Text style={styles.placeDesc} numberOfLines={4}>
+              {item.placeDetails}
+            </Text>
 
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.placeCard}
-                  onPress={() => openInMaps(place.placeName)}
-                >
-                  <View style={styles.cardContent}>
-                    <View style={styles.textDetails}>
-                      <Text style={styles.placeTitle}>{place.placeName}</Text>
-                      <Text numberOfLines={3} style={styles.placeDesc}>
-                        {place.placeDetails}
-                      </Text>
-
-                      <View style={styles.metaRow}>
-                        <View style={styles.metaItem}>
-                          <Ionicons
-                            name="time-outline"
-                            size={14}
-                            color={Colors.GRAY}
-                          />
-                          <Text style={styles.metaText}>
-                            {place.bestTimeToVisit}
-                          </Text>
-                        </View>
-                        {place.ticketPricing > 0 && (
-                          <View style={styles.metaItem}>
-                            <Ionicons
-                              name="ticket-outline"
-                              size={14}
-                              color={Colors.GRAY}
-                            />
-                            <Text style={styles.metaText}>
-                              ₹{place.ticketPricing}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    <View style={styles.navIconBox}>
-                      <Ionicons
-                        name="navigate-circle"
-                        size={32}
-                        color={Colors.PRIMARY}
-                      />
-                    </View>
-                  </View>
-                </TouchableOpacity>
+            <View style={styles.footerRow}>
+              <View style={styles.metaItem}>
+                <Ionicons
+                  name="time-outline"
+                  size={14}
+                  color={Colors.PRIMARY}
+                />
+                <Text style={styles.metaText}>{item.bestTimeToVisit}</Text>
               </View>
-            ))}
+              {item.ticketPricing > 0 && (
+                <View style={styles.metaItem}>
+                  <Ionicons
+                    name="wallet-outline"
+                    size={14}
+                    color={Colors.PRIMARY}
+                  />
+                  <Text style={styles.metaText}>₹{item.ticketPricing}</Text>
+                </View>
+              )}
+            </View>
           </View>
         ))}
       </View>
@@ -118,138 +101,115 @@ export default function PlannedTrip({ itineraryDetails }) {
 
 const styles = StyleSheet.create({
   wrapper: { marginTop: 25, marginBottom: 25 },
+  plannerLinkBtn: {
+    backgroundColor: Colors.PRIMARY,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 18,
+    marginBottom: 25,
+    gap: 12,
+    elevation: 4,
+    shadowColor: Colors.PRIMARY,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  plannerLinkText: {
+    color: "white",
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
   outlineContainer: {
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    borderRadius: 22,
-    padding: 15,
-    paddingTop: 25,
-    backgroundColor: Colors.WHITE,
+    borderColor: "#E2E8F0",
+    borderRadius: 24,
+    padding: 20,
+    backgroundColor: "#FFFFFF",
   },
   labelWrapper: {
     position: "absolute",
     top: -12,
     left: 20,
-    backgroundColor: Colors.WHITE,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 10,
   },
   outlineLabel: {
     fontFamily: "outfitBold",
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.PRIMARY,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   sectionTitle: {
     fontSize: 22,
     fontFamily: "outfitBold",
-    color: "#1A1A1A",
+    color: "#0F172A",
     marginBottom: 20,
-  },
-  daySection: {
-    marginBottom: 20,
-  },
-  dayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  dayBadge: {
-    backgroundColor: "#1A1A1A",
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  dayBadgeText: {
-    color: "white",
-    fontFamily: "outfitBold",
-    fontSize: 12,
-  },
-  horizontalLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EEE",
-    marginLeft: 10,
-  },
-  placeContainer: {
-    flexDirection: "row",
-    minHeight: 100,
-  },
-  timelineLeft: {
-    width: 30,
-    alignItems: "center",
-  },
-  timelineDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: Colors.PRIMARY,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  dotInner: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.PRIMARY,
-  },
-  timelineLine: {
-    position: "absolute",
-    top: 16,
-    bottom: 0,
-    width: 2,
-    backgroundColor: "#EEE",
-    zIndex: 1,
   },
   placeCard: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-    borderRadius: 15,
-    padding: 12,
-    marginBottom: 15,
-    marginLeft: 5,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "#F1F5F9",
   },
-  cardContent: {
+  cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
   },
-  textDetails: {
-    flex: 1,
-  },
+  titleContainer: { flex: 1, marginRight: 10 },
   placeTitle: {
     fontFamily: "outfitBold",
-    fontSize: 16,
-    color: "#1A1A1A",
-    marginBottom: 4,
+    fontSize: 18,
+    color: "#1E293B",
+  },
+  timeTag: {
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    color: "#64748B",
+    textTransform: "uppercase",
+    marginTop: 2,
+  },
+  navIconBtn: {
+    backgroundColor: Colors.PRIMARY,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   placeDesc: {
     fontFamily: "outfit",
-    fontSize: 13,
-    color: "#666",
-    lineHeight: 18,
-    marginBottom: 8,
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+    marginBottom: 15,
   },
-  metaRow: {
+  footerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    alignItems: "center",
+    gap: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    paddingTop: 12,
   },
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
   },
   metaText: {
     fontFamily: "outfit",
-    fontSize: 11,
-    color: Colors.GRAY,
+    fontSize: 12,
+    color: "#64748B",
   },
-  navIconBox: {
-    marginLeft: 10,
-    justifyContent: "center",
+  emptyText: {
+    textAlign: "center",
+    fontFamily: "outfit",
+    color: "#94A3B8",
+    marginTop: 20,
   },
 });

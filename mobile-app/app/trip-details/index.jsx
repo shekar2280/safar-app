@@ -92,10 +92,16 @@ export default function TripDetails() {
       setIsAnimating(true);
       const tripRef = doc(db, "UserTrips", user.uid, "trips", tripDetails.id);
 
-      await updateDoc(tripRef, {
+      const updateData = {
         isActive: true,
         activatedAt: new Date(),
-      });
+      };
+
+      if (tripDetails.tripPlan) {
+        updateData.tripPlan = tripDetails.tripPlan;
+      }
+
+      await updateDoc(tripRef, updateData);
 
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
@@ -207,12 +213,16 @@ export default function TripDetails() {
           <TransportInfo transportData={tripDetails} />
 
           {/* Hotels Section */}
-          <HotelInfo hotelData={tripDetails?.tripPlan?.hotelOptions} cityName={tripDetails?.tripPlan?.tripName} />
+          <HotelInfo
+            hotelData={tripDetails?.tripPlan?.hotelOptions}
+            cityName={tripDetails?.tripPlan?.tripName}
+          />
 
           {/* Itinerary & Food Section */}
           <View style={{ paddingTop: height * 0.02 }}>
             <PlannedTrip
               itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
+              cityName={tripDetails?.tripPlan?.tripName}
             />
             <RestaurantsInfo
               restaurantsInfo={{

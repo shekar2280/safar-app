@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/Colors";
 import { useRouter } from "expo-router";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { auth, db } from "../../config/FirebaseConfig";
 import {
   doc,
@@ -19,10 +19,13 @@ import {
   deleteField,
 } from "firebase/firestore";
 import { Image } from "expo-image";
+import { BlurView } from "expo-blur";
+import { useActiveTrip } from "../../context/ActiveTripContext";
 
 const { width } = Dimensions.get("window");
 
 export default function ActiveTripCard({ trip }) {
+  const { setActiveTrip } = useActiveTrip();
   const router = useRouter();
 
   const tripImageSource = trip?.imageUrl
@@ -38,7 +41,14 @@ export default function ActiveTripCard({ trip }) {
           trip.savedTripId.split("-")[0].slice(1)
         : "Active Trip");
 
-  const navigateToWalletDetails = () => {
+  const goToPlanner = () => {
+    setActiveTrip(trip);
+    router.push({
+      pathname: "/day-planner-details",
+    });
+  };
+
+  const goToWallet = () => {
     router.push({
       pathname: "/wallet-details",
       params: { trip: JSON.stringify(trip), tripId: trip.id },
@@ -46,146 +56,219 @@ export default function ActiveTripCard({ trip }) {
   };
 
   const handleResetWallet = () => {
-    Alert.alert(
-      "Reset Wallet Data?",
-      "This will wipe all spending and deactivate this wallet.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const user = auth.currentUser;
-              if (!user || !trip.id) return;
-              const batch = writeBatch(db);
-              const transRef = collection(
-                db,
-                "UserTrips",
-                user.uid,
-                "trips",
-                trip.id,
-                "transactions",
-              );
-              const snapshot = await getDocs(transRef);
-              snapshot.forEach((tDoc) => batch.delete(tDoc.ref));
-
-              const tripDocRef = doc(
-                db,
-                "UserTrips",
-                user.uid,
-                "trips",
-                trip.id,
-              );
-              batch.update(tripDocRef, {
-                isActive: false,
-                totalBudget: deleteField(),
-                activatedAt: deleteField(),
-              });
-
-              await batch.commit();
-              Alert.alert("Success", "Wallet cleared.");
-            } catch (error) {
-              Alert.alert("Error", "Failed to reset.");
-            }
-          },
+    Alert.alert("Deactivate Hub", "This session will be archived.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Deactivate",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const user = auth.currentUser;
+            if (!user || !trip.id) return;
+            const batch = writeBatch(db);
+            const transRef = collection(
+              db,
+              "UserTrips",
+              user.uid,
+              "trips",
+              trip.id,
+              "transactions",
+            );
+            const snapshot = await getDocs(transRef);
+            snapshot.forEach((tDoc) => batch.delete(tDoc.ref));
+            const tripDocRef = doc(db, "UserTrips", user.uid, "trips", trip.id);
+            batch.update(tripDocRef, {
+              isActive: false,
+              totalBudget: deleteField(),
+              activatedAt: deleteField(),
+            });
+            await batch.commit();
+          } catch (error) {
+            Alert.alert("Error", "Action failed.");
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={navigateToWalletDetails}
-      activeOpacity={0.9}
-    >
-      <Image
-        source={tripImageSource}
-        style={styles.bannerImage}
-        transition={400}
-      />
-      <View style={styles.overlay} />
+    <View style={styles.cardContainer}>
+      <TouchableOpacity
+        activeOpacity={0.95}
+        style={styles.card}
+        onPress={goToPlanner}
+      >
+        <Image
+          source={tripImageSource}
+          style={styles.bannerImage}
+          transition={500}
+        />
 
-      <View style={styles.content}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>
-            {tripName}
-          </Text>
+        <View style={styles.topRow}>
+          <BlurView intensity={75} tint="dark" style={styles.liveBadge}>
+            <View style={styles.statusDot} />
+            <Text style={styles.liveText}>ON JOURNEY</Text>
+          </BlurView>
 
-          <Text style={styles.budgetText}>
-            {trip.totalBudget
-              ? `Budget: ₹${Number(trip.totalBudget).toLocaleString("en-IN")}`
-              : "Budget: ₹0"}
-          </Text>
-        </View>
-
-        <View style={styles.actionRow}>
-          <View style={styles.chevronBtn}>
-            <Ionicons name="chevron-forward" size={20} color="white" />
-          </View>
-          <TouchableOpacity onPress={handleResetWallet} style={styles.resetBtn}>
-            <MaterialIcons name="clear" size={20} color="white" />
+          <TouchableOpacity onPress={handleResetWallet} style={styles.closeBtn}>
+            <Ionicons name="close" size={18} color="white" />
           </TouchableOpacity>
         </View>
-      </View>
-    </TouchableOpacity>
+
+        <View style={styles.bottomSection}>
+          <BlurView intensity={80} tint="dark" style={styles.glassPanel}>
+            <View style={styles.infoCol}>
+              <Text style={styles.title} numberOfLines={1}>
+                {tripName}
+              </Text>
+              <View style={styles.budgetRow}>
+                <MaterialCommunityIcons
+                  name="wallet-outline"
+                  size={16}
+                  color="rgba(255,255,255,0.6)"
+                />
+                <Text style={styles.budgetText}>
+                  ₹{Number(trip.totalBudget || 0).toLocaleString("en-IN")}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionGroup}>
+              <TouchableOpacity
+                onPress={goToPlanner}
+                style={styles.actionIconBtn}
+              >
+                <Ionicons name="compass-outline" size={24} color="white" />
+                <Text style={styles.actionLabel}>GUIDE</Text>
+              </TouchableOpacity>
+
+              <View style={styles.verticalDivider} />
+
+              <TouchableOpacity
+                onPress={goToWallet}
+                style={styles.actionIconBtn}
+              >
+                <Ionicons name="wallet-outline" size={24} color="white" />
+                <Text style={styles.actionLabel}>WALLET</Text>
+              </TouchableOpacity>
+            </View>
+          </BlurView>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    height: 120,
-    borderRadius: 20,
-    marginBottom: 10,
-    overflow: "hidden",
-    backgroundColor: "#000",
-    elevation: 5,
+  cardContainer: {
+    marginBottom: 12,
+    borderRadius: 30,
+    backgroundColor: "white",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  card: {
+    height: 160,
+    borderRadius: 30,
+    overflow: "hidden",
+    backgroundColor: "#F0F0F0",
   },
   bannerImage: { ...StyleSheet.absoluteFillObject },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 16,
   },
-  content: {
-    flex: 1,
+  liveBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#34C759",
+    marginRight: 6,
+  },
+  liveText: {
+    color: "white",
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    letterSpacing: 1.2,
+  },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(214, 17, 17, 0.49)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  bottomSection: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    padding: 12,
+  },
+  glassPanel: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 22,
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+  },
+  infoCol: {
+    flex: 1,
   },
   title: {
     color: "white",
     fontFamily: "outfitBold",
     fontSize: 20,
+    letterSpacing: -0.5,
+  },
+  budgetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    gap: 4,
   },
   budgetText: {
     color: "rgba(255,255,255,0.7)",
     fontFamily: "outfit",
     fontSize: 13,
-    marginTop: 2,
   },
-  actionRow: {
+  actionGroup: {
     flexDirection: "row",
-    gap: 10,
-  },
-  resetBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(208, 22, 22, 0.56)",
-    justifyContent: "center",
     alignItems: "center",
+    gap: 5,
   },
-  chevronBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.PRIMARY,
-    justifyContent: "center",
+  actionIconBtn: {
     alignItems: "center",
+    justifyContent: "center",
+    minWidth: 50,
+  },
+  actionLabel: {
+    color: "white",
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    marginTop: 4,
+  },
+  verticalDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
 });
