@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       prompt: itineraryPrompt,
     });
 
-    let imageUrl = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1080&h=720&q=80";
+    let imageUrls = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1080&h=720&q=80";
 
     try {
       const unsplashRes = await axios.get(
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         {
           params: {
             query: `${locationName} famous landmark`,
-            per_page: 1,
+            per_page: 3,
             orientation: "landscape",
           },
           headers: {
@@ -38,15 +38,15 @@ export default async function handler(req, res) {
         },
       );
 
-      const rawUrl = unsplashRes.data.results[0]?.urls?.raw;
-      if (rawUrl) {
-        imageUrl = `${rawUrl}&auto=format&fit=crop&w=1080&h=720&q=80`;
+      const results = unsplashRes.data.results;
+      if (results && results.length > 0) {
+        imageUrls = results.map(img => `${img.urls.raw}&auto=format&fit=crop&w=1080&h=720&q=80`);
       }
     } catch (imgError) {
       console.error(imgError.message);
     }
 
-    res.status(200).json({ itinerary: text, imageUrl: imageUrl });
+    res.status(200).json({ itinerary: text, imageUrls: imageUrls });
   } catch (error) {
     res.status(500).json({
       error: "Failed to generate trip.",
