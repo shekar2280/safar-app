@@ -186,19 +186,16 @@ Follow these instructions carefully:
 
 2. Daily itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
-   - Instead of specific days, provide a large collection of attractions.
-   - Include exactly 15 "places" objects in a single array under "dailyItinerary".
-   - Each "place" must include a new field "timeSlot" with values: "Morning", "Afternoon", or "Evening" (5 places for each slot).
-   - Structure for each item in "places":
-     - placeName, placeDetails
-     - geoCoordinates: {"latitude": number, "longitude": number}
-     - ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot
+   - Provide a large collection of attractions.
+   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
+   - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
+   - Ensure there are exactly {perSlot} places for EACH time slot.
+   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot.
 
 3. Recommendations:
    - Use the key "recommendations".
-   - "restaurants": Provide exactly 10 authentic restaurants. Each must include: restaurantName, description, priceRange, address, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
-   - "localExperiences": Provide exactly 10 unique experiences. Each must include: experienceName, description, priceRange, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
-
+   - "restaurants": Provide exactly {totalRecs} authentic restaurants. Each must include: restaurantName, description, priceRange, address, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
+   - "localExperiences": Provide exactly {totalRecs} unique experiences. Each must include: experienceName, description, priceRange, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
 
 4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
 

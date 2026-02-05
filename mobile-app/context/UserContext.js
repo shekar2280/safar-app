@@ -1,9 +1,18 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../config/FirebaseConfig";
-import { doc, getDoc, collection, query, getDocs } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  getDocs,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
 
 const UserContext = createContext();
+const staticCache = {};
 
 export const UserProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
@@ -12,83 +21,72 @@ export const UserProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    const initApp = async () => {
-      const user = auth.currentUser;
+    let unsubscribeTrips;
+
+    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        const cachedProfile = await AsyncStorage.getItem(`profile_${user.uid}`);
         const cachedTrips = await AsyncStorage.getItem(`trips_${user.uid}`);
+        if (cachedTrips) {
+          setUserTrips(JSON.parse(cachedTrips));
+          setLoading(false);
+        }
 
-        if (cachedProfile) setUserProfile(JSON.parse(cachedProfile));
-        if (cachedTrips) setUserTrips(JSON.parse(cachedTrips));
+        const tRef = collection(db, "UserTrips", user.uid, "trips");
+        const q = query(tRef, orderBy("createdAt", "desc"));
 
-        refreshData(user);
+        unsubscribeTrips = onSnapshot(q, async (snapshot) => {
+          const baseTrips = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }));
+
+          const enrichedTrips = await Promise.all(
+            baseTrips.map(async (trip) => {
+              if (!trip.savedTripId) return trip;
+              if (staticCache[trip.savedTripId])
+                return { ...trip, ...staticCache[trip.savedTripId] };
+
+              const snap = await getDoc(doc(db, "SavedTripData", trip.savedTripId));
+
+              if (snap.exists()) {
+                const data = snap.data();
+                staticCache[trip.savedTripId] = data;
+                return { ...trip, ...data };
+              }
+              return trip;
+            }),
+          );
+
+          setUserTrips(enrichedTrips);
+          setLoading(false);
+          await AsyncStorage.setItem(
+            `trips_${user.uid}`,
+            JSON.stringify(enrichedTrips),
+          );
+        });
+
+        const pSnap = await getDoc(doc(db, "users", user.uid));
+        if (pSnap.exists()) setUserProfile(pSnap.data());
+      } else {
+        setUserTrips([]);
+        setUserProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeTrips) unsubscribeTrips();
     };
-    initApp();
   }, []);
-
-  const refreshData = async (user) => {
-    try {
-      const pSnap = await getDoc(doc(db, "users", user.uid));
-      if (pSnap.exists()) {
-        const pData = pSnap.data();
-        setUserProfile(pData);
-        await AsyncStorage.setItem(
-          `profile_${user.uid}`,
-          JSON.stringify(pData)
-        );
-      }
-
-      const tRef = collection(db, "UserTrips", user.uid, "trips");
-      const tSnap = await getDocs(tRef);
-      const tData = tSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setUserTrips(tData);
-      await AsyncStorage.setItem(`trips_${user.uid}`, JSON.stringify(tData));
-
-      const activeTrip = tData.find((t) => t.isActive);
-      if (activeTrip) {
-        const transRef = collection(
-          db,
-          "UserTrips",
-          user.uid,
-          "trips",
-          activeTrip.id,
-          "transactions"
-        );
-        const transSnap = await getDocs(transRef);
-        const transData = transSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-
-        setTransactions(transData);
-        await AsyncStorage.setItem(
-          `trans_${activeTrip.id}`,
-          JSON.stringify(transData)
-        );
-      }
-    } catch (e) {
-      console.log("Background refresh failed", e);
-    }
-  };
-
-  const loadUser = async (user) => {
-    if (user) {
-      setLoading(true);
-      await refreshData(user);
-      setLoading(false);
-    }
-  };
 
   return (
     <UserContext.Provider
       value={{
         userProfile,
-        setUserProfile,
-        loadUser,
         userTrips,
         setUserTrips,
+        loading,
         transactions,
         setTransactions,
       }}
