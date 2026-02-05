@@ -17,7 +17,7 @@ const { width, height } = Dimensions.get("window");
 export default function SearchDestination() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { setTripData } = useContext(CreateTripContext);
+  const { tripData, setTripData } = useContext(CreateTripContext);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [tripType, setTripType] = useState("Oneway");
 

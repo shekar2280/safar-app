@@ -12,7 +12,7 @@ import ActiveTripCard from "../../components/WalletDetails/ActiveTripCard";
 
 const { width, height } = Dimensions.get("window");
 
-export default function Wallet() {
+export default function ActiveTrips() {
   const { userTrips, loading } = useUser();
 
   const boldFont = "outfitBold";

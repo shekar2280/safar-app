@@ -35,8 +35,15 @@ export default function UserTripCard({ trip, onDelete }) {
       const concertImg = trip?.concertData?.artistImageUrl || trip?.concertData?.locationInfo?.imageUrl || trip?.imageUrl;
       return concertImg ? { uri: concertImg } : concertFallback;
     }
-    // If regular trip image is missing, use randomFallback
-    return trip?.imageUrl ? { uri: trip.imageUrl } : randomFallback;
+
+    const img = trip?.imageUrl;
+     if (Array.isArray(img) && img.length > 0) {
+      return { uri: img[0] };
+    }
+    if (typeof img === "string" && img.trim().length > 0) {
+      return { uri: img };
+    }
+    return randomFallback;
   }, [trip, randomFallback, concertFallback]);
 
   const confirmDelete = () => {

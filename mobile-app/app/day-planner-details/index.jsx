@@ -7,7 +7,7 @@ import {
   ScrollView,
   Linking,
   ActivityIndicator,
-  Alert,
+  Dimensions,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Location from "expo-location";
@@ -16,6 +16,10 @@ import { Colors } from "../../constants/Colors";
 import { getDistance } from "../../utils/geoUtlis";
 import { useActiveTrip } from "../../context/ActiveTripContext";
 import { auth } from "../../config/FirebaseConfig";
+import { Image } from "expo-image";
+import { fallbackImages } from "../../constants/Options";
+
+const { width, height } = Dimensions.get("window");
 
 export default function DailyPlanner() {
   const router = useRouter();
@@ -24,6 +28,21 @@ export default function DailyPlanner() {
 
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const randomFallback = useMemo(() => {
+    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+  }, [activeTrip?.id]);
+
+  const displayImage = useMemo(() => {
+    const img = activeTrip?.imageUrl;
+    if (Array.isArray(img) && img.length > 0) {
+      return { uri: img[2] || img[0] };
+    }
+    if (typeof img === "string" && img.trim().length > 0) {
+      return { uri: img };
+    }
+    return randomFallback;
+  }, [activeTrip?.imageUrl, randomFallback]);
 
   const sections = useMemo(() => {
     if (!activeTrip?.tripPlan) return { active: [], completed: [] };
@@ -117,8 +136,12 @@ export default function DailyPlanner() {
   };
 
   const findNearbyFood = (placeName) => {
-    const query = encodeURIComponent(`best restaurants near ${placeName}`);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    const searchQuery = `Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`;
+
+    const encodedQuery = encodeURIComponent(searchQuery);
+
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
+
     Linking.openURL(url);
   };
 
@@ -238,39 +261,55 @@ export default function DailyPlanner() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.mainHeader}>
-          <Text style={styles.welcomeText}>Daily Itinerary</Text>
-          <Text style={styles.tripNameText}>
-            {activeTrip?.tripPlan?.tripName}
-          </Text>
-        </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: "#FFF" }}
+      >
+        <Image
+          source={displayImage}
+          style={styles.headerImage}
+          contentFit="cover"
+          transition={500}
+        />
 
-        <View style={styles.pathLabelRow}>
-          <Text style={styles.sectionLabel}>PLANNED ROUTE</Text>
-          <View style={styles.divider} />
-        </View>
-
-        {sections.active.length > 0 ? (
-          sections.active.map((item, index) => renderItem(item, index))
-        ) : (
-          <View style={styles.emptyView}>
-            <Ionicons name="checkmark-done-circle" size={40} color="#10B981" />
-            <Text style={styles.emptyText}>All tasks completed for now!</Text>
+        <View style={styles.scrollContentContainer}>
+          <View style={styles.mainHeader}>
+            <Text style={styles.welcomeText}>Daily Itinerary</Text>
+            <Text style={styles.tripNameText}>
+              {activeTrip?.tripPlan?.tripName}
+            </Text>
           </View>
-        )}
 
-        {sections.completed.length > 0 && (
-          <>
-            <View style={[styles.pathLabelRow, { marginTop: 40 }]}>
-              <Text style={styles.sectionLabel}>ARCHIVED</Text>
-              <View style={styles.divider} />
+          <View style={styles.pathLabelRow}>
+            <Text style={styles.sectionLabel}>PLANNED ROUTE</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {sections.active.length > 0 ? (
+            sections.active.map((item, index) => renderItem(item, index))
+          ) : (
+            <View style={styles.emptyView}>
+              <Ionicons
+                name="checkmark-done-circle"
+                size={40}
+                color="#10B981"
+              />
+              <Text style={styles.emptyText}>All tasks completed for now!</Text>
             </View>
-            {sections.completed.map((item, index) =>
-              renderItem(item, index, true),
-            )}
-          </>
-        )}
+          )}
+
+          {sections.completed.length > 0 && (
+            <>
+              <View style={[styles.pathLabelRow, { marginTop: 40 }]}>
+                <Text style={styles.sectionLabel}>ARCHIVED</Text>
+                <View style={styles.divider} />
+              </View>
+              {sections.completed.map((item, index) =>
+                renderItem(item, index, true),
+              )}
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -279,18 +318,31 @@ export default function DailyPlanner() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scroll: { flex: 1, paddingHorizontal: 24, paddingBottom: 60 },
-  mainHeader: { marginTop: 50, marginBottom: 20 },
+  headerImage: {
+    width: "100%",
+    height: height * 0.4,
+  },
+  scrollContentContainer: {
+    padding: width * 0.05,
+    backgroundColor: "#FFF",
+    minHeight: height,
+    marginTop: -30,
+    borderTopLeftRadius: width * 0.07,
+    borderTopRightRadius: width * 0.07,
+    paddingBottom: height * 0.1,
+  },
+
+  mainHeader: { marginBottom: 20 },
   welcomeText: {
     fontFamily: "outfit",
-    fontSize: 16,
+    fontSize: 14,
     color: "#94A3B8",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   tripNameText: {
     fontFamily: "outfitBold",
-    fontSize: 32,
+    fontSize: 28,
     color: "#0F172A",
     marginTop: 4,
   },
@@ -346,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  placeTitle: { fontFamily: "outfitBold", fontSize: 20, color: "#1E293B" },
+  placeTitle: { fontFamily: "outfitBold", fontSize: 18, color: "#1E293B" },
   doneText: { textDecorationLine: "line-through", color: "#94A3B8" },
   distanceText: {
     fontFamily: "outfitMedium",
@@ -383,9 +435,9 @@ const styles = StyleSheet.create({
   },
   nowBadge: {
     backgroundColor: "#F1F5F9",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   nowText: { fontFamily: "outfitBold", fontSize: 9, color: "#475569" },
   experiencePill: {
