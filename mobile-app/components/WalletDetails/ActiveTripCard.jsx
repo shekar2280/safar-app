@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { useActiveTrip } from "../../context/ActiveTripContext";
+import { fallbackImages } from "../../constants/Options";
 
 const { width } = Dimensions.get("window");
 
@@ -28,9 +29,20 @@ export default function ActiveTripCard({ trip }) {
   const { setActiveTrip } = useActiveTrip();
   const router = useRouter();
 
-  const tripImageSource = trip?.imageUrl
-    ? { uri: trip.imageUrl }
-    : require("../../assets/images/homepage.jpg");
+  const randomFallback = useMemo(() => {
+    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+  }, [trip?.id]);
+
+  const tripImageSource = useMemo(() => {
+    const img = trip?.imageUrl;
+    if (Array.isArray(img) && img.length > 0) {
+      return { uri: img[1] || img[0] };
+    }
+    if (typeof img === "string" && img.trim().length > 0) {
+      return { uri: img };
+    }
+    return randomFallback;
+  }, [trip?.imageUrl, randomFallback]);
 
   const tripName = trip?.concertData?.artist
     ? `${trip.concertData.artist} Concert`

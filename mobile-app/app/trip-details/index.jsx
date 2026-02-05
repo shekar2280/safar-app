@@ -17,7 +17,7 @@ import PlannedTrip from "../../components/TripDetails/PlannedTrip";
 import RestaurantsInfo from "../../components/TripDetails/RestaurantsInfo";
 import TransportInfo from "../../components/TripDetails/TransportInfo";
 import ConcertInfo from "../../components/TripDetails/ConcertInfo";
-import { doc, updateDoc, getDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "../../constants/Options";
@@ -97,17 +97,13 @@ export default function TripDetails() {
         activatedAt: new Date(),
       };
 
-      if (tripDetails.tripPlan) {
-        updateData.tripPlan = tripDetails.tripPlan;
-      }
-
       await updateDoc(tripRef, updateData);
 
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
         setIsAnimating(false);
         router.push({
-          pathname: "/wallet",
+          pathname: "/activeTrips",
           params: { tripId: tripDetails.id },
         });
       }, 3000);
@@ -118,44 +114,69 @@ export default function TripDetails() {
     }
   };
 
-  const imageSource = useMemo(() => {
+  const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
   }, [tripDetails?.id]);
+
+  const images = useMemo(() => {
+    const aiImages = tripDetails?.tripPlan?.imageUrl || tripDetails?.imageUrl;
+
+    if (Array.isArray(aiImages)) {
+      return aiImages.map((img) => ({ uri: img }));
+    }
+
+    if (tripDetails?.concertData) {
+      const concertImg =
+        tripDetails?.concertData?.artistImageUrl ||
+        tripDetails?.concertData?.locationInfo?.imageUrl;
+      if (concertImg) return [{ uri: concertImg }];
+    }
+
+    if (imageUrl) return [{ uri: imageUrl }];
+
+    return [randomFallback];
+  }, [tripDetails, imageUrl, randomFallback]);
 
   if (loadingStaticData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="50" color={Colors.PRIMARY} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+        <Text style={styles.loadingText}>Loading Trip Details...</Text>
       </View>
     );
   }
 
-  const getHeaderImage = () => {
-    if (tripDetails?.concertData) {
-      const concertImg =
-        tripDetails?.concertData?.artistImageUrl ||
-        tripDetails?.concertData?.locationInfo?.imageUrl ||
-        imageUrl;
-
-      if (concertImg && typeof concertImg === "string") {
-        return { uri: concertImg };
-      }
-      return require("../../assets/images/concert.jpg");
-    }
-    if (imageUrl) {
-      return { uri: imageUrl };
-    }
-    return imageSource;
-  };
-  
   return (
     <>
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: Colors.WHITE }}
       >
-        <Image source={getHeaderImage()} style={styles.headerImage} />
+        <View style={styles.slideshowContainer}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            {images.map((img, index) => (
+              <Image
+                key={index}
+                source={img}
+                style={styles.headerImage}
+                contentFit="cover"
+                transition={500}
+              />
+            ))}
+          </ScrollView>
+
+          {images.length > 1 && (
+            <View style={styles.indicatorContainer}>
+              {images.map((_, i) => (
+                <View key={i} style={styles.dot} />
+              ))}
+            </View>
+          )}
+        </View>
 
         <View style={styles.container}>
           <Text style={styles.title}>
@@ -185,7 +206,7 @@ export default function TripDetails() {
           ) : (
             <View style={styles.activeBadge}>
               <Ionicons
-                name="wallet-outline"
+                name="checkmark-done-circle"
                 size={width * 0.06}
                 color="#00A86B"
               />
@@ -193,13 +214,17 @@ export default function TripDetails() {
               <TouchableOpacity
                 onPress={() =>
                   router.push({
-                    pathname: "/wallet",
+                    pathname: "/activeTrips",
                     params: { tripId: tripDetails.id },
                   })
                 }
                 style={{ marginLeft: "auto" }}
               >
-                <Text style={styles.linkText}>Go to Wallet</Text>
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={24}
+                  color="#00A86B"
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -238,12 +263,12 @@ export default function TripDetails() {
       {isAnimating && (
         <View style={styles.animationOverlay}>
           <LottieView
-            source={require("../../assets/animations/wallet.json")}
+            source={require("../../assets/animations/active.json")}
             autoPlay
             loop
             style={{ width: width * 0.8, height: width * 0.8 }}
           />
-          <Text style={styles.activatingText}>Preparing your wallet...</Text>
+          <Text style={styles.activatingText}>Setting up your trip...</Text>
         </View>
       )}
     </>
@@ -258,28 +283,54 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
   },
   loadingText: { fontFamily: "outfit", marginTop: 10, color: Colors.GRAY },
-  headerImage: { width: "100%", height: height * 0.4 },
+  slideshowContainer: {
+    height: height * 0.42,
+    backgroundColor: "#000",
+  },
+  headerImage: {
+    width: width,
+    height: height * 0.42,
+  },
+  indicatorContainer: {
+    position: "absolute",
+    bottom: 50,
+    flexDirection: "row",
+    alignSelf: "center",
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+
   container: {
     padding: width * 0.05,
     backgroundColor: Colors.WHITE,
     minHeight: height,
-    marginTop: -30,
-    borderTopLeftRadius: width * 0.07,
-    borderTopRightRadius: width * 0.07,
+    marginTop: -35,
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
     paddingBottom: height * 0.1,
   },
-  title: { fontSize: width * 0.065, fontFamily: "outfitBold" },
-  infoRow: { flexDirection: "row", marginVertical: height * 0.015 },
+  title: { fontSize: 26, fontFamily: "outfitBold" },
+  infoRow: { flexDirection: "row", marginVertical: 10 },
   dateText: {
     fontFamily: "outfit",
-    fontSize: width * 0.045,
+    fontSize: 16,
     color: Colors.GRAY,
   },
   activateButton: {
     backgroundColor: Colors.PRIMARY,
     padding: 18,
-    borderRadius: 12,
-    marginBottom: 10,
+    borderRadius: 15,
+    marginVertical: 10,
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   activateButtonText: {
     color: Colors.WHITE,
@@ -292,8 +343,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#E6F4EA",
     padding: 15,
-    borderRadius: 12,
-    marginBottom: 25,
+    borderRadius: 15,
+    marginBottom: 20,
   },
   activeText: {
     color: "#00A86B",
@@ -301,18 +352,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  linkText: {
-    color: Colors.PRIMARY,
-    fontFamily: "outfitMedium",
-    textDecorationLine: "underline",
-  },
   animationOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,

@@ -104,9 +104,14 @@ export default function GenerateTrip() {
         if (existingTrip.exists()) {
           const cached = existingTrip.data();
           itineraryData = cached.tripPlan;
-          finalImageUrl = cached.imageUrl;
-          destinationIata = cached.destinationIata;
+          finalImageUrl = cached.imageUrl || "";
+          destinationIata = cached.destinationIata || "N/A";
         } else {
+          const days = parseInt(tripData.totalDays);
+          const totalPlaces = days * 4;
+          const perSlot = days;
+          const totalRecs = days * 2;
+
           const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(
             /{location}/g,
             tripData.destinationInfo.name,
@@ -114,7 +119,10 @@ export default function GenerateTrip() {
             .replace(/{totalDays}/g, tripData.totalDays)
             .replace(/{totalNight}/g, tripData.totalDays - 1)
             .replace(/{traveler}/g, tripData.traveler.title)
-            .replace(/{budget}/g, tripData.budget);
+            .replace(/{budget}/g, tripData.budget)
+            .replace(/{totalPlaces}/g, totalPlaces)
+            .replace(/{perSlot}/g, perSlot)
+            .replace(/{totalRecs}/g, totalRecs);
 
           const response = await fetch(API_BASE_URL, {
             method: "POST",
@@ -129,16 +137,13 @@ export default function GenerateTrip() {
           if (!response.ok) throw new Error(result.error || "Backend failed");
 
           const rawAiResponse = cleanAiResponse(result.itinerary);
-
-          // JSON REPAIR BLOCK
           const repairedJson = jsonrepair(rawAiResponse);
           const aiData = JSON.parse(repairedJson);
 
           itineraryData = normalizeItinerary(aiData);
-          finalImageUrl = result.imageUrl;
+          finalImageUrl = result.imageUrl || result.imageUrls || "";
           destinationIata = aiData.destinationIata || "N/A";
 
-          // Save to shared cache
           await setDoc(savedTripRef, {
             savedTripId: normalizedKey,
             tripPlan: itineraryData,
@@ -160,8 +165,6 @@ export default function GenerateTrip() {
           traveler: cleanTraveler,
           imageUrl: finalImageUrl,
           isInternational: tripData.isInternational || false,
-          flightDate: tripData.startDate,
-          returnDate: tripData.endDate,
           departureIata: localDepartureIata,
           destinationIata, 
           tripType: tripData.tripType || "planned",
@@ -193,15 +196,7 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: width * 0.06,
-        backgroundColor: Colors.WHITE,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
+    <View style={styles.container}>
       {loading && (
         <View style={{ alignItems: "center" }}>
           <LottieView
@@ -218,7 +213,6 @@ export default function GenerateTrip() {
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
           <Text style={styles.errorText}>{error}</Text>
-
           <TouchableOpacity
             onPress={generateAiTrip}
             style={styles.primaryButton}
@@ -238,6 +232,13 @@ export default function GenerateTrip() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: width * 0.06,
+    backgroundColor: Colors.WHITE,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   loadingText: {
     fontSize: width * 0.07,
     fontFamily: "outfitBold",
