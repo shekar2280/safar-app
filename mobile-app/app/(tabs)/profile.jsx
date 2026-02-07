@@ -69,16 +69,13 @@ export default function Profile() {
         { fullName: name },
         { merge: true },
       );
-      const updatedProfile = { ...userProfile, fullName: name };
-      setUserProfile(updatedProfile);
+      setUserProfile({ ...userProfile, fullName: name });
       await AsyncStorage.setItem(
         `profile_${user.uid}`,
         JSON.stringify(updatedProfile),
       );
 
-      if (password) {
-        await updatePassword(user, password);
-      }
+      if (password) await updatePassword(user, password);
 
       Alert.alert("Success", "Profile updated");
       setPassword("");
@@ -91,21 +88,24 @@ export default function Profile() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    await AsyncStorage.removeItem("seenLogin");
-    setUserProfile(null);
-    router.replace("auth/Login");
+    try {
+      await signOut(auth);
+      await AsyncStorage.removeItem("seenLogin");
+      router.replace("auth/Login");
+    } catch (e) {
+      Alert.alert("Logout Error", e.message);
+    }
   };
 
   const handleDeleteAccount = async () => {
-    if (!currentPassword) {
+    const user = auth.currentUser;
+    if (!currentPassword || !user) {
       Alert.alert("Error", "Password required");
       return;
     }
 
     setLoading(true);
     try {
-      const user = auth.currentUser;
       const credential = EmailAuthProvider.credential(
         user.email,
         currentPassword,
@@ -121,11 +121,10 @@ export default function Profile() {
 
       await deleteDoc(doc(db, "users", user.uid));
       await deleteUser(user);
-
       await AsyncStorage.removeItem("seenLogin");
       router.replace("auth/Login");
     } catch (e) {
-      Alert.alert("Error", "Account deletion failed. Check your password.");
+      Alert.alert("Error", "Check your password and try again.");
     } finally {
       setLoading(false);
       setShowDeleteModal(false);
@@ -203,7 +202,7 @@ export default function Profile() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Delete Account</Text>
             <Text style={styles.modalSub}>
-              This action is irreversible. Enter password to confirm.
+              Irreversible. Enter password to confirm.
             </Text>
 
             <TextInput
