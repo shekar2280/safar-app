@@ -6,13 +6,12 @@ import {
   getDoc,
   collection,
   query,
-  getDocs,
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
 
 const UserContext = createContext();
-const staticCache = {};
+const staticCache = {}; 
 
 export const UserProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
@@ -31,6 +30,9 @@ export const UserProvider = ({ children }) => {
           setLoading(false);
         }
 
+        const pSnap = await getDoc(doc(db, "users", user.uid));
+        if (pSnap.exists()) setUserProfile(pSnap.data());
+
         const tRef = collection(db, "UserTrips", user.uid, "trips");
         const q = query(tRef, orderBy("createdAt", "desc"));
 
@@ -43,31 +45,31 @@ export const UserProvider = ({ children }) => {
           const enrichedTrips = await Promise.all(
             baseTrips.map(async (trip) => {
               if (!trip.savedTripId) return trip;
-              if (staticCache[trip.savedTripId])
+              if (staticCache[trip.savedTripId]) {
                 return { ...trip, ...staticCache[trip.savedTripId] };
+              }
 
               const snap = await getDoc(doc(db, "SavedTripData", trip.savedTripId));
-
               if (snap.exists()) {
                 const data = snap.data();
                 staticCache[trip.savedTripId] = data;
                 return { ...trip, ...data };
               }
               return trip;
-            }),
+            })
           );
 
           setUserTrips(enrichedTrips);
           setLoading(false);
           await AsyncStorage.setItem(
             `trips_${user.uid}`,
-            JSON.stringify(enrichedTrips),
+            JSON.stringify(enrichedTrips)
           );
+        }, (error) => {
+          console.log("Firestore Listener cleaned up safely.");
         });
-
-        const pSnap = await getDoc(doc(db, "users", user.uid));
-        if (pSnap.exists()) setUserProfile(pSnap.data());
       } else {
+        if (unsubscribeTrips) unsubscribeTrips();
         setUserTrips([]);
         setUserProfile(null);
         setLoading(false);
@@ -84,6 +86,7 @@ export const UserProvider = ({ children }) => {
     <UserContext.Provider
       value={{
         userProfile,
+        setUserProfile,
         userTrips,
         setUserTrips,
         loading,
@@ -96,4 +99,8 @@ export const UserProvider = ({ children }) => {
   );
 };
 
-export const useUser = () => useContext(UserContext);
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) throw new Error("useUser must be used within a UserProvider");
+  return context;
+};
