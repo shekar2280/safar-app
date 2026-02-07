@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import * as Location from "expo-location";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { Colors } from "../../constants/Colors";
@@ -18,16 +18,21 @@ import { useActiveTrip } from "../../context/ActiveTripContext";
 import { auth } from "../../config/FirebaseConfig";
 import { Image } from "expo-image";
 import { fallbackImages } from "../../constants/Options";
+import LocationPicker from "../../components/CreateTrip/LocationPicker";
 
 const { width, height } = Dimensions.get("window");
 
 export default function DailyPlanner() {
-  const router = useRouter();
   const user = auth.currentUser;
   const { activeTrip, markAsDone } = useActiveTrip();
 
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [manualLocation, setManualLocation] = useState(null);
+  const [isManualMode, setIsManualMode] = useState(false);
+
+  const effectiveLocation = manualLocation || userLocation;
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -58,10 +63,10 @@ export default function DailyPlanner() {
       ...p,
       isLocation: true,
       isDone: completedIds.includes(p.placeName),
-      distance: userLocation
+      distance: effectiveLocation
         ? getDistance(
-            userLocation.latitude,
-            userLocation.longitude,
+            effectiveLocation.latitude,
+            effectiveLocation.longitude,
             p.geoCoordinates.latitude,
             p.geoCoordinates.longitude,
           )
@@ -88,18 +93,31 @@ export default function DailyPlanner() {
       active: mappedJourney.filter((item) => !item.isDone),
       completed: mappedJourney.filter((item) => item.isDone),
     };
-  }, [userLocation, activeTrip?.completedPlaceIds, activeTrip?.tripPlan]);
+  }, [effectiveLocation, activeTrip?.completedPlaceIds, activeTrip?.tripPlan]);
+
+  const handleLocationChange = (loc) => {
+    if (loc?.coordinates) {
+      setManualLocation({
+        latitude: loc.coordinates.lat,
+        longitude: loc.coordinates.lon,
+      });
+      setIsManualMode(false); 
+      setLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
       const refresh = async () => {
         try {
-          if (sections.active.length > 0 || sections.completed.length > 0)
-            setLoading(false);
-
           const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== "granted") return;
+
+          if (status !== "granted") {
+            setIsManualMode(true);
+            setLoading(false);
+            return;
+          }
 
           const loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
@@ -111,37 +129,32 @@ export default function DailyPlanner() {
           }
         } catch (e) {
           console.error("Location Error:", e);
+          setIsManualMode(true);
           setLoading(false);
         }
       };
-      refresh();
+
+      if (!manualLocation) refresh();
+
       return () => {
         isActive = false;
       };
-    }, [sections]),
+    }, [manualLocation]),
   );
 
   const openNavigation = (placeName, coords) => {
     const query = encodeURIComponent(
       `${placeName} ${activeTrip?.tripPlan?.tripName}`,
     );
-    const lat = coords?.latitude;
-    const lng = coords?.longitude;
-
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}${
-      lat ? `&center=${lat},${lng}` : ""
-    }`;
-
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     Linking.openURL(url);
   };
 
   const findNearbyFood = (placeName) => {
-    const searchQuery = `Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`;
-
-    const encodedQuery = encodeURIComponent(searchQuery);
-
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
-
+    const searchQuery = encodeURIComponent(
+      `Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`,
+    );
+    const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
     Linking.openURL(url);
   };
 
@@ -191,7 +204,6 @@ export default function DailyPlanner() {
               <Text style={styles.descriptionText} numberOfLines={3}>
                 {item.placeDetails}
               </Text>
-
               <View style={styles.actionContainer}>
                 <TouchableOpacity
                   style={styles.mainActionBtn}
@@ -226,25 +238,6 @@ export default function DailyPlanner() {
                   />
                 </TouchableOpacity>
               </View>
-
-              {item.activity && (
-                <TouchableOpacity
-                  style={styles.experiencePill}
-                  onPress={() =>
-                    markAsDone(
-                      item.activity.experienceName,
-                      user.uid,
-                      activeTrip.id,
-                    )
-                  }
-                >
-                  <Ionicons name="sparkles-sharp" size={14} color="#B45309" />
-                  <Text style={styles.expPillText} numberOfLines={1}>
-                    Try: {item.activity.experienceName}
-                  </Text>
-                  <Feather name="arrow-right" size={12} color="#B45309" />
-                </TouchableOpacity>
-              )}
             </>
           )}
         </View>
@@ -252,12 +245,13 @@ export default function DailyPlanner() {
     );
   };
 
-  if (loading && sections.active.length === 0)
+  if (loading && sections.active.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="small" color="#000" />
+        <ActivityIndicator size="small" color={Colors.PRIMARY} />
       </View>
     );
+  }
 
   return (
     <View style={styles.container}>
@@ -271,6 +265,33 @@ export default function DailyPlanner() {
           contentFit="cover"
           transition={500}
         />
+
+        {isManualMode ? (
+          <View style={styles.pickerContainer}>
+            <LocationPicker
+              title="Current Location"
+              onLocationChange={handleLocationChange}
+            />
+            <TouchableOpacity
+              onPress={() => setIsManualMode(false)}
+              style={styles.cancelLink}
+            >
+              <Text style={styles.cancelLinkText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.locationStatus}
+            onPress={() => setIsManualMode(true)}
+          >
+            <Ionicons name="navigate" size={16} color={Colors.PRIMARY} />
+            <Text style={styles.locationStatusText} numberOfLines={1}>
+              {manualLocation ? "Manual Location Active" : "Using Live GPS"} •{" "}
+              {effectiveLocation ? "Distances Updated" : "Searching..."}
+            </Text>
+            <Text style={styles.editText}>Change</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.scrollContentContainer}>
           <View style={styles.mainHeader}>
@@ -318,31 +339,62 @@ export default function DailyPlanner() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  headerImage: {
-    width: "100%",
-    height: height * 0.4,
-  },
+  headerImage: { width: "100%", height: height * 0.4 },
   scrollContentContainer: {
     padding: width * 0.05,
     backgroundColor: "#FFF",
     minHeight: height,
-    marginTop: -30,
-    borderTopLeftRadius: width * 0.07,
-    borderTopRightRadius: width * 0.07,
-    paddingBottom: height * 0.1,
+    marginTop: -15,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingBottom: 100,
   },
-
+  locationStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginHorizontal: 20,
+    marginTop: -20,
+    marginBottom: 10,
+    gap: 8,
+    zIndex: 5,
+  },
+  locationStatusText: {
+    flex: 1,
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: "#475569",
+  },
+  editText: { fontFamily: "outfitBold", fontSize: 12, color: Colors.PRIMARY },
+  pickerContainer: {
+    padding: 15,
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 20,
+    borderRadius: 20,
+    marginTop: -25,
+    marginBottom: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    zIndex: 100,
+  },
+  cancelLink: { marginTop: 10, alignSelf: "center" },
+  cancelLinkText: { fontFamily: "outfit", color: "#EF4444", fontSize: 12 },
   mainHeader: { marginBottom: 20 },
   welcomeText: {
     fontFamily: "outfit",
-    fontSize: 14,
+    fontSize: 12,
     color: "#94A3B8",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   tripNameText: {
     fontFamily: "outfitBold",
-    fontSize: 28,
+    fontSize: 26,
     color: "#0F172A",
     marginTop: 4,
   },
@@ -356,11 +408,11 @@ const styles = StyleSheet.create({
   pathLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 25,
   },
   divider: { flex: 1, height: 1, backgroundColor: "#F1F5F9" },
   itemWrapper: { flexDirection: "row" },
-  completedWrapper: { opacity: 0.6 },
+  completedWrapper: { opacity: 0.5 },
   timelineContainer: { width: 35, alignItems: "center" },
   timelineDot: {
     width: 12,
@@ -392,7 +444,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   doneLine: { backgroundColor: "#D1FAE5" },
-  contentBody: { flex: 1, paddingBottom: 45, marginLeft: 8 },
+  contentBody: { flex: 1, paddingBottom: 40, marginLeft: 10 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -411,23 +463,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748B",
     lineHeight: 22,
-    marginTop: 12,
+    marginTop: 10,
   },
-  actionContainer: { flexDirection: "row", marginTop: 20, gap: 12 },
+  actionContainer: { flexDirection: "row", marginTop: 15, gap: 10 },
   mainActionBtn: {
     flex: 1,
-    height: 48,
+    height: 45,
     backgroundColor: "#0F172A",
-    borderRadius: 16,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  mainActionText: { color: "#FFF", fontFamily: "outfitBold", fontSize: 14 },
+  mainActionText: { color: "#ffffff", fontFamily: "outfitBold", fontSize: 13 },
   iconBtn: {
-    width: 48,
-    height: 48,
+    width: 45,
+    height: 45,
     backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
@@ -440,23 +492,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   nowText: { fontFamily: "outfitBold", fontSize: 9, color: "#475569" },
-  experiencePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    padding: 14,
-    borderRadius: 18,
-    marginTop: 18,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#FEF3C7",
-  },
-  expPillText: {
-    flex: 1,
-    fontFamily: "outfitMedium",
-    fontSize: 13,
-    color: "#92400E",
-  },
   emptyView: { alignItems: "center", padding: 40 },
   emptyText: { fontFamily: "outfitMedium", color: "#94A3B8", marginTop: 10 },
 });

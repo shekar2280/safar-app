@@ -189,6 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "outfitBold",
     marginTop: 25,
-    color: "#1A1A1A",
+    marginBottom: 5,
+       color: "#1A1A1A",
   },
 });

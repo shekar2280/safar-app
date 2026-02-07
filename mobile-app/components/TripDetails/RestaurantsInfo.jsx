@@ -54,15 +54,9 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }) {
             <TouchableOpacity
               key={idx}
               style={styles.fullWidthCard}
-              onPress={() => openSearch(item.experienceName)}
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.itemTitle}>{item.experienceName}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={Colors.PRIMARY}
-                />
               </View>
               <Text style={styles.itemDesc}>{item.description}</Text>
               <View style={styles.footer}>

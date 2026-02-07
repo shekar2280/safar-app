@@ -181,6 +181,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 12,
+     borderWidth: 0.3,
+    borderColor: Colors.WHITE,
   },
   card: {
     height: 160,
