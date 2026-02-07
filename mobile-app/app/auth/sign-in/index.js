@@ -8,72 +8,34 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useNavigation, useRouter } from "expo-router";
+import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../../../config/FirebaseConfig";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUser } from "../../../context/UserContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SignIn() {
-  const navigation = useNavigation();
   const router = useRouter();
-  const { loadUser } = useUser();
-
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
-  }, []);
-
-  const fetchUserData = async (uid) => {
-    try {
-      const docRef = doc(db, "users", uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        return docSnap.data();
-      } else {
-        console.log("No such user document!");
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      return null;
-    }
-  };
 
   const OnSignIn = () => {
     if (!email || !password) {
       ToastAndroid.show("Please enter Email and Password", ToastAndroid.LONG);
       return;
     }
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedEmail || !trimmedPassword) {
-      ToastAndroid.show("Please enter Email and Password", ToastAndroid.LONG);
-      return;
-    }
 
     setLoading(true);
-
-    signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword)
+    signInWithEmailAndPassword(auth, email.trim(), password.trim())
       .then(async (userCredential) => {
         const user = userCredential.user;
-        await loadUser(user);
         await AsyncStorage.setItem("seenLogin", "true");
-
-        const userData = await fetchUserData(user.uid);
 
         await setDoc(
           doc(db, "users", user.uid),
@@ -87,18 +49,19 @@ export default function SignIn() {
       })
       .catch((error) => {
         setLoading(false);
-        if (error.code === "auth/invalid-credential") {
-          ToastAndroid.show("Invalid Credentials", ToastAndroid.LONG);
-        }
+        const msg =
+          error.code === "auth/invalid-credential"
+            ? "Invalid Credentials"
+            : "Login Failed";
+        ToastAndroid.show(msg, ToastAndroid.LONG);
       });
   };
 
   return (
     <View style={styles.screen}>
-      <TouchableOpacity onPress={() => router.replace("auth/Login")}>
+      <TouchableOpacity onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={width * 0.06} color="black" />
       </TouchableOpacity>
-
       <Text style={styles.title}>Let's Sign You In</Text>
       <Text style={styles.subtitle}>Welcome Back</Text>
 
@@ -109,18 +72,17 @@ export default function SignIn() {
           placeholder="Enter Email"
           autoCapitalize="none" 
           keyboardType="email-address" 
-          autoCorrect={false}
-          onChangeText={(value) => setEmail(value)}
+          onChangeText={setEmail}
         />
       </View>
 
       <View style={{ marginTop: height * 0.025 }}>
         <Text style={styles.label}>Password</Text>
         <TextInput
-          secureTextEntry={true}
+          secureTextEntry
           style={styles.input}
           placeholder="Enter Password"
-          onChangeText={(value) => setPassword(value)}
+          onChangeText={setPassword}
         />
       </View>
 
