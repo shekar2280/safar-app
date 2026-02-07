@@ -7,8 +7,9 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Animated,
 } from "react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Colors } from "../../constants/Colors";
 import moment from "moment";
@@ -32,6 +33,13 @@ export default function TripDetails() {
   const navigation = useNavigation();
   const { trip, imageUrl } = useLocalSearchParams();
 
+  const [tripDetails, setTripDetails] = useState({});
+  const [loadingStaticData, setLoadingStaticData] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scrollRef = useRef(null);
+
   const parsedTrip = useMemo(() => {
     try {
       return typeof trip === "string" ? JSON.parse(trip) : trip;
@@ -40,19 +48,8 @@ export default function TripDetails() {
     }
   }, [trip]);
 
-  const [tripDetails, setTripDetails] = useState(parsedTrip);
-  const [loadingStaticData, setLoadingStaticData] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  const tripData =
-    tripDetails?.tripData ||
-    tripDetails?.discoverData ||
-    tripDetails?.festiveData ||
-    tripDetails?.concertData ||
-    tripDetails?.sportsData ||
-    {};
-
   useEffect(() => {
+    setTripDetails(parsedTrip);
     navigation.setOptions({
       headerShown: true,
       headerTransparent: true,
@@ -69,7 +66,6 @@ export default function TripDetails() {
     try {
       const docRef = doc(db, "SavedTripData", savedTripId);
       const docSnap = await getDoc(docRef);
-
       if (docSnap.exists()) {
         const staticData = docSnap.data();
         setTripDetails((prev) => ({
@@ -79,11 +75,42 @@ export default function TripDetails() {
         }));
       }
     } catch (error) {
-      console.error("Error fetching static itinerary:", error);
-      Alert.alert("Error", "Could not load complete itinerary.");
+      console.error(error);
     } finally {
       setLoadingStaticData(false);
     }
+  };
+
+  const triggerHighlight = () => {
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 1.08,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1.05,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setTimeout(() => {
+      triggerHighlight();
+    }, 800);
   };
 
   const handleActivateTrip = async () => {
@@ -91,14 +118,7 @@ export default function TripDetails() {
     try {
       setIsAnimating(true);
       const tripRef = doc(db, "UserTrips", user.uid, "trips", tripDetails.id);
-
-      const updateData = {
-        isActive: true,
-        activatedAt: new Date(),
-      };
-
-      await updateDoc(tripRef, updateData);
-
+      await updateDoc(tripRef, { isActive: true, activatedAt: new Date() });
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
         setIsAnimating(false);
@@ -109,31 +129,19 @@ export default function TripDetails() {
       }, 3000);
     } catch (error) {
       setIsAnimating(false);
-      console.error(error);
       Alert.alert("Error", "Failed to activate trip.");
     }
   };
 
-  const randomFallback = useMemo(() => {
-    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-  }, [tripDetails?.id]);
+  const randomFallback = useMemo(
+    () => fallbackImages[Math.floor(Math.random() * fallbackImages.length)],
+    [tripDetails?.id],
+  );
 
   const images = useMemo(() => {
     const aiImages = tripDetails?.tripPlan?.imageUrl || tripDetails?.imageUrl;
-
-    if (Array.isArray(aiImages)) {
-      return aiImages.map((img) => ({ uri: img }));
-    }
-
-    if (tripDetails?.concertData) {
-      const concertImg =
-        tripDetails?.concertData?.artistImageUrl ||
-        tripDetails?.concertData?.locationInfo?.imageUrl;
-      if (concertImg) return [{ uri: concertImg }];
-    }
-
+    if (Array.isArray(aiImages)) return aiImages.map((img) => ({ uri: img }));
     if (imageUrl) return [{ uri: imageUrl }];
-
     return [randomFallback];
   }, [tripDetails, imageUrl, randomFallback]);
 
@@ -141,7 +149,6 @@ export default function TripDetails() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.PRIMARY} />
-        <Text style={styles.loadingText}>Loading Trip Details...</Text>
       </View>
     );
   }
@@ -149,6 +156,7 @@ export default function TripDetails() {
   return (
     <>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: Colors.WHITE }}
       >
@@ -168,92 +176,54 @@ export default function TripDetails() {
               />
             ))}
           </ScrollView>
-
-          {images.length > 1 && (
-            <View style={styles.indicatorContainer}>
-              {images.map((_, i) => (
-                <View key={i} style={styles.dot} />
-              ))}
-            </View>
-          )}
         </View>
 
         <View style={styles.container}>
           <Text style={styles.title}>
-            {tripDetails?.tripPlan?.tripName ||
-              `${tripDetails?.concertData?.artist} Concert` ||
-              "Trip Details"}
+            {tripDetails?.tripPlan?.tripName || "Trip Details"}
           </Text>
-
           <View style={styles.infoRow}>
             <Text style={styles.dateText}>
-              {moment(tripDetails.startDate).format("DD MMM YYYY")}
-              {" - "}
+              {moment(tripDetails.startDate).format("DD MMM YYYY")} -{" "}
               {moment(tripDetails.endDate).format("DD MMM YYYY")}
             </Text>
           </View>
-
-          {/* Wallet Activation Section */}
           {!tripDetails.isActive ? (
-            <TouchableOpacity
-              onPress={handleActivateTrip}
-              style={styles.activateButton}
-            >
-              <Text style={styles.activateButtonText}>
-                🚀 Activate Trip & Open Wallet
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity
+                onPress={handleActivateTrip}
+                style={styles.activateButton}
+              >
+                <Text style={styles.activateButtonText}>
+                  🚀 Activate Trip & Open Wallet
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           ) : (
             <View style={styles.activeBadge}>
               <Ionicons
                 name="checkmark-done-circle"
-                size={width * 0.06}
+                size={24}
                 color="#00A86B"
               />
               <Text style={styles.activeText}>Trip is Active.</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/activeTrips",
-                    params: { tripId: tripDetails.id },
-                  })
-                }
-                style={{ marginLeft: "auto" }}
-              >
-                <Ionicons
-                  name="arrow-forward-outline"
-                  size={24}
-                  color="#00A86B"
-                />
-              </TouchableOpacity>
             </View>
           )}
 
-          {/* Concert Section */}
-          {tripDetails?.tripPlan?.concertDetails && (
-            <ConcertInfo concertData={tripDetails.tripPlan.concertDetails} />
-          )}
-
-          {/* Transport Section */}
           <TransportInfo transportData={tripDetails} />
-
-          {/* Hotels Section */}
           <HotelInfo
             hotelData={tripDetails?.tripPlan?.hotelOptions}
             cityName={tripDetails?.tripPlan?.tripName}
           />
 
-          {/* Itinerary & Food Section */}
-          <View style={{ paddingTop: height * 0.02 }}>
+          <View style={{ paddingTop: 20 }}>
             <PlannedTrip
               itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
               cityName={tripDetails?.tripPlan?.tripName}
+              onActivatePress={scrollToTop}
             />
             <RestaurantsInfo
-              restaurantsInfo={{
-                ...tripDetails?.tripPlan?.recommendations,
-                cityName: tripData?.locationInfo?.name,
-              }}
+              restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations }}
               cityName={tripDetails?.tripPlan?.tripName}
             />
           </View>
@@ -282,29 +252,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.WHITE,
   },
-  loadingText: { fontFamily: "outfit", marginTop: 10, color: Colors.GRAY },
-  slideshowContainer: {
-    height: height * 0.42,
-    backgroundColor: "#000",
-  },
-  headerImage: {
-    width: width,
-    height: height * 0.42,
-  },
-  indicatorContainer: {
-    position: "absolute",
-    bottom: 50,
-    flexDirection: "row",
-    alignSelf: "center",
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.7)",
-  },
-
+  slideshowContainer: { height: height * 0.42, backgroundColor: "#000" },
+  headerImage: { width: width, height: height * 0.42 },
   container: {
     padding: width * 0.05,
     backgroundColor: Colors.WHITE,
@@ -312,25 +261,17 @@ const styles = StyleSheet.create({
     marginTop: -35,
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
-    paddingBottom: height * 0.1,
+    paddingBottom: 100,
   },
   title: { fontSize: 26, fontFamily: "outfitBold" },
   infoRow: { flexDirection: "row", marginVertical: 10 },
-  dateText: {
-    fontFamily: "outfit",
-    fontSize: 16,
-    color: Colors.GRAY,
-  },
+  dateText: { fontFamily: "outfit", fontSize: 16, color: Colors.GRAY },
   activateButton: {
     backgroundColor: Colors.PRIMARY,
     padding: 18,
     borderRadius: 15,
     marginVertical: 10,
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
   activateButtonText: {
     color: Colors.WHITE,
@@ -354,10 +295,7 @@ const styles = StyleSheet.create({
   },
   animationOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    inset: 0,
     backgroundColor: "rgba(255, 255, 255, 0.95)",
     justifyContent: "center",
     alignItems: "center",

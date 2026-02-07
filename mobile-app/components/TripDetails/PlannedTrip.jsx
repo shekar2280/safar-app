@@ -8,21 +8,29 @@ import {
   Linking,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-export default function PlannedTrip({ itineraryDetails, cityName }) {
+export default function PlannedTrip({ itineraryDetails, cityName, onActivatePress }) {
   const router = useRouter();
 
   const placesArray = Array.isArray(itineraryDetails)
     ? itineraryDetails
     : itineraryDetails?.places || [];
 
+  const getTimeSlotColor = (timeSlot) => {
+    const slot = timeSlot?.toLowerCase() || "";
+    if (slot.includes("morning")) return "#f0c33b";
+    if (slot.includes("afternoon")) return "#F97316";
+    if (slot.includes("evening") || slot.includes("night")) return "#6366F1";
+    return "#64748B";
+  };
+
   const locationNavigation = (placeName) => {
     const query = encodeURIComponent(`${placeName} ${cityName || ""}`);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=$8{query}`;
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     Linking.openURL(url);
   };
 
@@ -36,15 +44,6 @@ export default function PlannedTrip({ itineraryDetails, cityName }) {
 
   return (
     <View style={styles.wrapper}>
-      {/* <TouchableOpacity
-        style={styles.plannerLinkBtn}
-        onPress={() => router.push("/day-planner-details")}
-      >
-        <Ionicons name="calendar" size={20} color="white" />
-        <Text style={styles.plannerLinkText}>View My Day Planner</Text>
-        <Ionicons name="arrow-forward" size={18} color="white" />
-      </TouchableOpacity> */}
-
       <View style={styles.outlineContainer}>
         <View style={styles.labelWrapper}>
           <Text style={styles.outlineLabel}>DISCOVERY POOL</Text>
@@ -52,12 +51,35 @@ export default function PlannedTrip({ itineraryDetails, cityName }) {
 
         <Text style={styles.sectionTitle}>Places to Explore</Text>
 
+        <TouchableOpacity style={styles.activateTripBanner} onPress={onActivatePress} activeOpacity={0.8}>
+          <View style={styles.activateIconBg}>
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.activateTitle}>Activate your trip</Text>
+            <Text style={styles.activateSubtitle}>
+              Unlock your personal guide and trip-based wallet.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.PRIMARY} />
+        </TouchableOpacity>
+
         {placesArray.map((item, index) => (
           <View key={index} style={styles.placeCard}>
             <View style={styles.cardHeader}>
               <View style={styles.titleContainer}>
                 <Text style={styles.placeTitle}>{item.placeName}</Text>
-                <Text style={styles.timeTag}>{item.timeSlot}</Text>
+                <Text style={[styles.timeTag, { gap: 5 }]}>
+                  Best Time:{" "}
+                  <Text
+                    style={[
+                      styles.timeTag,
+                      { color: getTimeSlotColor(item.timeSlot) },
+                    ]}
+                  >
+                    {item.timeSlot}
+                  </Text>
+                </Text>
               </View>
 
               <TouchableOpacity
@@ -74,21 +96,21 @@ export default function PlannedTrip({ itineraryDetails, cityName }) {
 
             <View style={styles.footerRow}>
               <View style={styles.metaItem}>
-                <Ionicons
-                  name="time-outline"
-                  size={14}
-                  color={Colors.PRIMARY}
-                />
+                <Ionicons name="time-outline" size={14} color={Colors.PRIMARY} />
                 <Text style={styles.metaText}>{item.bestTimeToVisit}</Text>
               </View>
+              
               {item.ticketPricing > 0 && (
-                <View style={styles.metaItem}>
-                  <Ionicons
-                    name="wallet-outline"
-                    size={14}
-                    color={Colors.PRIMARY}
-                  />
-                  <Text style={styles.metaText}>₹{item.ticketPricing}</Text>
+                <View style={styles.metaItemRow}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="wallet-outline" size={14} color={Colors.PRIMARY} />
+                    <Text style={styles.metaText}>₹{item.ticketPricing}</Text>
+                  </View>
+                  
+                  <View style={styles.warningContainer}>
+                    <MaterialIcons name="info-outline" size={12} color="#f13232" />
+                    <Text style={styles.warningText}>Prices are indicative</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -101,25 +123,6 @@ export default function PlannedTrip({ itineraryDetails, cityName }) {
 
 const styles = StyleSheet.create({
   wrapper: { marginTop: 25, marginBottom: 25 },
-  plannerLinkBtn: {
-    backgroundColor: Colors.PRIMARY,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 18,
-    marginBottom: 25,
-    gap: 12,
-    elevation: 4,
-    shadowColor: Colors.PRIMARY,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  plannerLinkText: {
-    color: "white",
-    fontFamily: "outfitBold",
-    fontSize: 16,
-  },
   outlineContainer: {
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
@@ -144,7 +147,34 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "outfitBold",
     color: "#0F172A",
+    marginBottom: 15,
+  },
+  // ACTIVATE TRIP STYLES
+  activateTripBanner: {
+    backgroundColor: "#F0F7FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
+    gap: 12,
+  },
+  activateIconBg: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 8,
+    borderRadius: 12,
+  },
+  activateTitle: {
+    fontFamily: "outfitBold",
+    fontSize: 14,
+    color: "#1E40AF",
+  },
+  activateSubtitle: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: "#3B82F6",
   },
   placeCard: {
     backgroundColor: "#F8FAFC",
@@ -167,7 +197,7 @@ const styles = StyleSheet.create({
     color: "#1E293B",
   },
   timeTag: {
-    fontFamily: "outfitMedium",
+    fontFamily: "outfitBold",
     fontSize: 10,
     color: "#64748B",
     textTransform: "uppercase",
@@ -189,12 +219,17 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
+    flexDirection: "column",
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
     paddingTop: 12,
+  },
+  metaItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
   },
   metaItem: {
     flexDirection: "row",
@@ -205,6 +240,17 @@ const styles = StyleSheet.create({
     fontFamily: "outfit",
     fontSize: 12,
     color: "#64748B",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  warningText: {
+    fontFamily: "outfit",
+    fontSize: 10,
+    color: "#f13232",
+    fontStyle: "italic",
   },
   emptyText: {
     textAlign: "center",
