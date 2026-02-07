@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         `https://api.unsplash.com/search/photos`,
         {
           params: {
-            query: `${locationName} famous landmark`,
+            query: locationName,
             per_page: 3,
             orientation: "landscape",
           },
