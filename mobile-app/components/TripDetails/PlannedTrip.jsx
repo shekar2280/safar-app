@@ -8,14 +8,22 @@ import {
   Linking,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
-import { Ionicons, FontAwesome5, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Ionicons,
+  FontAwesome5,
+  MaterialIcons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-export default function PlannedTrip({ itineraryDetails, cityName, onActivatePress }) {
-  const router = useRouter();
-
+export default function PlannedTrip({
+  itineraryDetails,
+  cityName,
+  onActivatePress,
+  hideActivateBanner,
+}) {
   const placesArray = Array.isArray(itineraryDetails)
     ? itineraryDetails
     : itineraryDetails?.places || [];
@@ -51,18 +59,28 @@ export default function PlannedTrip({ itineraryDetails, cityName, onActivatePres
 
         <Text style={styles.sectionTitle}>Places to Explore</Text>
 
-        <TouchableOpacity style={styles.activateTripBanner} onPress={onActivatePress} activeOpacity={0.8}>
-          <View style={styles.activateIconBg}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.activateTitle}>Activate your trip</Text>
-            <Text style={styles.activateSubtitle}>
-              Unlock your personal guide and trip-based wallet.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.PRIMARY} />
-        </TouchableOpacity>
+        {!hideActivateBanner && (
+          <TouchableOpacity
+            style={styles.activateTripBanner}
+            onPress={onActivatePress}
+            activeOpacity={0.8}
+          >
+            <View style={styles.activateIconBg}>
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={20}
+                color="#FFFFFF"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activateTitle}>Activate your trip</Text>
+              <Text style={styles.activateSubtitle}>
+                Unlock your personal guide and trip-based wallet.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.PRIMARY} />
+          </TouchableOpacity>
+        )}
 
         {placesArray.map((item, index) => (
           <View key={index} style={styles.placeCard}>
@@ -96,20 +114,34 @@ export default function PlannedTrip({ itineraryDetails, cityName, onActivatePres
 
             <View style={styles.footerRow}>
               <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color={Colors.PRIMARY} />
+                <Ionicons
+                  name="time-outline"
+                  size={14}
+                  color={Colors.PRIMARY}
+                />
                 <Text style={styles.metaText}>{item.bestTimeToVisit}</Text>
               </View>
-              
+
               {item.ticketPricing > 0 && (
                 <View style={styles.metaItemRow}>
                   <View style={styles.metaItem}>
-                    <Ionicons name="wallet-outline" size={14} color={Colors.PRIMARY} />
+                    <Ionicons
+                      name="wallet-outline"
+                      size={14}
+                      color={Colors.PRIMARY}
+                    />
                     <Text style={styles.metaText}>₹{item.ticketPricing}</Text>
                   </View>
-                  
+
                   <View style={styles.warningContainer}>
-                    <MaterialIcons name="info-outline" size={12} color="#f13232" />
-                    <Text style={styles.warningText}>Prices are indicative</Text>
+                    <MaterialIcons
+                      name="info-outline"
+                      size={12}
+                      color="#f13232"
+                    />
+                    <Text style={styles.warningText}>
+                      Prices are indicative
+                    </Text>
                   </View>
                 </View>
               )}

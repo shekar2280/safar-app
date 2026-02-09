@@ -156,6 +156,7 @@ export default function GenerateTrip() {
             body: JSON.stringify({
               itineraryPrompt: FINAL_ITINERARY_PROMPT,
               locationName: locationName,
+              tripCategory: tripDetails?.tripCategory,
             }),
           });
 

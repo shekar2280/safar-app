@@ -329,213 +329,247 @@ export const HiddenGemIdeas = [
     id: 1,
     name: "Tawang",
     title: "Tawang, Arunachal Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Explore serene monasteries and Himalayan landscapes in this remote gem.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tawang_ji5iiy.jpg",
   },
   {
     id: 2,
     name: "Gokarna",
     title: "Gokarna, Karnataka",
+    country: "India",
+    countryCode: "in",
     desc: "Unwind at peaceful beaches and ancient temples away from Goa crowds.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232696/gokarna_gktdgn.jpg",
   },
   {
     id: 3,
     name: "Chopta",
     title: "Chopta, Uttarakhand",
+    country: "India",
+    countryCode: "in",
     desc: "Trek through alpine meadows to Tungnath, the world’s highest Shiva temple.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/chopta_grcfgg.jpg",
   },
   {
     id: 4,
     name: "Majuli",
     title: "Majuli, Assam",
+    country: "India",
+    countryCode: "in",
     desc: "Visit the world’s largest river island with rich culture and monasteries.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232702/majuli_ajibue.jpg",
   },
   {
     id: 5,
     name: "Halebidu",
     title: "Halebidu, Karnataka",
+    country: "India",
+    countryCode: "in",
     desc: "Marvel at exquisite Hoysala-era temple carvings and architecture.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/halebidu_kb3oya.jpg",
   },
   {
     id: 6,
     name: "Ziro Valley",
     title: "Ziro Valley, Arunachal Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Experience Apatani tribal culture amidst rolling hills and rice fields.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/ziro_valey_sexmcr.jpg",
   },
   {
     id: 7,
     name: "Mawlynnong",
     title: "Mawlynnong, Meghalaya",
+    country: "India",
+    countryCode: "in",
     desc: "Stroll through Asia’s cleanest village and see living root bridges.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/mawlynnong_j8s0mg.jpg",
   },
   {
     id: 8,
     name: "Patan",
     title: "Patan, Gujarat",
+    country: "India",
+    countryCode: "in",
     desc: "Step into history at Rani ki Vav, a beautifully carved stepwell.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232704/patan_pw8wrq.jpg",
   },
   {
     id: 9,
     name: "Lepakshi",
     title: "Lepakshi, Andhra Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "See the hanging pillar and Vijayanagara-style murals at Veerabhadra Temple.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lepakshi_r99zfu.jpg",
   },
   {
     id: 10,
     name: "Chandratal",
     title: "Chandratal, Himachal Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Camp by the moon-shaped lake in Spiti for a surreal high-altitude escape.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chandratal-lake_aisjss.jpg",
   },
   {
     id: 11,
     name: "Hampi",
     title: "Hampi, Karnataka",
+    country: "India",
+    countryCode: "in",
     desc: "Walk among the ruins of the Vijayanagara Empire, a UNESCO heritage site.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/hampi_x1s3wg.jpg",
   },
   {
     id: 12,
     name: "Velas",
     title: "Velas, Maharashtra",
+    country: "India",
+    countryCode: "in",
     desc: "Witness the Olive Ridley turtle festival in this peaceful Konkan village.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232708/velas_lwm1gg.jpg",
   },
   {
     id: 13,
     name: "Dzukou Valley",
     title: "Dzukou Valley, Nagaland",
+    country: "India",
+    countryCode: "in",
     desc: "Trek across lush valleys and seasonal flowers on the Nagaland–Manipur border.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/dzukou_valley_jorfsl.jpg",
   },
   {
     id: 14,
     name: "Chalakudy",
     title: "Chalakudy, Kerala",
+    country: "India",
+    countryCode: "in",
     desc: "Discover Athirappilly Falls and lush greenery known as the 'Niagara of India'.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232697/chalakudy_ve3xvo.jpg",
   },
   {
     id: 15,
     name: "Mandu",
     title: "Mandu, Madhya Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Explore Afghan-style architecture and romantic ruins of this historic fort city.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232703/mandu_rlj3yt.jpg",
   },
   {
     id: 16,
     name: "Khimsar",
     title: "Khimsar, Rajasthan",
+    country: "India",
+    countryCode: "in",
     desc: "Stay in a desert fort and experience dunes away from Jaisalmer crowds.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/khimsar_p07v1z.jpg",
   },
   {
     id: 17,
     name: "Tirthan Valley",
     title: "Tirthan Valley, Himachal Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Relax by rivers and waterfalls in a less commercialized Himalayan valley.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232707/tirthan_grq1vt.jpg",
   },
   {
     id: 18,
     name: "Lonar Crater",
     title: "Lonar Crater, Maharashtra",
+    country: "India",
+    countryCode: "in",
     desc: "See a unique lake formed by a meteor impact over 50,000 years ago.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/lonar_hfbcp7.jpg",
   },
   {
     id: 19,
     name: "Araku Valley",
     title: "Araku Valley, Andhra Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Ride the scenic train and visit tribal coffee plantations in the Eastern Ghats.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232695/araku_aa3dt9.jpg",
   },
   {
     id: 20,
     name: "Kibber",
     title: "Kibber, Himachal Pradesh",
+    country: "India",
+    countryCode: "in",
     desc: "Spot snow leopards and visit one of the world’s highest inhabited villages.",
-    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
+    image:
+      "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1766232698/kibber_vgcilh.jpg",
   },
 ];
 
 export const HIDDEN_GEMS_AI_PROMPT = `
-Generate a travel plan for {traveler} visiting {location} for {totalDays} days focusing EXCLUSIVELY on "Hidden Gems" and off-the-beaten-path locations.The budget for this trip is {budget}.
+Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights, focusing EXCLUSIVELY on "Hidden Gems" and off-the-beaten-path locations. The budget is {budget}.
 
-IMPORTANT: Avoid the top 5 most famous tourist attractions. Focus on local secrets, secluded nature spots, or quiet cultural sites.
+IMPORTANT: Avoid the top 10 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
 
 Follow these instructions carefully:
 
 1. Hotel options (5-6):
-   - Each hotel must include:
-     - hotelName
-     - hotelAddress
-     - pricePerNight (in ₹)
-     - hotelImageURL (real or relevant image URL)
-     - geoCoordinates with accurate latitude and longitude for the hotel
-     - rating (0–5)
-     - description (short)
+   - Focus on boutique stays, local homestays, or unique heritage properties.
+   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
 
-2. Daily itinerary:
-   - Use a top-level key called "dailyItinerary"
-   - Include a plan for each day of the trip using keys: day1, day2, ..., day{totalDays}
-   - Do not skip any day, even if it overlaps with travel
-   - If arrival is late on day1 or departure is early on the last day, suggest light/local activities accordingly
-   - For each day, include an object with a key "places" that holds an array of 2–3 real places to visit in/around the location
-   - Each item inside "places" must follow this structure:
-     - placeName: Name of the place
-     - placeDetails: A brief description
-     - placeImageURL: A real image URL if available, or use a relevant placeholder
-     - geoCoordinates: Accurate format {"latitude": number, "longitude": number}
-     - ticketPricing: Cost in ₹, or 0 if free
-     - estimatedTravelTime: Time to reach from previous location or hotel (e.g., "20 minutes")
-     - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)"
+2. Daily itinerary (The "Pool" Logic):
+   - Use the key "dailyItinerary".
+   - Provide a large collection of attractions that are NOT mainstream.
+   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
+   - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
+   - Ensure there are exactly {perSlot} places for EACH time slot.
+   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot.
 
 3. Recommendations:
-   Use a top-level key called "recommendations".
-  It must contain two arrays: "restaurants" and "localExperiences".
+   - Use the key "recommendations".
+   - "restaurants": Provide exactly {totalRecs} hole-in-the-wall or highly-rated local eateries. Include: restaurantName, description, priceRange, address, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
+   - "localExperiences": Provide exactly {totalRecs} unique experiences (e.g., "Pottery session with a local artist", "Night walk through a forgotten district"). Include: experienceName, description, priceRange, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
 
- - For "restaurants":  
-    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
-    - Each entry must include:  
-    - restaurantName (real, existing place if possible)  
-      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - address (with city/area)  
-      - approximateCost (per person in ₹)  
-
-  - For "localExperiences":  
-    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
-    - Each entry must include:  
-      - experienceName  
-      - description (2–3 sentences about what the traveler will do/see/learn)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - approximateCost (per person in ₹, or 0 if free)  
-
-
-4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
+4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Hampi, IND").
 
 5. Ensure the trip fits the provided budget and classify it as:
-   - "Budget" (< ₹10,000)
-   - "Moderate" (₹10,000–₹25,000)
-   - "Luxury" (> ₹25,000)
+   - "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
 
-6. Include a field called "tripDuration" formatted like "3 days, 2 nights".
+6. Include a field called "tripDuration" formatted like "{totalDays} days, {totalNight} nights".
 
-Ensure:
-- All content is realistic and based on actual locations and data.
-- All coordinates and links are valid and sensible.
-- Always return the same JSON structure with stable keys and order.
+7. Transport Metadata (REQUIRED):
+   Include these two specific fields at the VERY TOP of your JSON response:
+   - "departureIata": "3-letter origin code"
+   - "destinationIata": "3-letter destination code"
 
-Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
+8. JSON SYNTAX RULES (STRICT):
+- NO trailing commas. NO comments. NO extra text.
+- Every opening brace '{' MUST have a matching closing brace '}'.
+- Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
+- Double-check that all strings are enclosed in double quotes.
+
+Respond ONLY with raw JSON. Begin with { and end with }.
 `;
 
 export const HiddenGemsTripImages = {
@@ -617,119 +651,64 @@ User is open to traveling to any city where the artist has an upcoming tour.
 `;
 
 export const CONCERT_TRIP_AI_PROMPT = `
-You are an AI travel planner creating a budget-conscious trip for {travelers} to attend a live concert by {artist} on {concertDate}.  
+Generate a detailed, budget-conscious travel plan for {travelers} attending a live concert by {artist} in {location}. 
 
-The travelers depart from {departure} and want to travel to {location}, where the concert takes place.  
+Travelers depart from {departure} for a fixed duration of 3 days and 2 nights. The budget is {budget}.
 
----
+- JSON Output Schema (Strict)
 
-📅 **Trip Duration**: 3 Days, 2 Nights  
-- **Day 1**: Arrival in {location}, hotel check-in, light local activities  
-- **Day 2**: Attend the {artist} concert + sightseeing before/after as possible  
-- **Day 3**: Return to {departure}, light activities if time permits  
+1. Transport Metadata (REQUIRED):
+   Include these specific fields at the VERY TOP of your JSON response:
+   - "departureIata": "3-letter origin code (e.g., BOM)"
+   - "destinationIata": "3-letter destination code (e.g., LHR)"
 
----
+2. Hotel Options (5–6):
+   - Must be located near {venueName} or with easy transit to it.
+   - Include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
 
-## 🎯 JSON Output Schema (strict)
+3. Daily Itinerary (The "Pool" Logic):
+   - Use the key "dailyItinerary".
+   - Provide a curated collection of activities optimized for a concert weekend.
+   - Include exactly 9 "places" objects in a single array under "dailyItinerary".
+   - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
+   - Ensure there are exactly 3 places for EACH time slot.
+   - Crucial: At least 2 of the "Evening" slots must focus on the concert event or pre-concert fan meetups.
+   - Each place must include: placeName, placeDetails, placeImageURL, geoCoordinates {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, and timeSlot.
 
-1. **concertDetails** (extra section only for concert trips)
-   - artist  
-   - concertDate  
-   - concertStartTime  
-   - concertEndTime  
-   - venueName  
-   - venueAddress  
-   - ticketPrice (₹)  
-   - bookingURL (official or ticket provider)  
+4. Recommendations:
+   - Use the key "recommendations".
+   - "restaurants": 5 options. Include restaurantName, description, priceRange, address, and approximateCost. Highlight spots popular with concert-goers.
+   - "localExperiences": 3 options. Include experienceName, description, priceRange, approximateCost, and geoCoordinates.
 
-2. Transportation details ({tripType} from {departure} to {location}):
-- Return a key called "transportDetails".
-- For "oneway":
-  - transportDetails must contain a sub-key "outbound", which is an array of 3–5 transport options from {departure} → {location}.
-- For "round":
-  - transportDetails must contain two sub-keys:
-    - "outbound": array of 3–5 options {departure} → {location}
-    - "return": array of 3–5 options {location} → {departure}
-- Each transport option must include:
-  - transportType: "Flight" or "Train"
-  - transportNumber
-  - from (city/airport/station code)
-  - to (city/airport/station code)
-  - departureTime
-  - arrivalTime
-  - provider (e.g., IndiGo, IRCTC)
-  - price (₹)
-  - bookingURL (real working link)
-- Rules:
-  - Always suggest the most direct and logical route
-  - Prefer arrival airports/stations closest to {location}
-  - Do not include more than one intermediate stop (max 1 connection)
-  - If a direct option exists, always list it first
-  - Avoid illogical detours or routes going opposite direction
+5. Trip Metadata:
+   - "tripName": "{location}, CountryCode" (e.g., "London, GBR").
+   - "tripDuration": "3 days, 2 nights".
+   - "budgetCategory": "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
 
-3. **hotelOptions** (5–6 options)  
-   - hotelName  
-   - hotelAddress  
-   - pricePerNight (₹)  
-   - hotelImageURL (real image link)  
-   - geoCoordinates: { latitude, longitude }  
-   - rating (0–5)  
-   - description (1–2 sentences)  
 
-4. **dailyItinerary**  
-   - Keys: day1, day2, day3  
-   - Each day includes:  
-     - places: array of 2–3 places with:  
-       - placeName  
-       - placeDetails  
-       - placeImageURL (real link)  
-       - geoCoordinates { latitude, longitude }  
-       - ticketPricing (₹ or "Free")  
-       - estimatedTravelTime  
-       - bestTimeToVisit  
+6. JSON SYNTAX RULES (STRICT):
+  - NO trailing commas after the last item in an array or object.
+  - NO comments or extra text.
+  - Every opening brace '{' MUST have a matching closing brace '}'.
+ - Ensure "geoCoordinates" is a complete, closed object: {"latitude": 12.3, "longitude": 45.6}.
+ - IMPORTANT: Verify that the "hotelOptions" array objects are fully closed before starting the "dailyItinerary".
+ - Double-check that all strings are enclosed in double quotes.
 
-5. **recommendations**  
-   - restaurants: 5 options with:  
-     - name  
-     - description  
-     - priceRange ("Budget" | "Moderate" | "High")  
-     - address or approximateCost  
-   - localExperiences: 5 options with:  
-     - name  
-     - description  
-     - priceRange  
-     - approximateCost  
+Ensure:
+ - All content is realistic and based on actual locations and data.
+ - All coordinates and links are valid and sensible.
+ - Always return the same JSON structure with stable keys and order.
 
-6. **tripMetadata**  
-   - tripName: "{location}, CountryCode"  
-   - tripDuration: "3 days, 2 nights"  
-   - budgetCategory:  
-     - "Budget" (< ₹10,000)  
-     - "Moderate" (₹10,000–₹25,000)  
-     - "Luxury" (> ₹25,000)  
-   - location: {location}  
-   - totalDays: "3"  
-   - travelers: {travelers}  
-
----
-
-## Constraints
-- **Concert must always be on Day 2**.  
-- **Arrival (Day 1)** must fall between {startDate} and the day before {concertDate}.  
-- **Return (Day 3)** is the day after the concert.  
-- All geoCoordinates must be valid decimal numbers.  
-- All bookingURL fields must be real working links (no placeholders).  
-- Ensure all content is realistic, based on actual locations, and within {budget}.  
-- Output must be **raw JSON only** (no markdown, no comments, no extra text).  
-- Response must begin with '{' and end with '}'.
-
+ Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
 `;
 
 export const FestiveTripIdeas = [
   {
     id: 1,
     name: "Varanasi",
-    title: "Varanasi, India", 
+    title: "Varanasi, India",
+    country: "India",
+    countryCode: "in",
     festival: "Diwali – festival of Lights",
     Highlights: "Ganga Aarti, thousands of diyas on ghats, fireworks",
     Experience: "Spiritual energy, ancient traditions, river rituals",
@@ -739,6 +718,8 @@ export const FestiveTripIdeas = [
     id: 2,
     name: "Mecca",
     title: "Mecca, Saudi Arabia",
+    country: "Saudi Arabia",
+    countryCode: "sa",
     festival: "Hajj pilgrimage & Eid al-Adha",
     Highlights: "Spiritual pilgrimage, Kaaba rituals, global gathering of Muslims",
     Experience: "Sacred Islamic pilgrimage (for Muslims only)",
@@ -748,6 +729,8 @@ export const FestiveTripIdeas = [
     id: 3,
     name: "Jerusalem",
     title: "Jerusalem, Israel",
+    country: "Israel",
+    countryCode: "il",
     festival: "Easter, Passover, Ramadan (multi-faith overlap)",
     Highlights: "Via Dolorosa walk, Western Wall prayers, Iftar meals",
     Experience: "Deep historical and religious convergence",
@@ -757,6 +740,8 @@ export const FestiveTripIdeas = [
     id: 4,
     name: "Amritsar",
     title: "Amritsar, India",
+    country: "India",
+    countryCode: "in",
     festival: "Gurpurab (Guru Nanak’s Birthday)",
     Highlights: "Golden Temple illuminations, kirtans, langar",
     Experience: "Vibrant Sikh hospitality and spiritual depth",
@@ -766,6 +751,8 @@ export const FestiveTripIdeas = [
     id: 5,
     name: "Kathmandu",
     title: "Kathmandu, Nepal",
+    country: "Nepal",
+    countryCode: "np",
     festival: "Buddha Jayanti – Birth, Enlightenment, and Death of Buddha",
     Highlights: "Prayers at Swayambhunath & Boudhanath, butter lamps",
     Experience: "Sacred Buddhist sites in full celebration",
@@ -775,6 +762,8 @@ export const FestiveTripIdeas = [
     id: 6,
     name: "Rio de Janeiro",
     title: "Rio de Janeiro, Brazil",
+    country: "Brazil",
+    countryCode: "br",
     festival: "Christmas + New Year",
     Highlights: "Giant tree at Lagoa, beachside midnight masses, fireworks",
     Experience: "Unique warm-weather celebrations and global parties",
@@ -784,6 +773,8 @@ export const FestiveTripIdeas = [
     id: 7,
     name: "Pushkar",
     title: "Pushkar, India",
+    country: "India",
+    countryCode: "in",
     festival: "Coincides with Kartik Purnima (Hinduism)",
     Highlights: "Cultural fair, spiritual rituals at Pushkar Lake",
     Experience: "Blend of tradition, livestock fair, and spirituality",
@@ -793,6 +784,8 @@ export const FestiveTripIdeas = [
     id: 8,
     name: "Bangkok",
     title: "Bangkok, Thailand",
+    country: "Thailand",
+    countryCode: "th",
     festival: "Songkran – Thai New Year",
     Highlights: "Water fights, temple rituals, family blessings",
     Experience: "Fun + spiritual new year celebration with Buddhist meaning",
@@ -802,6 +795,8 @@ export const FestiveTripIdeas = [
     id: 9,
     name: "Lourdes",
     title: "Lourdes, France",
+    country: "France",
+    countryCode: "fr",
     festival: "Feast of the Assumption (Aug 15)",
     Highlights: "Torchlight processions, healing masses",
     Experience: "Major pilgrimage for Catholics",
@@ -811,6 +806,8 @@ export const FestiveTripIdeas = [
     id: 10,
     name: "Bali",
     title: "Bali, Indonesia",
+    country: "Indonesia",
+    countryCode: "id",
     festival: "Balinese New Year (Day of Silence)",
     Highlights: "Day-long silence, Ogoh-Ogoh monster parades before Nyepi",
     Experience: "Unique Hindu traditions not found elsewhere",
@@ -819,83 +816,47 @@ export const FestiveTripIdeas = [
 ];
 
 export const FESTIVE_AI_PROMPT = `
-Generate a detailed, budget-conscious festive trip plan for {traveler} visiting {location} during the {festival} festival. The trip is for {totalDays} days and {totalNight} nights, with a budget of {budget}.
+Generate a detailed, budget-conscious festive trip plan for {traveler} visiting {location} during the {festival} festival for {totalDays} days and {totalNight} nights. The budget is {budget}.
 
-IMPORTANT: Ensure the trip captures the cultural essence of the festival, includes related events, avoids peak crowd pitfalls, and offers a safe, enjoyable experience.
+Follow these instructions carefully to ensure the trip captures the cultural essence of {festival}:
 
-Follow these structured instructions:
+1. Hotel options (5-6):
+   - Must be centrally located with easy access to main festive events or temples.
+   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
 
-1. Hotel options (5–6):
-   - Must be safe, centrally located, and festival-friendly (easy access to main events or temples).
-   - Each hotel must include:
-     - hotelName
-     - hotelAddress
-     - pricePerNight (in ₹)
-     - hotelImageURL
-     - geoCoordinates
-     - rating (0–5)
-     - description (mention if it offers views of festival processions, special festive food, etc.)
-
-2. Daily itinerary:
-  - Use a top-level key called "dailyItinerary"
-   - Include a plan for each day of the trip using keys: day1, day2, ..., day{totalDays}
-   - Do not skip any day, even if it overlaps with travel
-   - If arrival is late on day1 or departure is early on the last day, suggest light/local activities accordingly
-   - For each day, include an object with a key "places" that holds an array of 2–3 real places to visit in/around the location
-     - Include at least 1 place or activity related to the {festival} (e.g., Ganga Aarti for Diwali in Varanasi)
-    - placeName: Name of the place
-     - placeDetails: A brief description
-     - placeImageURL: A real image URL if available, or use a relevant placeholder
-     - geoCoordinates: Accurate format {"latitude": number, "longitude": number}
-     - ticketPricing: Cost in ₹, or 0 if free
-     - estimatedTravelTime: Time to reach from previous location or hotel (e.g., "20 minutes")
-     - bestTimeToVisit: A short text like "Morning (9 AM - 11 AM)
+2. Daily itinerary (The "Pool" Logic):
+   - Use the key "dailyItinerary".
+   - Provide a large collection of attractions specifically curated for the {festival}.
+   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
+   - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
+   - Ensure there are exactly {perSlot} places for EACH time slot.
+   - At least 50% of these places MUST be related to {festival} (e.g., special markets, pandals, temple events, light shows).
+   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot.
 
 3. Recommendations:
-   - Key: "recommendations"
-   - Two arrays: "restaurants" and "localExperiences"
-    
-   - For "restaurants":  
-    - Provide exactly 5 restaurants that are well-known, authentic, and close to {location}.  
-    - Each entry must include:  
-    - restaurantName (real, existing place if possible)  
-      - description (2–3 sentences highlighting cuisine, vibe, or specialty dish)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - address (with city/area)  
-      - approximateCost (per person in ₹)  
+   - Use the key "recommendations".
+   - "restaurants": Provide exactly {totalRecs} authentic restaurants nearby. Include restaurantName, description, priceRange, address, approximateCost, and geoCoordinates. Highlight if they serve special festival cuisine.
+   - "localExperiences": Provide exactly {totalRecs} unique experiences related to {festival} (e.g., "Participating in Aarti", "Garba workshop", "Diya lighting ceremony"). Include: experienceName, description, priceRange, approximateCost, and geoCoordinates.
 
-  - For "localExperiences":  
-    - Provide exactly 5 experiences or activities unique to {location} (e.g., cultural walk, local market, cooking class, adventure activity).  
-    - Each entry must include:  
-      - experienceName  
-      - description (2–3 sentences about what the traveler will do/see/learn)  
-      - priceRange ("Budget", "Moderate", "High")  
-      - approximateCost (per person in ₹, or 0 if free)  
-   - Festival-specific experiences must be included, like:
-     - Attending a Dussehra parade
-     - Visiting a decorated temple
-     - Participating in local festive workshops (rangoli, diya painting, garba night, etc.)
-
-   - Each recommendation includes:
-     - name
-     - description
-     - priceRange ("Budget", "Moderate", "High")
-     - address or approximateCost
-
-4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Delhi, IND").
+4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Varanasi, IND").
 
 5. Ensure the trip fits the provided budget and classify it as:
-   - "Budget" (< ₹10,000)
-   - "Moderate" (₹10,000–₹25,000)
-   - "Luxury" (> ₹25,000)
+   - "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
 
-6. Include a field called "tripDuration" formatted like "3 days, 2 nights".
+6. Include a field called "tripDuration" formatted like "{totalDays} days, {totalNight} nights".
 
-Ensure:
-- All data is realistic, especially festival-related dates and customs.
-- Festival activities must align with {festival} and be verified for timing.
-- Include cultural and local flavor.
-Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
+7. Transport Metadata (REQUIRED):
+   Include these two specific fields at the VERY TOP of your JSON response:
+   - "departureIata": "3-letter origin code"
+   - "destinationIata": "3-letter destination code"
+
+8. JSON SYNTAX RULES (STRICT):
+- NO trailing commas. NO comments. NO extra text.
+- Every opening brace '{' MUST have a matching closing brace '}'.
+- Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
+- Double-check that all strings are enclosed in double quotes.
+
+Respond ONLY with raw JSON. Begin with { and end with }.
 `;
 
 export const SportsTypeList = [
@@ -1020,473 +981,472 @@ Current Location: {location}
 ]
 `;
 
-
 export const CITY_TO_IATA = {
-  "Aalborg": "AAL",
-  "Aarhus": "AAR",
-  "Abadan": "ABD",
-  "Abakan": "ABA",
-  "Aberdeen": "ABZ", 
-  "Abha": "AHB",
+  Aalborg: "AAL",
+  Aarhus: "AAR",
+  Abadan: "ABD",
+  Abakan: "ABA",
+  Aberdeen: "ABZ",
+  Abha: "AHB",
   "Abu Dhabi": "AUH",
-  "Abidjan": "ABJ",
-  "Abilene": "ABI",
-  "Abuja": "ABV",
-  "Acapulco": "ACA",
-  "Acarigua": "AGV",
-  "Accra": "ACC",
+  Abidjan: "ABJ",
+  Abilene: "ABI",
+  Abuja: "ABV",
+  Acapulco: "ACA",
+  Acarigua: "AGV",
+  Accra: "ACC",
   "Adak Island": "ADK",
-  "Adana": "ADA",
+  Adana: "ADA",
   "Addis Ababa": "ADD",
-  "Adelaide": "ADL",
-  "Aden": "ADE",
-  "Adler": "AER",
-  "Agadir": "AGA",
-  "Aguascaliente": "AGU",
-  "Ahmedabad": "AMD",
-  "Ajaccio": "AJA",
-  "Akita": "AXT",
+  Adelaide: "ADL",
+  Aden: "ADE",
+  Adler: "AER",
+  Agadir: "AGA",
+  Aguascaliente: "AGU",
+  Ahmedabad: "AMD",
+  Ajaccio: "AJA",
+  Akita: "AXT",
   "Akron/Canton": "CAK",
   "Al-Baha": "ABT",
   "Al-Fujairah": "FJR",
-  "Albany": "ALB",
-  "Albuquerque": "ABQ",
-  "Aleppo": "ALP",
-  "Alexandria": "ESF",
-  "Algiers": "ALG",
-  "Alicante": "ALC",
-  "Allentown": "ABE",
+  Albany: "ALB",
+  Albuquerque: "ABQ",
+  Aleppo: "ALP",
+  Alexandria: "ESF",
+  Algiers: "ALG",
+  Alicante: "ALC",
+  Allentown: "ABE",
   "Alma Ata": "ALA",
   "Alor Setar": "AOR",
-  "Altoona": "AOO",
-  "Amarillo": "AMA",
-  "Amman": "AMM",
-  "Amritsar": "ATQ",
-  "Amsterdam": "AMS",
-  "Anchorage": "ANC",
-  "Ancona": "AOI",
-  "Andahuaylas": "ANS",
-  "Anguilla": "AZA",
-  "Aniak": "ANI",
-  "Ankara": "ANK",
-  "Antalya": "AYT",
-  "Antananarivo": "TNR",
-  "Antofagasta": "ANF",
-  "Antwerp": "ANR",
-  "Aomori": "AOJ",
-  "Apia": "APW",
-  "Appleton": "ATW",
-  "Aqaba": "AQJ",
-  "Arequipa": "AQP",
-  "Arica": "ARI",
-  "Aruba": "AUA",
-  "Asheville": "AVL",
-  "Asmara": "ASM",
-  "Asuncion": "ASU",
-  "Aswan": "ASW",
-  "Athens": "ATH",
-  "Atlanta": "ATL",
+  Altoona: "AOO",
+  Amarillo: "AMA",
+  Amman: "AMM",
+  Amritsar: "ATQ",
+  Amsterdam: "AMS",
+  Anchorage: "ANC",
+  Ancona: "AOI",
+  Andahuaylas: "ANS",
+  Anguilla: "AZA",
+  Aniak: "ANI",
+  Ankara: "ANK",
+  Antalya: "AYT",
+  Antananarivo: "TNR",
+  Antofagasta: "ANF",
+  Antwerp: "ANR",
+  Aomori: "AOJ",
+  Apia: "APW",
+  Appleton: "ATW",
+  Aqaba: "AQJ",
+  Arequipa: "AQP",
+  Arica: "ARI",
+  Aruba: "AUA",
+  Asheville: "AVL",
+  Asmara: "ASM",
+  Asuncion: "ASU",
+  Aswan: "ASW",
+  Athens: "ATH",
+  Atlanta: "ATL",
   "Atlantic City": "ACY",
-  "Auckland": "AKL",
-  "Augusta": "AGS",
-  "Austin": "AUS",
-  "Ayacucho": "AYP",
-  "Baghdad": "BGW",
-  "Bahrain": "BAH",
-  "Bakersfield": "BFL",
+  Auckland: "AKL",
+  Augusta: "AGS",
+  Austin: "AUS",
+  Ayacucho: "AYP",
+  Baghdad: "BGW",
+  Bahrain: "BAH",
+  Bakersfield: "BFL",
   "Bali Island": "DPS",
-  "Baltimore": "BWI",
-  "Bamako": "BKO",
+  Baltimore: "BWI",
+  Bamako: "BKO",
   "Bandar Abbas": "BND",
   "Bandar Seri Bagawan": "BWN",
-  "Bangalore": "BLR",
-  "Bangkok": "BKK",
-  "Bangor": "BGR",
-  "Bangui": "BGF",
-  "Banjul": "BJL",
-  "Barbados": "BGI",
-  "Barcelona": "BCN",
-  "Bari": "BRI",
-  "Barinas": "BNS",
-  "Barquisimeto": "BRM",
-  "Barranquilla": "BAQ",
-  "Barrow": "BRW",
-  "Basle": "BSL",
-  "Basra": "BSR",
-  "Bastia": "BIA",
+  Bangalore: "BLR",
+  Bangkok: "BKK",
+  Bangor: "BGR",
+  Bangui: "BGF",
+  Banjul: "BJL",
+  Barbados: "BGI",
+  Barcelona: "BCN",
+  Bari: "BRI",
+  Barinas: "BNS",
+  Barquisimeto: "BRM",
+  Barranquilla: "BAQ",
+  Barrow: "BRW",
+  Basle: "BSL",
+  Basra: "BSR",
+  Bastia: "BIA",
   "Baton Rouge": "BTR",
-  "Beijing": "BJS",
-  "Beira": "BEW",
-  "Beirut": "BEY",
-  "Belem": "BEL",
-  "Belfast": "BFS",
-  "Belgrade": "BEG",
-  "Belize": "BZE",
-  "Bellingham": "BLI",
+  Beijing: "BJS",
+  Beira: "BEW",
+  Beirut: "BEY",
+  Belem: "BEL",
+  Belfast: "BFS",
+  Belgrade: "BEG",
+  Belize: "BZE",
+  Bellingham: "BLI",
   "Belo Horizonte": "BHZ",
-  "Benghazi": "BEN",
-  "Bergen": "BGO",
-  "Berlin": "BER",
-  "Bermuda": "BDA",
-  "Bern": "BRN",
-  "Bethel": "BET",
-  "Biak": "BIK",
-  "Biarritz": "BIQ",
-  "Bilbao": "BIO",
-  "Billings": "BIL",
-  "Billund": "BLL",
-  "Birmingham": "BHM", 
-  "Bissau": "BXO",
-  "Blantyre": "BLZ",
-  "Bloemfontein": "BFN",
-  "Bloomington": "BMI",
+  Benghazi: "BEN",
+  Bergen: "BGO",
+  Berlin: "BER",
+  Bermuda: "BDA",
+  Bern: "BRN",
+  Bethel: "BET",
+  Biak: "BIK",
+  Biarritz: "BIQ",
+  Bilbao: "BIO",
+  Billings: "BIL",
+  Billund: "BLL",
+  Birmingham: "BHM",
+  Bissau: "BXO",
+  Blantyre: "BLZ",
+  Bloemfontein: "BFN",
+  Bloomington: "BMI",
   "Boa Vista": "BVB",
-  "Bodo": "BOO",
-  "Bogota": "BOG",
-  "Boise": "BOI",
-  "Bologna": "BLQ",
-  "Bombay": "BOM",
-  "Bordeaux": "BOD",
-  "Boston": "BOS",
-  "Bratislava": "BTS",
-  "Brazzaville": "BZV",
-  "Bremen": "BRE",
-  "Brest": "BES",
-  "Brisbane": "BNE",
-  "Bristol": "BRS",
-  "Brussels": "BRU",
-  "Bucharest": "BUH",
-  "Budapest": "BUD",
+  Bodo: "BOO",
+  Bogota: "BOG",
+  Boise: "BOI",
+  Bologna: "BLQ",
+  Bombay: "BOM",
+  Bordeaux: "BOD",
+  Boston: "BOS",
+  Bratislava: "BTS",
+  Brazzaville: "BZV",
+  Bremen: "BRE",
+  Brest: "BES",
+  Brisbane: "BNE",
+  Bristol: "BRS",
+  Brussels: "BRU",
+  Bucharest: "BUH",
+  Budapest: "BUD",
   "Buenos Aires": "BUE",
-  "Cairo": "CAI",
-  "Calcutta": "CCU",
-  "Calgary": "YYC",
-  "Cali": "CLO",
-  "Calicut": "CCJ",
-  "Cancun": "CUN",
+  Cairo: "CAI",
+  Calcutta: "CCU",
+  Calgary: "YYC",
+  Cali: "CLO",
+  Calicut: "CCJ",
+  Cancun: "CUN",
   "Cape Town": "CPT",
-  "Caracas": "CCS",
-  "Casablanca": "CAS",
-  "Catania": "СТА",
-  "Cebu": "CEB",
-  "Chengdu": "CTU",
+  Caracas: "CCS",
+  Casablanca: "CAS",
+  Catania: "СТА",
+  Cebu: "CEB",
+  Chengdu: "CTU",
   "Chiang Mai": "CNX",
-  "Chicago": "CHI",
-  "Cincinnati": "CVG",
-  "Cleveland": "CLE",
-  "Cochin": "COK",
-  "Cologne": "CGN",
-  "Colombo": "CMB",
-  "Copenhagen": "CPH",
-  "Cork": "ORK",
-  "Dakar": "DKR",
+  Chicago: "CHI",
+  Cincinnati: "CVG",
+  Cleveland: "CLE",
+  Cochin: "COK",
+  Cologne: "CGN",
+  Colombo: "CMB",
+  Copenhagen: "CPH",
+  Cork: "ORK",
+  Dakar: "DKR",
   "Dallas/Ft. Worth": "DFW",
-  "Damascus": "DAM",
+  Damascus: "DAM",
   "Dar Es Salaam": "DAR",
-  "Darwin": "DRW",
-  "Delhi": "DEL",
-  "Denver": "DEN",
-  "Detroit": "DTT",
-  "Dhahran": "DHA",
-  "Dhaka": "DAC",
-  "Dubai": "DXB",
-  "Dublin": "DUB",
-  "Dusseldorf": "DUS",
-  "Edinburgh": "EDI",
-  "Edmonton": "YEA",
-  "Eindhoven": "EIN",
-  "Florence": "FLR",
-  "Frankfurt": "FRA",
-  "Fukuoka": "FUK",
-  "Geneva": "GVA",
-  "Genoa": "GOA",
-  "Glasgow": "GLA",
-  "Gothenburg": "GOT",
-  "Guadalajara": "GDL",
-  "Guangzhou": "CAN",
+  Darwin: "DRW",
+  Delhi: "DEL",
+  Denver: "DEN",
+  Detroit: "DTT",
+  Dhahran: "DHA",
+  Dhaka: "DAC",
+  Dubai: "DXB",
+  Dublin: "DUB",
+  Dusseldorf: "DUS",
+  Edinburgh: "EDI",
+  Edmonton: "YEA",
+  Eindhoven: "EIN",
+  Florence: "FLR",
+  Frankfurt: "FRA",
+  Fukuoka: "FUK",
+  Geneva: "GVA",
+  Genoa: "GOA",
+  Glasgow: "GLA",
+  Gothenburg: "GOT",
+  Guadalajara: "GDL",
+  Guangzhou: "CAN",
   "Guatemala City": "GUA",
-  "Guayaquil": "GYE",
-  "Halifax": "YHZ",
-  "Hamburg": "HAM",
-  "Hanoi": "HAN",
-  "Hanover": "HAJ",
-  "Harare": "HRE",
-  "Helsinki": "HEL",
+  Guayaquil: "GYE",
+  Halifax: "YHZ",
+  Hamburg: "HAM",
+  Hanoi: "HAN",
+  Hanover: "HAJ",
+  Harare: "HRE",
+  Helsinki: "HEL",
   "Ho Chi Minh City": "SGN",
   "Hong Kong": "HKG",
-  "Honolulu": "HNL",
-  "Houston": "HOU",
-  "Hyderabad": "HYD",
-  "Indianapolis": "IND",
-  "Innsbruck": "INN",
-  "Islamabad": "ISB",
-  "Istanbul": "IST",
-  "Jacksonville": "JAX",
-  "Jaipur": "JAI",
-  "Jakarta": "JKT",
-  "Jeddah": "JED",
-  "Johannesburg": "JNB",
-  "Kabul": "KBL",
-  "Karachi": "KHI",
-  "Kathmandu": "KTM",
-  "Kochi": "KCZ",
+  Honolulu: "HNL",
+  Houston: "HOU",
+  Hyderabad: "HYD",
+  Indianapolis: "IND",
+  Innsbruck: "INN",
+  Islamabad: "ISB",
+  Istanbul: "IST",
+  Jacksonville: "JAX",
+  Jaipur: "JAI",
+  Jakarta: "JKT",
+  Jeddah: "JED",
+  Johannesburg: "JNB",
+  Kabul: "KBL",
+  Karachi: "KHI",
+  Kathmandu: "KTM",
+  Kochi: "KCZ",
   "Kuala Lumpur": "KUL",
-  "Kuwait": "KWI",
-  "Lagos": "LOS",
-  "Lahore": "LHE",
+  Kuwait: "KWI",
+  Lagos: "LOS",
+  Lahore: "LHE",
   "Las Vegas": "LAS",
-  "Leipzig": "LEJ",
-  "Lima": "LIM",
-  "Lisbon": "LIS",
-  "Liverpool": "LPL",
-  "London": "LON",
+  Leipzig: "LEJ",
+  Lima: "LIM",
+  Lisbon: "LIS",
+  Liverpool: "LPL",
+  London: "LON",
   "Los Angeles": "LAX",
-  "Luxembourg": "LUX",
-  "Lyon": "LYS",
-  "Madras": "MAA",
-  "Madrid": "MAD",
-  "Malaga": "AGP",
-  "Male": "MLE",
-  "Manchester": "MAN",
-  "Manila": "MNL",
-  "Marseille": "MRS",
-  "Melbourne": "MEL",
-  "Memphis": "MEM",
+  Luxembourg: "LUX",
+  Lyon: "LYS",
+  Madras: "MAA",
+  Madrid: "MAD",
+  Malaga: "AGP",
+  Male: "MLE",
+  Manchester: "MAN",
+  Manila: "MNL",
+  Marseille: "MRS",
+  Melbourne: "MEL",
+  Memphis: "MEM",
   "Mexico City": "MEX",
-  "Milan": "MIL",
-  "Minneapolis": "MSP",
-  "Montevideo": "MVD",
-  "Montreal": "YMQ",
-  "Moscow": "MOW",
-  "Munich": "MUC",
-  "Muscat": "MCT",
-  "Nairobi": "NBO",
-  "Naples": "NAP",
-  "Nashville": "BNA",
-  "Nassau": "NAS",
+  Milan: "MIL",
+  Minneapolis: "MSP",
+  Montevideo: "MVD",
+  Montreal: "YMQ",
+  Moscow: "MOW",
+  Munich: "MUC",
+  Muscat: "MCT",
+  Nairobi: "NBO",
+  Naples: "NAP",
+  Nashville: "BNA",
+  Nassau: "NAS",
   "New York": "NYC",
-  "Nice": "NCE",
+  Nice: "NCE",
   "Oklahoma City": "OKC",
-  "Orlando": "ORL",
-  "Osaka": "OSA",
-  "Oslo": "OSL",
-  "Ottawa": "YOW",
-  "Palermo": "PMO",
-  "Paris": "PAR",
-  "Perth": "PER",
-  "Philadelphia": "PHL",
-  "Phoenix": "PHX",
-  "Pittsburgh": "PIT",
-  "Prague": "PRG",
-  "Quebec": "YQB",
-  "Rabat": "RBA",
+  Orlando: "ORL",
+  Osaka: "OSA",
+  Oslo: "OSL",
+  Ottawa: "YOW",
+  Palermo: "PMO",
+  Paris: "PAR",
+  Perth: "PER",
+  Philadelphia: "PHL",
+  Phoenix: "PHX",
+  Pittsburgh: "PIT",
+  Prague: "PRG",
+  Quebec: "YQB",
+  Rabat: "RBA",
   "Rio de Janeiro": "RIO",
-  "Riyadh": "RUH",
-  "Rome": "ROM",
-  "Sacramento": "SAC",
+  Riyadh: "RUH",
+  Rome: "ROM",
+  Sacramento: "SAC",
   "Salt Lake City": "SLC",
   "San Antonio": "SAT",
   "San Diego": "SAN",
   "San Francisco": "SFO",
   "San Jose": "SJC",
   "San Juan": "SJU",
-  "Santiago": "SCL",
+  Santiago: "SCL",
   "Sao Paulo": "SAO",
-  "Seattle": "SEA",
-  "Seoul": "SEL",
-  "Shanghai": "SHA",
-  "Singapore": "SIN",
+  Seattle: "SEA",
+  Seoul: "SEL",
+  Shanghai: "SHA",
+  Singapore: "SIN",
   "St. Petersburg": "LED",
-  "Stockholm": "STO",
-  "Stuttgart": "STR",
-  "Sydney": "SYD",
-  "Taipei": "ΤΡΕ",
+  Stockholm: "STO",
+  Stuttgart: "STR",
+  Sydney: "SYD",
+  Taipei: "ΤΡΕ",
   "Tel Aviv Yafo": "TLV",
-  "Tokyo": "TYO",
-  "Toronto": "YTO",
-  "Trivandrum": "TRV",
-  "Tunis": "TUN",
-  "Turin": "TRN",
-  "Vancouver": "YVR",
-  "Venice": "VCE",
-  "Vienna": "VIE",
-  "Warsaw": "WAW",
-  "Washington": "WAS",
-  "Wellington": "WLG",
-  "Winnipeg": "YWG",
-  "Zurich": "ZRH",
+  Tokyo: "TYO",
+  Toronto: "YTO",
+  Trivandrum: "TRV",
+  Tunis: "TUN",
+  Turin: "TRN",
+  Vancouver: "YVR",
+  Venice: "VCE",
+  Vienna: "VIE",
+  Warsaw: "WAW",
+  Washington: "WAS",
+  Wellington: "WLG",
+  Winnipeg: "YWG",
+  Zurich: "ZRH",
 
-  "Delhi": "DEL",
+  Delhi: "DEL",
   "New Delhi": "DEL",
-  "Mumbai": "BOM",
-  "Bengaluru": "BLR",
-  "Bangalore": "BLR",
-  "Hyderabad": "HYD",
-  "Chennai": "MAA",
-  "Kolkata": "CCU",
-  "Ahmedabad": "AMD",
-  "Kochi": "COK",
-  "Goa": "GOI",
-  "Mopa": "GOX", 
-  
+  Mumbai: "BOM",
+  Bengaluru: "BLR",
+  Bangalore: "BLR",
+  Hyderabad: "HYD",
+  Chennai: "MAA",
+  Kolkata: "CCU",
+  Ahmedabad: "AMD",
+  Kochi: "COK",
+  Goa: "GOI",
+  Mopa: "GOX",
+
   // --- Andhra Pradesh ---
-  "Visakhapatnam": "VTZ",
-  "Tirupati": "TIR",
-  "Vijayawada": "VGA",
-  "Rajahmundry": "RJA",
-  "Kadapa": "CDP",
-  "Kurnool": "KJB",
+  Visakhapatnam: "VTZ",
+  Tirupati: "TIR",
+  Vijayawada: "VGA",
+  Rajahmundry: "RJA",
+  Kadapa: "CDP",
+  Kurnool: "KJB",
 
   // --- Arunachal Pradesh ---
-  "Itanagar": "HGI",
-  "Pasighat": "IXT",
-  "Tezu": "TEI",
+  Itanagar: "HGI",
+  Pasighat: "IXT",
+  Tezu: "TEI",
 
   // --- Assam ---
-  "Guwahati": "GAU",
-  "Dibrugarh": "DIB",
-  "Silchar": "IXS",
-  "Jorhat": "JRH",
-  "Tezpur": "TEZ",
+  Guwahati: "GAU",
+  Dibrugarh: "DIB",
+  Silchar: "IXS",
+  Jorhat: "JRH",
+  Tezpur: "TEZ",
   "North Lakhimpur": "IXI",
 
   // --- Bihar ---
-  "Patna": "PAT",
-  "Gaya": "GAY",
-  "Darbhanga": "DBR",
+  Patna: "PAT",
+  Gaya: "GAY",
+  Darbhanga: "DBR",
 
   // --- Chandigarh ---
-  "Chandigarh": "IXC",
+  Chandigarh: "IXC",
 
   // --- Chhattisgarh ---
-  "Raipur": "RPR",
-  "Jagdalpur": "JGB",
-  "Bilaspur": "PAB",
+  Raipur: "RPR",
+  Jagdalpur: "JGB",
+  Bilaspur: "PAB",
 
   // --- Gujarat ---
-  "Surat": "STV",
-  "Vadodara": "BDQ",
-  "Rajkot": "RAJ",
-  "Bhavnagar": "BHU",
-  "Jamnagar": "JGA",
-  "Bhuj": "BHJ",
-  "Kandla": "IXY",
-  "Porbandar": "PBD",
+  Surat: "STV",
+  Vadodara: "BDQ",
+  Rajkot: "RAJ",
+  Bhavnagar: "BHU",
+  Jamnagar: "JGA",
+  Bhuj: "BHJ",
+  Kandla: "IXY",
+  Porbandar: "PBD",
 
   // --- Haryana ---
-  "Hisar": "HSS",
+  Hisar: "HSS",
 
   // --- Himachal Pradesh ---
-  "Kullu": "KUU",
-  "Shimla": "SLV",
-  "Kangra": "DHM",
+  Kullu: "KUU",
+  Shimla: "SLV",
+  Kangra: "DHM",
 
   // --- Jammu & Kashmir ---
-  "Srinagar": "SXR",
-  "Jammu": "IXJ",
+  Srinagar: "SXR",
+  Jammu: "IXJ",
 
   // --- Jharkhand ---
-  "Ranchi": "IXR",
-  "Deoghar": "DGH",
-  "Jamshedpur": "IXW",
+  Ranchi: "IXR",
+  Deoghar: "DGH",
+  Jamshedpur: "IXW",
 
   // --- Karnataka ---
-  "Mangaluru": "IXE",
-  "Hubli": "HBX",
-  "Belgaum": "IXG",
-  "Mysore": "MYQ",
-  "Kalaburagi": "GBI",
+  Mangaluru: "IXE",
+  Hubli: "HBX",
+  Belgaum: "IXG",
+  Mysore: "MYQ",
+  Kalaburagi: "GBI",
 
   // --- Kerala ---
-  "Thiruvananthapuram": "TRV",
-  "Kozhikode": "CCJ",
-  "Kannur": "CNN",
+  Thiruvananthapuram: "TRV",
+  Kozhikode: "CCJ",
+  Kannur: "CNN",
 
   // --- Ladakh ---
-  "Leh": "IXL",
+  Leh: "IXL",
 
   // --- Madhya Pradesh ---
-  "Indore": "IDR",
-  "Bhopal": "BHO",
-  "Gwalior": "GWL",
-  "Jabalpur": "JLR",
-  "Khajuraho": "HJR",
+  Indore: "IDR",
+  Bhopal: "BHO",
+  Gwalior: "GWL",
+  Jabalpur: "JLR",
+  Khajuraho: "HJR",
 
   // --- Maharashtra ---
-  "Pune": "PNQ",
-  "Nagpur": "NAG",
-  "Nashik": "ISK",
-  "Aurangabad": "IXU",
-  "Shirdi": "SAG",
-  "Kolhapur": "KLH",
-  "Nanded": "NDC",
+  Pune: "PNQ",
+  Nagpur: "NAG",
+  Nashik: "ISK",
+  Aurangabad: "IXU",
+  Shirdi: "SAG",
+  Kolhapur: "KLH",
+  Nanded: "NDC",
 
   // --- Manipur ---
-  "Imphal": "IMF",
+  Imphal: "IMF",
 
   // --- Meghalaya ---
-  "Shillong": "SHL",
+  Shillong: "SHL",
 
   // --- Mizoram ---
-  "Aizawl": "AJL",
+  Aizawl: "AJL",
 
   // --- Nagaland ---
-  "Dimapur": "DMU",
+  Dimapur: "DMU",
 
   // --- Odisha ---
-  "Bhubaneswar": "BBI",
-  "Jharsuguda": "JSA",
+  Bhubaneswar: "BBI",
+  Jharsuguda: "JSA",
 
   // --- Punjab ---
-  "Amritsar": "ATQ",
-  "Bathinda": "BUP",
-  "Pathankot": "IXP",
-  "Ludhiana": "LUH",
-  "Jalandhar": "AIP",
+  Amritsar: "ATQ",
+  Bathinda: "BUP",
+  Pathankot: "IXP",
+  Ludhiana: "LUH",
+  Jalandhar: "AIP",
 
   // --- Rajasthan ---
-  "Jaipur": "JAI",
-  "Udaipur": "UDR",
-  "Jodhpur": "JDH",
-  "Jaisalmer": "JSA",
-  "Bikaner": "BKB",
-  "Ajmer": "KQH",
+  Jaipur: "JAI",
+  Udaipur: "UDR",
+  Jodhpur: "JDH",
+  Jaisalmer: "JSA",
+  Bikaner: "BKB",
+  Ajmer: "KQH",
 
   // --- Sikkim ---
-  "Gangtok": "PYG",
+  Gangtok: "PYG",
 
   // --- Tamil Nadu ---
-  "Coimbatore": "CJB",
-  "Madurai": "IXM",
-  "Tiruchirappalli": "TRZ",
-  "Tuticorin": "TCR",
-  "Salem": "SXV",
+  Coimbatore: "CJB",
+  Madurai: "IXM",
+  Tiruchirappalli: "TRZ",
+  Tuticorin: "TCR",
+  Salem: "SXV",
 
   // --- Tripura ---
-  "Agartala": "IXA",
+  Agartala: "IXA",
 
   // --- Uttar Pradesh ---
-  "Lucknow": "LKO",
-  "Varanasi": "VNS",
-  "Ayodhya": "AYJ",
-  "Kanpur": "KNU",
-  "Agra": "AGR",
-  "Gorakhpur": "GOP",
-  "Prayagraj": "IXD",
-  "Bareilly": "BEK",
-  "Kushinagar": "KJU",
-  "Noida": "DXN",
+  Lucknow: "LKO",
+  Varanasi: "VNS",
+  Ayodhya: "AYJ",
+  Kanpur: "KNU",
+  Agra: "AGR",
+  Gorakhpur: "GOP",
+  Prayagraj: "IXD",
+  Bareilly: "BEK",
+  Kushinagar: "KJU",
+  Noida: "DXN",
 
   // --- Uttarakhand ---
-  "Dehradun": "DED",
+  Dehradun: "DED",
 
   // --- West Bengal ---
-  "Bagdogra": "IXB",
-  "Siliguri": "IXB",
+  Bagdogra: "IXB",
+  Siliguri: "IXB",
 
   // --- UTs ---
   "Port Blair": "IXZ",
-  "Diu": "DIU",
-  "Pondicherry": "PNY",
-  "Agatti": "AGX",
+  Diu: "DIU",
+  Pondicherry: "PNY",
+  Agatti: "AGX",
 };

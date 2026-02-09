@@ -9,10 +9,9 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../../../constants/Colors";
 import {
+  CITY_TO_IATA,
   CONCERT_TRIP_AI_PROMPT,
-  TRAVEL_AI_PROMPT,
 } from "../../../constants/Options";
-import { generateTripPlan } from "../../../config/AiModel";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../config/FirebaseConfig";
 import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore";
@@ -33,10 +32,10 @@ export default function GenerateConcertTrip() {
   useEffect(() => {
     const isTripReady =
       concertData?.artist &&
-      concertData?.locationInfo &&
+      concertData?.destinationInfo &&
       concertData?.traveler &&
       concertData?.budget &&
-      concertData?.locationInfo?.concertDate;
+      concertData?.destinationInfo?.concertDate;
 
     if (isTripReady && user && !hasGenerated.current) {
       hasGenerated.current = true;
@@ -50,21 +49,22 @@ export default function GenerateConcertTrip() {
     if (!rawText) return "{}";
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      return jsonMatch ? jsonMatch[0].trim() : rawText.trim();
-    } catch (e) {
+      if (!jsonMatch) return "{}";
+
+      let jsonString = jsonMatch[0];
+
+      jsonString = jsonString
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .replace(/,\s*([\]}])/g, "$1")
+        .trim();
+
+      return jsonString;
+    } catch (err) {
+      console.error("Cleaning error:", err);
       return "{}";
     }
   };
-
-  function formatDateForMMT(dateStr, transportType) {
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    if (transportType === "flight") return `${day}/${month}/${year}`;
-    if (transportType === "train") return `${year}${month}${day}`;
-    return "";
-  }
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -73,32 +73,60 @@ export default function GenerateConcertTrip() {
     setError(null);
     setRetryCount(0);
 
-    const flightDate = formatDateForMMT(concertData.startDate, "flight");
-    const trainDate = formatDateForMMT(concertData.startDate, "train");
-
     try {
       const FINAL_ITINERARY_PROMPT = CONCERT_TRIP_AI_PROMPT.replace(
         /{travelers}/g,
-        concertData?.traveler?.people ?? "1"
+        concertData?.traveler?.people ?? "1",
       )
         .replace(/{artist}/g, concertData?.artist)
-        .replace(/{concertDate}/g, concertData?.locationInfo?.concertDate)
+        .replace(/{concertDate}/g, concertData?.destinationInfo?.concertDate)
         .replace(/{departure}/g, concertData?.departureInfo?.name)
         .replace(/{tripType}/g, concertData?.tripType)
-        .replace(/{location}/g, concertData?.locationInfo?.title)
-        .replace(/{startDate}/g, concertData?.startDate)
+        .replace(/{location}/g, concertData?.destinationInfo?.title)
         .replace(/{budget}/g, concertData?.budget);
 
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 1;
       let success = false;
       let itineraryData;
+      let destinationIata = "N/A";
+
+      const localDepartureIata =
+        concertData.departureInfo?.iataCode ||
+        CITY_TO_IATA[
+          concertData.departureInfo.name.split(",")[0].toLowerCase()
+        ] ||
+        "BOM";
 
       while (attempts < maxAttempts && !success) {
         try {
           setRetryCount(attempts + 1);
-          const res = await generateTripPlan(FINAL_ITINERARY_PROMPT);
-          itineraryData = normalizeItinerary(JSON.parse(cleanAiResponse(res)));
+          const response = await fetch(API_BASE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itineraryPrompt: FINAL_ITINERARY_PROMPT,
+              locationName: concertData?.destinationInfo?.title,
+              tripCategory: "CONCERT",
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Backend failed");
+
+          const rawAiResponse = cleanAiResponse(result.itinerary);
+
+          let aiData;
+          try {
+            aiData = JSON.parse(rawAiResponse);
+          } catch (parseErr) {
+            console.error("Standard JSON Parse failed, trying to fix...");
+            const manualFix = rawAiResponse.replace(/\\n/g, "").trim();
+            aiData = JSON.parse(manualFix);
+          }
+
+          itineraryData = normalizeItinerary(aiData);
+          destinationIata = aiData.destinationIata || "N/A";
           success = true;
         } catch (err) {
           attempts++;
@@ -106,23 +134,6 @@ export default function GenerateConcertTrip() {
           else
             throw new Error("AI returned invalid data format multiple times.");
         }
-      }
-      const FINAL_TRAVEL_PROMPT = TRAVEL_AI_PROMPT.replace(
-        /{tripType}/g,
-        concertData?.tripType
-      )
-        .replace(/{departure}/g, concertData?.departureInfo?.name)
-        .replace(/{location}/g, concertData?.locationInfo?.title)
-        .replace(/{date}/g, concertData.startDate)
-        .replace(/{flightDate}/g, flightDate)
-        .replace(/{trainDate}/g, trainDate);
-
-      const transportRes = await generateTripPlan(FINAL_TRAVEL_PROMPT);
-      let transportData;
-      try {
-        transportData = JSON.parse(cleanAiResponse(transportRes));
-      } catch (e) {
-        transportData = { transportDetails: { outbound: [], return: [] } };
       }
       const tripSubCollection = collection(db, "UserTrips", user.uid, "trips");
       const newUserTripRef = doc(tripSubCollection);
@@ -134,9 +145,11 @@ export default function GenerateConcertTrip() {
         userId: user.uid,
         concertData: sanitizedConcertData,
         tripPlan: itineraryData,
-        transportDetails: transportData.transportDetails || [],
-        imageUrl:concertData?.locationInfo?.imageUrl ||"",
-        bookingUrl: concertData?.locationInfo?.bookingUrl || "",
+        imageUrl: concertData?.destinationInfo?.imageUrl || "",
+        isInternational: concertData?.isInternational || false,
+        bookingUrl: concertData?.destinationInfo?.bookingUrl || "",
+        departureIata: localDepartureIata,
+        destinationIata: destinationIata,
         startDate: concertData.startDate,
         endDate: concertData.endDate,
         isActive: false,
