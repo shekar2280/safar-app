@@ -17,7 +17,7 @@ export default function TransportInfo({ transportData }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  if (!transportData?.departureIata) return null;
+  if (!transportData?.departureIata && !departureIata) return null;
 
   const { tripType, departureIata, destinationIata } = transportData;
 
