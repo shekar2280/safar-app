@@ -64,11 +64,13 @@ export default function SelectDestination() {
 
   const updatedData = {
     ...concertData,
-    locationInfo: {
+    destinationInfo: {
       title: selected.title,             
       venueName: selected.venueName,     
       venueAddress: selected.venueAddress,
-      venueZip: selected.venueZip,        
+      venueZip: selected.venueZip, 
+      country : selected.country,
+      countryCode: selected.countryCode,       
       concertDate: selected.concertDate,  
       concertTime: selected.concertTime, 
       imageUrl: selected.image,          
@@ -81,14 +83,14 @@ export default function SelectDestination() {
   };
 
   setConcertData(updatedData);
-  router.push("/discover-trip/concert-trips/select-traveler"); 
+  router.push("/discover-trip/concert-trips/select-departure"); 
 };
 
   return (
     <View
       style={{
         padding: width * 0.06,
-        paddingTop: height * 0.12,
+        paddingTop: height * 0.08,
         backgroundColor: Colors.WHITE,
         flex: 1,
       }}

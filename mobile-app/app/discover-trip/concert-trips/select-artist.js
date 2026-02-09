@@ -73,42 +73,6 @@ export default function ConcertTrip() {
       .trim();
   };
 
-  const fetchConcertLocations = async (artistName) => {
-    const today = new Date().toISOString().split("T")[0];
-    const prompt = CONCERT_LOCATION_DATE_PROMPT.replace(
-      /{artist}/g,
-      artistName
-    ).replace(/{date}/g, today);
-
-    try {
-      const response = await generateTripPlan(prompt);
-      const clean = cleanAiResponse(response);
-      const concerts = JSON.parse(clean);
-
-      const concertOptions = concerts.map((concert, index) => ({
-        id: index + 1,
-        title: concert.concertCity,
-        desc: `${concert.venueName} on ${concert.concertDate}`,
-        date: concert.concertDate,
-        venue: concert.venueName,
-        image: concert.concertImageURL,
-        fullData: concert,
-      }));
-
-      setConcertData((prev) => ({
-        ...prev,
-        artist: artistName,
-        locationOptions: concertOptions,
-      }));
-
-      return concertOptions;
-    } catch (error) {
-      console.error("Concert fetch error:", error);
-      ToastAndroid.show("Could not fetch concert info", ToastAndroid.LONG);
-      return [];
-    }
-  };
-
   const TICKETMASTER_API_KEY = Constants.expoConfig.extra.TICKETMASTER_API_KEY;
   const fetchConcertsFromTicketmaster = async (artistName) => {
     try {
@@ -136,6 +100,8 @@ export default function ConcertTrip() {
           image: highResImage?.url,
           venueName: venue?.name,
           venueAddress: venue?.address?.line1,
+          country: venue?.country?.name,
+          countryCode: venue?.country?.countryCode?.toLowerCase(),
           concertDate: event.dates?.start?.localDate,
           concertTime: event.dates?.start?.localTime,
           coordinates: {
@@ -161,6 +127,8 @@ export default function ConcertTrip() {
     }
   };
 
+  console.log("Concert data: ", concertData);
+
   const onSelectArtist = async (name) => {
     if (loading) return;
     setArtist(name);
@@ -168,13 +136,10 @@ export default function ConcertTrip() {
 
     let options = await fetchConcertsFromTicketmaster(name);
 
-    if (options.length === 0) {
-      options = await fetchConcertLocations(name);
-    }
     setLoading(false);
 
     if (options.length > 0) {
-      router.push("/discover-trip/concert-trips/select-place");
+      router.push("/discover-trip/concert-trips/select-destination");
     } else {
       ToastAndroid.show(
         "No concerts found. Try another artist.",
