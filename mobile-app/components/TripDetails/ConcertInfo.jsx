@@ -13,17 +13,26 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
-export default function ConcertInfo({ concertData }) {
-  if (!concertData) return null;
+export default function ConcertInfo({ concertDetails }) {
+  if (!concertDetails) return null;
 
   const openMaps = () => {
-    const query = encodeURIComponent(`${concertData.venueName}, ${concertData.venueAddress}`);
+    const query = encodeURIComponent(
+      `${concertDetails?.concertData?.venueName}, ${concertDetails?.concertData?.venueAddress}`,
+    );
     const url = Platform.select({
       ios: `maps:0,0?q=${query}`,
       android: `geo:0,0?q=${query}`,
     });
     Linking.openURL(url);
   };
+
+  const rawPrice = concertDetails?.tripPlan?.concertDetails?.ticketPrice || 0;
+
+  const formattedPrice =
+    rawPrice > 0
+      ? `₹${rawPrice.toLocaleString("en-IN")}`
+      : "Check on Booking Site";
 
   const DetailItem = ({ icon, label, value, isLast = false, onPress = null }) => (
     <TouchableOpacity 
@@ -36,9 +45,13 @@ export default function ConcertInfo({ concertData }) {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value} numberOfLines={2}>{value}</Text>
+        <Text style={styles.value} numberOfLines={2}>
+          {value}
+        </Text>
       </View>
-      {onPress && <Ionicons name="chevron-forward" size={20} color={Colors.GRAY} />}
+      {onPress && (
+        <Ionicons name="chevron-forward" size={20} color={Colors.GRAY} />
+      )}
     </TouchableOpacity>
   );
 
@@ -48,41 +61,54 @@ export default function ConcertInfo({ concertData }) {
         <View style={styles.artistInfo}>
           <Text style={styles.headerTitle}>Concert Pass</Text>
         </View>
-        <Text style={styles.artistName}>{concertData.artist}</Text>
+        <Text style={styles.artistName}>
+          {concertDetails?.concertData?.artist}
+        </Text>
       </View>
 
       <View style={styles.body}>
-        <DetailItem 
-          icon="calendar-outline" 
-          label="Event Date" 
-          value={concertData.concertDate} 
+        <DetailItem
+          icon="calendar-outline"
+          label="Event Date"
+          value={concertDetails?.concertData?.destinationInfo?.concertDate}
         />
-        <DetailItem 
-          icon="time-outline" 
-          label="Timing" 
-          value={`${concertData.concertStartTime} - ${concertData.concertEndTime}`} 
+        <DetailItem
+          icon="time-outline"
+          label="Timing"
+          value={`${concertDetails?.concertData?.destinationInfo?.concertTime}`}
         />
-        <DetailItem 
-          icon="cash-outline" 
-          label="Estimated Ticket Price" 
-          value={`${concertData.ticketPrice.toLocaleString('en-IN')}`} 
+        <DetailItem
+          icon="cash-outline"
+          label="Estimated Ticket Price"
+          value={formattedPrice}
         />
-        <DetailItem 
-          icon="location-outline" 
-          label="Venue" 
-          value={`${concertData.venueName}\n${concertData.venueAddress}`} 
+        <DetailItem
+          icon="location-outline"
+          label="Venue"
+          value={`${concertDetails?.concertData?.destinationInfo?.venueName}\n${concertDetails?.concertData?.destinationInfo?.venueAddress}`}
           isLast={true}
           onPress={openMaps}
         />
       </View>
 
-      {concertData.bookingURL && (
+      {(concertDetails?.concertData?.destinationInfo?.bookingUrl ||
+        concertDetails?.bookingUrl) && (
         <TouchableOpacity
-          onPress={() => Linking.openURL(concertData.bookingURL)}
+          onPress={() =>
+            Linking.openURL(
+              concertDetails?.concertData?.destinationInfo?.bookingUrl ||
+                concertDetails?.bookingUrl,
+            )
+          }
           style={styles.bookButton}
         >
           <Text style={styles.bookButtonText}>Secure Your Tickets</Text>
-          <Ionicons name="ticket-outline" size={20} color={Colors.WHITE} style={{ marginLeft: 8 }} />
+          <Ionicons
+            name="ticket-outline"
+            size={20}
+            color={Colors.WHITE}
+            style={{ marginLeft: 8 }}
+          />
         </TouchableOpacity>
       )}
     </View>

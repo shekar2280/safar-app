@@ -37,7 +37,7 @@ export default function ReviewTrip() {
     {
       icon: "📍",
       label: "Destination",
-      value: concertData?.locationInfo?.title,
+      value: concertData?.destinationInfo?.title,
     },
     {
       icon: (

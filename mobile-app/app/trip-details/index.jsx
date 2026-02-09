@@ -17,13 +17,13 @@ import HotelInfo from "../../components/TripDetails/HotelInfo";
 import PlannedTrip from "../../components/TripDetails/PlannedTrip";
 import RestaurantsInfo from "../../components/TripDetails/RestaurantsInfo";
 import TransportInfo from "../../components/TripDetails/TransportInfo";
-import ConcertInfo from "../../components/TripDetails/ConcertInfo";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
+import ConcertInfo from "../../components/TripDetails/ConcertInfo";
 
 const { width, height } = Dimensions.get("window");
 
@@ -36,6 +36,7 @@ export default function TripDetails() {
   const [tripDetails, setTripDetails] = useState({});
   const [loadingStaticData, setLoadingStaticData] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef(null);
@@ -81,6 +82,12 @@ export default function TripDetails() {
     }
   };
 
+  const handleScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / width);
+    setActiveIndex(index);
+  };
+
   const triggerHighlight = () => {
     Animated.sequence([
       Animated.timing(pulseAnim, {
@@ -94,13 +101,13 @@ export default function TripDetails() {
         useNativeDriver: true,
       }),
       Animated.timing(pulseAnim, {
-        toValue: 1.05,
-        duration: 300,
+        toValue: 1.04,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(pulseAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start();
@@ -165,6 +172,8 @@ export default function TripDetails() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           >
             {images.map((img, index) => (
               <Image
@@ -176,11 +185,29 @@ export default function TripDetails() {
               />
             ))}
           </ScrollView>
+
+          {images.length > 1 && (
+            <View style={styles.paginationDots}>
+              {images.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    activeIndex === index
+                      ? styles.activeDot
+                      : styles.inactiveDot,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.container}>
           <Text style={styles.title}>
-            {tripDetails?.tripPlan?.tripName || "Trip Details"}
+            {tripDetails?.tripPlan?.tripName ||
+              `${tripDetails?.concertData?.artist} Concert` ||
+              "Trip Details"}
           </Text>
           <View style={styles.infoRow}>
             <Text style={styles.dateText}>
@@ -188,7 +215,7 @@ export default function TripDetails() {
               {moment(tripDetails.endDate).format("DD MMM YYYY")}
             </Text>
           </View>
-          {!tripDetails.isActive ? (
+          {!tripDetails.isActive && !tripDetails?.concertData ? (
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
                 onPress={handleActivateTrip}
@@ -199,7 +226,7 @@ export default function TripDetails() {
                 </Text>
               </TouchableOpacity>
             </Animated.View>
-          ) : (
+          ) : tripDetails.isActive ? (
             <View style={styles.activeBadge}>
               <Ionicons
                 name="checkmark-done-circle"
@@ -208,9 +235,14 @@ export default function TripDetails() {
               />
               <Text style={styles.activeText}>Trip is Active.</Text>
             </View>
+          ) : null}
+
+          {tripDetails?.concertData && (
+            <ConcertInfo concertDetails={tripDetails} />
           )}
 
           <TransportInfo transportData={tripDetails} />
+
           <HotelInfo
             hotelData={tripDetails?.tripPlan?.hotelOptions}
             cityName={tripDetails?.tripPlan?.tripName}
@@ -219,12 +251,19 @@ export default function TripDetails() {
           <View style={{ paddingTop: 20 }}>
             <PlannedTrip
               itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
-              cityName={tripDetails?.tripPlan?.tripName}
+              cityName={
+                tripDetails?.tripPlan?.tripName ||
+                tripDetails?.tripPlan?.tripMetadata?.tripName
+              }
               onActivatePress={scrollToTop}
+              hideActivateBanner={!!tripDetails?.concertData}
             />
             <RestaurantsInfo
               restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations }}
-              cityName={tripDetails?.tripPlan?.tripName}
+              cityName={
+                tripDetails?.tripPlan?.tripName ||
+                tripDetails?.tripPlan?.tripMetadata?.tripName
+              }
             />
           </View>
         </View>
@@ -252,8 +291,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.WHITE,
   },
-  slideshowContainer: { height: height * 0.42, backgroundColor: "#000" },
+  slideshowContainer: {
+    height: height * 0.42,
+    backgroundColor: "#000",
+    position: "relative",
+  },
   headerImage: { width: width, height: height * 0.42 },
+  paginationDots: {
+    position: "absolute",
+    bottom: 45,
+    flexDirection: "row",
+    alignSelf: "center",
+    zIndex: 10,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  activeDot: {
+    width: 8,
+    backgroundColor: Colors.WHITE,
+  },
+  inactiveDot: {
+    width: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+  },
   container: {
     padding: width * 0.05,
     backgroundColor: Colors.WHITE,
