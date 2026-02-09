@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { itineraryPrompt, locationName } = req.body;
+  const { itineraryPrompt, locationName, tripCategory } = req.body;
 
   if (!itineraryPrompt || !locationName) {
     return res.status(400).json({ error: "Missing prompt or location name" });
@@ -22,52 +22,55 @@ export default async function handler(req, res) {
     });
 
     let imageUrls = [
-      "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80", 
-      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80", 
-      "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=1080&q=80"  
+      "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80",
+      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80",
+      "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=1080&q=80",
     ];
 
-    try {
-      const unsplashRes = await axios.get(
-        `https://api.unsplash.com/search/photos`,
-        {
-          params: {
-            query: locationName,
-            per_page: 3,
-            orientation: "landscape",
-            order_by: "relevant"
+    if (tripCategory !== "CONCERT") {
+      try {
+        const unsplashRes = await axios.get(
+          `https://api.unsplash.com/search/photos`,
+          {
+            params: {
+              query: locationName,
+              per_page: 3,
+              orientation: "landscape",
+              order_by: "relevant",
+            },
+            headers: {
+              Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`,
+            },
           },
-          headers: {
-            Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`,
-          },
-        }
-      );
-
-      const results = unsplashRes.data.results;
-
-      if (results && results.length > 0) {
-        imageUrls = results.map(
-          (img) => `${img.urls.raw}&auto=format&fit=crop&w=1080&h=720&q=80`
         );
-      } else {
-        console.warn(`Unsplash: No photos found for "${locationName}". Using defaults.`);
+
+        const results = unsplashRes.data.results;
+
+        if (results && results.length > 0) {
+          imageUrls = results.map(
+            (img) => `${img.urls.raw}&auto=format&fit=crop&w=1080&h=720&q=80`,
+          );
+        } else {
+          console.warn(
+            `Unsplash: No photos found for "${locationName}". Using defaults.`,
+          );
+        }
+      } catch (imgError) {
+        console.error("--- Unsplash API Error ---");
+        if (imgError.response) {
+          console.error("Status:", imgError.response.status);
+          console.error("Message:", imgError.response.data);
+        } else {
+          console.error("Error Message:", imgError.message);
+        }
+        console.error("--------------------------");
       }
-    } catch (imgError) {
-      console.error("--- Unsplash API Error ---");
-      if (imgError.response) {
-        console.error("Status:", imgError.response.status); 
-        console.error("Message:", imgError.response.data);
-      } else {
-        console.error("Error Message:", imgError.message);
-      }
-      console.error("--------------------------");
+
+      res.status(200).json({
+        itinerary: text,
+        imageUrls: imageUrls,
+      });
     }
-
-    res.status(200).json({ 
-      itinerary: text, 
-      imageUrls: imageUrls 
-    });
-
   } catch (error) {
     console.error("Global Handler Error:", error);
     res.status(500).json({
