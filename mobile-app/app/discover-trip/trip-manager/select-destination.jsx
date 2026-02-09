@@ -1,14 +1,17 @@
-import { View, Text, Dimensions, FlatList, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Dimensions,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { router, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import DiscoverCard from "../../../components/CreateTrip/DiscoverCard";
 import { CommonTripContext } from "../../../context/CommonTripContext";
 
-import {
-  HiddenGemIdeas,
-  FestiveTripIdeas,
-} from "../../../constants/Options";
+import { HiddenGemIdeas, FestiveTripIdeas } from "../../../constants/Options";
 
 const { width, height } = Dimensions.get("window");
 
@@ -33,32 +36,38 @@ export default function SelectDestination() {
       headerTitle: " ",
     });
 
-    setTripDetails(prev => ({
+    setTripDetails((prev) => ({
       ...prev,
       tripCategory,
     }));
   }, []);
 
   const onSelect = (item) => {
-    setSelectedLocation(item);
+    const { name, title, country, countryCode } = item;
 
-    setTripDetails(prev => ({
+    const cleanedLocation = {
+      name,
+      title,
+      country,
+      countryCode,
+    };
+
+    setSelectedLocation(cleanedLocation);
+
+    setTripDetails((prev) => ({
       ...prev,
-      destinationInfo: item,
+      destinationInfo: cleanedLocation,
     }));
 
-    if (tripCategory === "CONCERT") {
-      router.push("/discover-trip/select-artist");
-    } else {
-      router.push("/discover-trip/trip-manager/select-departure");
-    }
+    router.push("/discover-trip/trip-manager/select-departure");
+
   };
 
   return (
     <View
       style={{
         padding: width * 0.06,
-        paddingTop: height * 0.10,
+        paddingTop: height * 0.1,
         backgroundColor: Colors.WHITE,
         flex: 1,
         paddingBottom: height * 0.08,
@@ -85,7 +94,7 @@ export default function SelectDestination() {
           >
             <DiscoverCard
               option={item}
-              cardHeight={height * 0.20}
+              cardHeight={height * 0.2}
               selectedOption={selectedLocation}
             />
           </TouchableOpacity>
