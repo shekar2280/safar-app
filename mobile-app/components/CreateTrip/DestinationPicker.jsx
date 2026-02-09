@@ -42,6 +42,8 @@ export default function DestinationPicker({
   const handleSelect = (item) => {
   const addr = item.address;
   let rawCity = addr?.city || addr?.town || addr?.municipality || addr?.village || addr?.suburb || item.display_name.split(',')[0];
+  const countryCode = addr?.country_code; 
+  const countryName = addr?.country;
 
   let cleanName = rawCity
     .replace(/City of /gi, '')    
@@ -65,6 +67,8 @@ export default function DestinationPicker({
   const locationInfo = {
     name: item.display_name, 
     shortName: finalName, 
+    country: countryName,
+    countryCode: countryCode,
     coordinates: { lat: item.lat, lon: item.lon },
   };
 

@@ -53,11 +53,15 @@ export default function LocationPicker({
 
     const finalCity = aliases[cleanCity.toLowerCase()] || cleanCity;
     const stateName = address.state || "";
+    const countryCode = address?.country_code;
+    const countryName = address?.country;
 
     return {
       name: finalCity,
       label: `${finalCity}, ${stateName}`,
       fullAddress: data.display_name || "",
+      country: countryName,
+      countryCode: countryCode,
       coordinates: { lat, lon },
     };
   };
@@ -87,7 +91,7 @@ export default function LocationPicker({
               "User-Agent": "safar-travel-app",
               "Accept-Language": "en",
             },
-          }
+          },
         );
         const data = await res.json();
 
@@ -116,7 +120,7 @@ export default function LocationPicker({
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${state.query}&format=json&addressdetails=1`,
-          { headers: { "User-Agent": "safar-travel-app" } }
+          { headers: { "User-Agent": "safar-travel-app" } },
         );
         const data = await res.json();
         setState((s) => ({ ...s, results: data }));
@@ -131,7 +135,7 @@ export default function LocationPicker({
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${item.lat}&lon=${item.lon}&format=json&addressdetails=1`,
-        { headers: { "User-Agent": "safar-travel-app" } }
+        { headers: { "User-Agent": "safar-travel-app" } },
       );
       const data = await res.json();
 
