@@ -32,11 +32,13 @@ export default function SearchDestination() {
   const handleContinue = () => {
     if (!selectedLocation) return;
 
-    const departureCountry = tripData?.departureInfo?.countryCode;
+    const departureCode = tripData?.departureInfo?.countryCode?.toLowerCase();
+    const destinationCode = selectedLocation?.countryCode?.toLowerCase();
 
-    const destinationCountry = selectedLocation?.countryCode;
-
-    const isIntl = departureCountry !== destinationCountry;
+    const isIntl =
+      departureCode && destinationCode
+        ? departureCode !== destinationCode
+        : false;
 
     setTripData((prev) => ({
       ...prev,
@@ -50,7 +52,6 @@ export default function SearchDestination() {
 
   return (
     <View style={styles.container}>
-
       <TripTypeToggle
         selectedType={tripType}
         onSelectType={(type) => setTripType(type)}

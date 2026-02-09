@@ -11,14 +11,24 @@ import { trendingTripCardImages } from "../../constants/Options";
 
 const { width, height } = Dimensions.get("window");
 
-export default function TrendingTripCard({ option, selectedOption, cardHeight }) {
+export default function TrendingTripCard({
+  option,
+  selectedOption,
+  cardHeight,
+}) {
   const isSelected = selectedOption?.id === option?.id;
   const defaultHeight = height * 0.14;
   const cardRadius = width * 0.04;
 
-  const imageSource = useMemo(() => {
-  return trendingTripCardImages[Math.floor(Math.random() * trendingTripCardImages.length)];
-}, [option.id]);
+  const getImageSource = () => {
+    if (option?.image) {
+      return typeof option.image === "string"
+        ? { uri: option.image }
+        : option.image;
+    }
+    const fallbackIndex = (option?.id || 0) % trendingTripCardImages.length;
+    return { uri: trendingTripCardImages[fallbackIndex] };
+  };
 
   return (
     <View
@@ -32,7 +42,7 @@ export default function TrendingTripCard({ option, selectedOption, cardHeight })
       }}
     >
       <ImageBackground
-        source={imageSource}
+        source={getImageSource()}
         resizeMode="cover"
         style={{
           flex: 1,

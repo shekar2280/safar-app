@@ -17,7 +17,7 @@ const { width, height } = Dimensions.get("window");
 export default function SearchDeparture() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { setTripDetails } = useContext(CommonTripContext);
+  const { tripDetails, setTripDetails } = useContext(CommonTripContext);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [tripType, setTripType] = useState("Oneway");
 
@@ -32,10 +32,25 @@ export default function SearchDeparture() {
   const handleContinue = () => {
     if (!selectedLocation) return;
 
+    const {name, label, country, countryCode } = selectedLocation;
+
+    const cleanedLocation = {
+      name, label, country, countryCode,
+    };
+
+    const departureCode = tripDetails?.destinationInfo?.countryCode?.toLowerCase();
+    const destinationCode = selectedLocation?.countryCode?.toLowerCase();
+
+    const isIntl =
+      departureCode && destinationCode
+        ? departureCode !== destinationCode
+        : false;
+
     setTripDetails((prev) => ({
       ...prev,
-      departureInfo: selectedLocation,
+      departureInfo: cleanedLocation,
       tripType: tripType,
+      isInternational: isIntl,
     }));
 
     router.push("/discover-trip/trip-manager/select-traveler");
