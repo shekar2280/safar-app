@@ -18,14 +18,12 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  withRepeat,
   Easing,
 } from "react-native-reanimated";
 import { ConcertTripContext } from "../../../context/ConcertTripContext";
 import {
-  CONCERT_LOCATION_DATE_PROMPT, singerOptions} from "../../../constants/Options";
-import { generateTripPlan } from "../../../config/AiModel";
-import Constants from "expo-constants";
+  singerOptions,
+} from "../../../constants/Options";
 
 const { width, height } = Dimensions.get("window");
 
@@ -63,32 +61,23 @@ export default function ConcertTrip() {
 
   const animatedSearchStyle = useAnimatedStyle(() => ({
     opacity: searchBarOpacity.value,
-    transform: [{ translateY: headerTranslateY.value * 0.5 }], 
+    transform: [{ translateY: headerTranslateY.value * 0.5 }],
   }));
 
-  const cleanAiResponse = (rawText) => {
-    return rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-  };
-
-  const TICKETMASTER_API_KEY = Constants.expoConfig.extra.TICKETMASTER_API_KEY;
-  const fetchConcertsFromTicketmaster = async (artistName) => {
+  const fetchConcerts = async (artistName) => {
     try {
-      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${TICKETMASTER_API_KEY}&keyword=${encodeURIComponent(
-        artistName
-      )}&classificationName=music`;
+      const CONCERT_FINDER_URL = process.env.EXPO_PUBLIC_CONCERT_FINDER_URL;
+      const response = await fetch(
+        `${CONCERT_FINDER_URL}?artistName=${encodeURIComponent(artistName)}`,
+      );
+      const eventsRaw = await response.json();
 
-      const response = await fetch(url);
-      const data = await response.json();
+      if (!eventsRaw || eventsRaw.length === 0) return [];
 
-      if (!data._embedded?.events) return [];
-
-      const events = data._embedded.events.map((event) => {
+      const events = eventsRaw.map((event) => {
         const highResImage =
           event.images.find(
-            (img) => img.ratio === "16_9" && img.width > 1000
+            (img) => img.ratio === "16_9" && img.width > 1000,
           ) || event.images[0];
         const venue = event._embedded?.venues?.[0];
 
@@ -122,19 +111,17 @@ export default function ConcertTrip() {
 
       return events;
     } catch (err) {
-      console.error("Ticketmaster fetch error:", err);
+      console.error("Concert fetch error:", err);
       return [];
     }
   };
-
-  console.log("Concert data: ", concertData);
 
   const onSelectArtist = async (name) => {
     if (loading) return;
     setArtist(name);
     setLoading(true);
 
-    let options = await fetchConcertsFromTicketmaster(name);
+    let options = await fetchConcerts(name);
 
     setLoading(false);
 
@@ -143,7 +130,7 @@ export default function ConcertTrip() {
     } else {
       ToastAndroid.show(
         "No concerts found. Try another artist.",
-        ToastAndroid.LONG
+        ToastAndroid.LONG,
       );
     }
   };
@@ -164,7 +151,7 @@ export default function ConcertTrip() {
           placeholderTextColor={Colors.GRAY}
         />
       </Animated.View>
-      
+
       <View style={{ flex: 1, marginTop: 20 }}>
         <Text style={styles.subHeader}>Popular Artists</Text>
 
@@ -182,17 +169,20 @@ export default function ConcertTrip() {
               <View style={styles.card}>
                 <Image source={item.image} style={styles.cardImage} />
                 <View style={styles.imageOverlay} />
-                <Text 
-                style={[
-                  styles.cardText, 
-                  { fontSize: item.title.length > 12 ? 13 : 16 }
-                  ]}>{item.title}</Text>
+                <Text
+                  style={[
+                    styles.cardText,
+                    { fontSize: item.title.length > 12 ? 13 : 16 },
+                  ]}
+                >
+                  {item.title}
+                </Text>
               </View>
             </TouchableOpacity>
           )}
         />
       </View>
-      
+
       {artist.trim().length > 2 && (
         <TouchableOpacity
           onPress={() => onSelectArtist(artist)}
@@ -201,10 +191,14 @@ export default function ConcertTrip() {
           {loading ? (
             <ActivityIndicator size="small" color={Colors.WHITE} />
           ) : (
-            <Text style={[ 
-              styles.continueText,
-              { fontSize: artist.trim().length > 12 ? 13 : 16 }
-              ]}>Search "{artist}"</Text>
+            <Text
+              style={[
+                styles.continueText,
+                { fontSize: artist.trim().length > 12 ? 13 : 16 },
+              ]}
+            >
+              Search "{artist}"
+            </Text>
           )}
         </TouchableOpacity>
       )}
