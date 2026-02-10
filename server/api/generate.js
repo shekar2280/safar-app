@@ -41,6 +41,7 @@ export default async function handler(req, res) {
             headers: {
               Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`,
             },
+            timeout: 4000,
           },
         );
 
@@ -50,27 +51,16 @@ export default async function handler(req, res) {
           imageUrls = results.map(
             (img) => `${img.urls.raw}&auto=format&fit=crop&w=1080&h=720&q=80`,
           );
-        } else {
-          console.warn(
-            `Unsplash: No photos found for "${locationName}". Using defaults.`,
-          );
         }
       } catch (imgError) {
-        console.error("--- Unsplash API Error ---");
-        if (imgError.response) {
-          console.error("Status:", imgError.response.status);
-          console.error("Message:", imgError.response.data);
-        } else {
-          console.error("Error Message:", imgError.message);
-        }
-        console.error("--------------------------");
+        console.error(imgError.message);
       }
-
-      res.status(200).json({
-        itinerary: text,
-        imageUrls: imageUrls,
-      });
     }
+
+    return res.status(200).json({
+      itinerary: text,
+      imageUrls: imageUrls,
+    });
   } catch (error) {
     console.error("Global Handler Error:", error);
     res.status(500).json({
