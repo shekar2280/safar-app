@@ -127,7 +127,6 @@ export default function ReviewTrip() {
               marginRight: width * 0.04,
             }}
           >
-            {/* Handle both emoji & Ionicons */}
             {typeof item.icon === "string" ? (
               <Text style={{ fontSize: iconSize * 0.8 }}>{item.icon}</Text>
             ) : (

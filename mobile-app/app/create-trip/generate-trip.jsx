@@ -164,7 +164,6 @@ export default function GenerateTrip() {
           startDate: tripData.startDate,
           endDate: tripData.endDate,
           traveler: cleanTraveler,
-          imageUrl: finalImageUrl,
           isInternational: tripData.isInternational || false,
           departureIata: localDepartureIata,
           destinationIata, 

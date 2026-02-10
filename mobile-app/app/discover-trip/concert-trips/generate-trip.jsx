@@ -37,13 +37,13 @@ export default function GenerateConcertTrip() {
       concertData?.budget &&
       concertData?.destinationInfo?.concertDate;
 
-    if (isTripReady && user && !hasGenerated.current) {
+    if (isTripReady && user && !loading && !hasGenerated.current) {
       hasGenerated.current = true;
       generateAiTrip();
     } else if (!user) {
       setError("User not authenticated.");
     }
-  }, [concertData]);
+  }, [concertData, user]);
 
   const cleanAiResponse = (rawText) => {
     if (!rawText) return "{}";
@@ -69,6 +69,7 @@ export default function GenerateConcertTrip() {
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const generateAiTrip = async () => {
+    hasGenerated.current = true;
     setLoading(true);
     setError(null);
     setRetryCount(0);
@@ -87,7 +88,7 @@ export default function GenerateConcertTrip() {
 
       const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
       let attempts = 0;
-      const maxAttempts = 1;
+      const maxAttempts = 2;
       let success = false;
       let itineraryData;
       let destinationIata = "N/A";
