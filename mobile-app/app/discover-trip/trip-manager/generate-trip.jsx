@@ -27,6 +27,7 @@ import {
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import { CommonTripContext } from "../../../context/CommonTripContext";
+import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
 
@@ -199,6 +200,7 @@ export default function GenerateTrip() {
           createdAt: serverTimestamp(),
         });
 
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
         setLoading(false);
         resetTripDetails();
@@ -209,6 +211,7 @@ export default function GenerateTrip() {
         if (attempts < maxAttempts) {
           await delay(2000);
         } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setError(err.message || "Failed to generate trip.");
           setLoading(false);
           hasGenerated.current = false;

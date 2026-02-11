@@ -17,6 +17,7 @@ import { auth, db } from "../../../config/FirebaseConfig";
 import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore";
 import { ConcertTripContext } from "../../../context/ConcertTripContext";
 import { normalizeItinerary } from "../../../utils/normalizeItinerary";
+import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -157,9 +158,11 @@ export default function GenerateConcertTrip() {
         createdAt: serverTimestamp(),
         totalBudget: 0,
       });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setLoading(false);
       router.replace("/(tabs)/mytrip");
     } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       console.error("GENERATION ERROR:", err);
       setError(err.message || "Failed to generate concert trip.");
       setLoading(false);
