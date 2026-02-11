@@ -21,6 +21,7 @@ import {
 } from "firebase/firestore";
 import { normalizeItinerary } from "../../utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
+import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
 
@@ -172,6 +173,7 @@ export default function GenerateTrip() {
           createdAt: serverTimestamp(),
         });
 
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
         setLoading(false);
         router.replace("/(tabs)/mytrip");
@@ -181,6 +183,7 @@ export default function GenerateTrip() {
         if (attempts < maxAttempts) {
           await delay(2000);
         } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setError(err.message || "Failed to generate trip.");
           setLoading(false);
           hasGenerated.current = false;

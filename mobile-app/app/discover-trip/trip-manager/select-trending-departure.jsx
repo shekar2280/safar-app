@@ -5,17 +5,20 @@ import {
   Dimensions,
   TouchableOpacity,
   StyleSheet,
+  ToastAndroid,
+  Platform,
+  Alert,
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "../../../constants/Colors";
 import { CommonTripContext } from "../../../context/CommonTripContext";
-import { generateTripPlan } from "../../../config/AiModel";
 import { TRENDING_PLACE_PROMPT } from "../../../constants/Options";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { auth, db } from "../../../config/FirebaseConfig";
 import TrendingLocationPicker from "../../../components/CreateTrip/Trending-Location-Picker";
 import TripTypeToggle from "../../../components/CreateTrip/TripTypeToggle";
+import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,11 +41,25 @@ export default function SearchDeparture() {
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+  const showToast = (message) => {
+    if (Platform.OS === "android") {
+      ToastAndroid.showWithGravity(
+        message,
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM
+      );
+    } else {
+      Alert.alert("Notice", message);
+    }
+  };
+
   const fetchTrendingPlaces = async (locationInfo) => {
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2; 
     let success = false;
     let aiResp = null;
+
+    const FETCH_TRENDING_PLACES = process.env.EXPO_PUBLIC_FETCH_TRENDING_PLACES;
 
     try {
       const snapshot = await getDoc(
@@ -62,43 +79,49 @@ export default function SearchDeparture() {
 
       while (attempts < maxAttempts && !success) {
         try {
-          const rawResp = await generateTripPlan(prompt);
-          let cleanJson = rawResp;
-          if (typeof rawResp === "string") {
-            cleanJson = rawResp.replace(/```json|```/g, "").trim();
-          }
+          const response = await fetch(FETCH_TRENDING_PLACES, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trendingPlacesPrompt: prompt }),
+          });
 
-          aiResp =
-            typeof cleanJson === "string" ? JSON.parse(cleanJson) : cleanJson;
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Backend failed");
+
+          let rawText = result.trendingPlaces;
+          const cleanText = rawText.replace(/```json|```/g, "").trim();
+          aiResp = JSON.parse(cleanText);
 
           success = true;
         } catch (err) {
           console.log(`Attempt ${attempts + 1} failed:`, err.message);
           attempts++;
           if (attempts < maxAttempts) {
-            await delay(attempts * 2000);
+            await delay(2000);
           } else {
             throw err;
           }
         }
       }
 
-      setTripDetails((prev) => ({ ...prev, trendingPlaces: aiResp }));
+      if (aiResp && Array.isArray(aiResp) && aiResp.length > 0) {
+        setTripDetails((prev) => ({ ...prev, trendingPlaces: aiResp }));
 
-      await setDoc(doc(db, "TrendingPlaces", locationInfo.normalizedKey), {
-        userEmail: user?.email,
-        city: locationInfo.city,
-        state: locationInfo.state,
-        country: locationInfo.country,
-        normalizedKey: locationInfo.normalizedKey,
-        trendingPlaces: aiResp,
-        createdAt: serverTimestamp(),
-      });
+        await setDoc(doc(db, "TrendingPlaces", locationInfo.normalizedKey), {
+          userEmail: user?.email,
+          city: locationInfo.city,
+          state: locationInfo.state,
+          country: locationInfo.country,
+          normalizedKey: locationInfo.normalizedKey,
+          trendingPlaces: aiResp,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       return aiResp;
     } catch (error) {
       console.error("AI Fetch Error:", error);
-      return [];
+      return null;
     }
   };
 
@@ -113,10 +136,17 @@ export default function SearchDeparture() {
       tripType: tripType,
     }));
 
-    await fetchTrendingPlaces(location);
+    const data = await fetchTrendingPlaces(location);
 
     setLoading(false);
-    router.push("/discover-trip/trip-manager/select-trending-destination");
+
+    if (data && Array.isArray(data) && data.length > 0) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      router.push("/discover-trip/trip-manager/select-trending-destination");
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast("Unable to find trending places for this location. Please try again.");
+    }
   };
 
   return (
