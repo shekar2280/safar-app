@@ -9,6 +9,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,9 +18,9 @@ import {
   getAuth,
   signOut,
   updatePassword,
-  deleteUser,
-  reauthenticateWithCredential,
   EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
 } from "firebase/auth";
 import {
   doc,
@@ -34,13 +35,15 @@ import { db } from "../../config/FirebaseConfig";
 import { Colors } from "../../constants/Colors";
 import { useUser } from "../../context/UserContext";
 
+const DEFAULT_AVATAR =
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770733460/profile_unrdpd.jpg";
+
 export default function Profile() {
   const auth = getAuth();
   const router = useRouter();
   const { userProfile, setUserProfile } = useUser();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -49,14 +52,12 @@ export default function Profile() {
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.fullName || "");
-      setEmail(auth.currentUser?.email || "");
     }
   }, [userProfile]);
 
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
-
     if (password && password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
@@ -64,24 +65,26 @@ export default function Profile() {
 
     setLoading(true);
     try {
+      const updatedData = { ...userProfile, fullName: name };
       await setDoc(
         doc(db, "users", user.uid),
         { fullName: name },
         { merge: true },
       );
-      setUserProfile({ ...userProfile, fullName: name });
+      setUserProfile(updatedData);
       await AsyncStorage.setItem(
         `profile_${user.uid}`,
-        JSON.stringify(updatedProfile),
+        JSON.stringify(updatedData),
       );
 
-      if (password) await updatePassword(user, password);
-
-      Alert.alert("Success", "Profile updated");
+      if (password) {
+        await updatePassword(user, password);
+      } 
       setPassword("");
       setConfirmPassword("");
+      Alert.alert("Success", "Profile Updated");
     } catch (e) {
-      Alert.alert("Update Failed", e.message);
+      Alert.alert("Error", e.message);
     } finally {
       setLoading(false);
     }
@@ -91,6 +94,7 @@ export default function Profile() {
     try {
       await signOut(auth);
       await AsyncStorage.removeItem("seenLogin");
+      setUserProfile(null);
       router.replace("auth/Login");
     } catch (e) {
       Alert.alert("Logout Error", e.message);
@@ -100,133 +104,167 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     const user = auth.currentUser;
     if (!currentPassword || !user) {
-      Alert.alert("Error", "Password required");
+      Alert.alert("Error", "Password required to confirm deletion.");
       return;
     }
 
     setLoading(true);
     try {
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword,
-      );
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
 
-      const tripsQ = query(
-        collection(db, "UserTrips"),
-        where("userEmail", "==", user.email),
-      );
-      const snapshot = await getDocs(tripsQ);
-      await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+      const tripsCollectionRef = collection(db, "UserTrips", user.uid, "trips");
+      const snapshot = await getDocs(tripsCollectionRef);
+      
+      const deleteTripsPromises = snapshot.docs.map((d) => deleteDoc(d.ref));
+      await Promise.all(deleteTripsPromises);
+
+      await deleteDoc(doc(db, "UserTrips", user.uid));
 
       await deleteDoc(doc(db, "users", user.uid));
+
       await deleteUser(user);
+
       await AsyncStorage.removeItem("seenLogin");
+      setUserProfile(null);
+      setShowDeleteModal(false);
       router.replace("auth/Login");
+
+      Alert.alert("Account Deleted", "Your account and all associated data have been removed.");
     } catch (e) {
-      Alert.alert("Error", "Check your password and try again.");
+      console.error("Deletion Error:", e);
+      Alert.alert("Error", "Verification failed. Please check your password.");
     } finally {
       setLoading(false);
-      setShowDeleteModal(false);
     }
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <View style={styles.topActions}>
-          <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
-            <Ionicons name="trash-outline" size={26} color="#c92c2c" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.deleteIcon}
+          onPress={() => setShowDeleteModal(true)}
+        >
+          <Ionicons name="trash-outline" size={24} color="#FF4444" />
+        </TouchableOpacity>
+
+        <View style={styles.imageWrapper}>
+          <Image source={{ uri: DEFAULT_AVATAR }} style={styles.profileImage} />
+          <View style={styles.activeBadge} />
         </View>
 
-        <View style={styles.iconCircle}>
-          <Ionicons name="person" size={30} color={Colors.WHITE} />
-        </View>
-        <Text style={styles.userName}>{name || "User"}</Text>
-        <Text style={styles.userEmail}>{email}</Text>
+        <Text style={styles.userName}>{name || "Explorer"}</Text>
+        <Text style={styles.userEmail}>{auth.currentUser?.email}</Text>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Account Information</Text>
+        <Text style={styles.subHeading}>PERSONAL DETAILS</Text>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full Name</Text>
-          <TextInput value={name} onChangeText={setName} style={styles.input} />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email Address</Text>
+        <View style={styles.inputContainer}>
+          <Ionicons
+            name="person-outline"
+            size={20}
+            color={Colors.PRIMARY}
+            style={styles.inputIcon}
+          />
           <TextInput
-            value={email}
-            editable={false}
-            style={[styles.input, styles.disabledInput]}
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+            placeholder="Full Name"
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Security</Text>
+        <Text style={[styles.subHeading, { marginTop: 10 }]}>SECURITY</Text>
 
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          placeholder="New Password"
-          secureTextEntry
-        />
-        <TextInput
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          style={styles.input}
-          placeholder="Confirm New Password"
-          secureTextEntry
-        />
+        <View style={styles.inputContainer}>
+          <Ionicons
+            name="lock-closed-outline"
+            size={20}
+            color={Colors.PRIMARY}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            placeholder="New Password"
+            secureTextEntry
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={20}
+            color={Colors.PRIMARY}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            style={styles.input}
+            placeholder="Confirm Password"
+            secureTextEntry
+          />
+        </View>
 
         <TouchableOpacity
-          style={styles.saveBtn}
+          style={styles.primaryBtn}
           onPress={handleSave}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Colors.WHITE} />
           ) : (
-            <Text style={styles.saveBtnText}>Save Changes</Text>
+            <Text style={styles.primaryBtnText}>SAVE SETTINGS</Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.logOutBtn} onPress={handleLogout}>
-          <Text style={styles.logOutBtnText}>Log Out</Text>
+
+        <TouchableOpacity style={styles.secondaryBtn} onPress={handleLogout}>
+          <Text style={styles.secondaryBtnText}>SIGN OUT</Text>
         </TouchableOpacity>
       </View>
 
       <Modal visible={showDeleteModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Account</Text>
+            <Text style={styles.modalTitle}>Terminate Account</Text>
             <Text style={styles.modalSub}>
-              Irreversible. Enter password to confirm.
+              This action is permanent and will delete all your saved trips.
+              Enter password to proceed.
             </Text>
 
             <TextInput
-              style={styles.input}
-              placeholder="Password"
+              style={styles.modalInput}
+              placeholder="Confirm Password"
               secureTextEntry
-              value={currentPassword}
               onChangeText={setCurrentPassword}
             />
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalCancel}
-                onPress={() => setShowDeleteModal(false)}
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setCurrentPassword("");
+                }}
+                disabled={loading}
               >
-                <Text style={{ color: Colors.GRAY }}>Cancel</Text>
+                <Text style={styles.cancelText}>CANCEL</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.modalDelete}
+                style={[styles.deleteConfirmBtn, loading && { opacity: 0.7 }]}
                 onPress={handleDeleteAccount}
+                disabled={loading}
               >
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                  Delete
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color={Colors.WHITE} size="small" />
+                ) : (
+                  <Text style={styles.deleteConfirmText}>DELETE</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -239,97 +277,145 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.WHITE },
   header: {
-    backgroundColor: "#7772ab",
-    paddingTop: 40,
-    paddingBottom: 15,
+    backgroundColor: Colors.PRIMARY,
+    paddingTop: 60,
+    paddingBottom: 30,
     alignItems: "center",
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
   },
-  topActions: {
-    position: "absolute",
-    top: 45,
-    right: 20,
-    flexDirection: "row",
-    gap: 18,
-  },
-  iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 45,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
+  deleteIcon: { position: "absolute", top: 50, right: 30 },
+  imageWrapper: {
+    padding: 1,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: Colors.WHITE,
     marginBottom: 15,
   },
-  userName: { fontSize: 24, fontWeight: "bold", color: Colors.WHITE },
-  userEmail: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 4 },
-  content: { padding: 25 },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 8,
+  profileImage: { width: 100, height: 100, borderRadius: 50 },
+  activeBadge: {
+    position: "absolute",
+    bottom: 5,
+    right: 5,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#00FF00",
+    borderWidth: 3,
+    borderColor: Colors.PRIMARY,
   },
-  inputGroup: { marginBottom: 5 },
-  label: { fontSize: 13, color: Colors.GRAY, marginBottom: 4 },
-  input: {
-    backgroundColor: "#F7F7F7",
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#EEE",
+  userName: {
+    fontSize: 26,
+    fontFamily: "outfitBold",
+    color: Colors.WHITE,
+    letterSpacing: 1,
+  },
+  userEmail: {
+    fontSize: 14,
+    fontFamily: "outfit",
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 4,
+  },
+  content: { paddingHorizontal: 30, paddingVertical: 30 },
+  subHeading: {
+    fontSize: 12,
+    fontFamily: "outfitBold",
+    color: Colors.PRIMARY,
+    letterSpacing: 2,
     marginBottom: 10,
   },
-  disabledInput: { color: "#999", backgroundColor: "#EBEBEB" },
-  saveBtn: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 18,
-    borderRadius: 12,
+  inputContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    borderBottomWidth: 1.5,
+    borderColor: "#E0E0E0",
+    marginBottom: 15,
   },
-  saveBtnText: { color: Colors.WHITE, fontSize: 16, fontWeight: "bold" },
-  logOutBtn: {
-    backgroundColor: "#ef5b5b",
-    padding: 18,
-    borderRadius: 12,
+  inputIcon: { marginRight: 10 },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontFamily: "outfit",
+    color: Colors.PRIMARY,
+  },
+  primaryBtn: {
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 30,
+    elevation: 5,
+  },
+  primaryBtnText: {
+    color: Colors.WHITE,
+    fontSize: 14,
+    fontFamily: "outfitBold",
+    letterSpacing: 2,
+  },
+  secondaryBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.PRIMARY,
+    paddingVertical: 18,
+    borderRadius: 10,
     alignItems: "center",
     marginTop: 15,
   },
-  logOutBtnText: { color: Colors.WHITE, fontSize: 16, fontWeight: "bold" },
+  secondaryBtnText: {
+    color: Colors.PRIMARY,
+    fontSize: 14,
+    fontFamily: "outfitBold",
+    letterSpacing: 2,
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "center",
-    padding: 20,
+    padding: 25,
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 25,
-    padding: 25,
+    backgroundColor: Colors.WHITE,
+    borderRadius: 15,
+    padding: 30,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "outfitBold",
+    color: "#000",
     marginBottom: 10,
-    color: "red",
   },
-  modalSub: { color: "#666", marginBottom: 20 },
-  modalActions: { flexDirection: "row", gap: 12 },
-  modalCancel: {
+  modalSub: {
+    fontSize: 14,
+    fontFamily: "outfit",
+    color: "#666",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: 25,
+    fontFamily: "outfit",
+  },
+  modalActions: { flexDirection: "row", gap: 15 },
+  cancelBtn: {
     flex: 1,
-    padding: 15,
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    padding: 15,
   },
-  modalDelete: {
+  cancelText: { fontFamily: "outfitBold", color: "#666" },
+  deleteConfirmBtn: {
     flex: 1,
-    padding: 15,
+    backgroundColor: "#FF4444",
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: "red",
+    justifyContent: "center",
+    padding: 15,
+    borderRadius: 8,
   },
+  deleteConfirmText: { color: Colors.WHITE, fontFamily: "outfitBold" },
 });

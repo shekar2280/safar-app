@@ -160,6 +160,15 @@ export default function TripDetails() {
     );
   }
 
+  const transportData = useMemo(
+    () => ({
+      tripType: tripDetails?.tripType,
+      departureIata: tripDetails?.departureIata || tripDetails?.tripPlan?.departureIata,
+      destinationIata: tripDetails?.tripPlan?.destinationIata,
+    }),
+    [tripDetails?.id, tripDetails?.tripPlan?.departureIata],
+  );
+
   return (
     <>
       <ScrollView
@@ -173,7 +182,7 @@ export default function TripDetails() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
-            scrollEventThrottle={16}
+            scrollEventThrottle={32}
           >
             {images.map((img, index) => (
               <Image
@@ -241,7 +250,7 @@ export default function TripDetails() {
             <ConcertInfo concertDetails={tripDetails} />
           )}
 
-          <TransportInfo transportData={tripDetails} />
+          <TransportInfo transportData={transportData} />
 
           <HotelInfo
             hotelData={tripDetails?.tripPlan?.hotelOptions}

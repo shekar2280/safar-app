@@ -55,10 +55,7 @@ export default {
     extra: {
       "eas": {
         "projectId": "2420fa32-7cf7-49db-8529-22802ad9c805"
-      },
-      UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY,
-      "OCRSPACE_API_KEY": process.env.OCRSPACE_API_KEY,
-      "TICKETMASTER_API_KEY": process.env.TICKETMASTER_API_KEY,
+      }
     },
   },
 };

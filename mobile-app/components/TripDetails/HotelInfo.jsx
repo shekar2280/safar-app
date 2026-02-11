@@ -10,7 +10,7 @@ import {
   Alert,
   StyleSheet,
 } from "react-native";
-import { Image } from "expo-image"; // Updated for consistency with your TransportInfo
+import { Image } from "expo-image"; 
 import { Colors } from "../../constants/Colors";
 import { LOCAL_HOTEL_IMAGES } from "../../constants/Options";
 
@@ -110,7 +110,7 @@ const HotelCard = ({ hotel, index, cityName, onOpenMaps }) => {
         </Text>
 
         <Text numberOfLines={2} style={styles.description}>
-          {hotel.description}
+          {hotel.description || hotel.shortDescription}
         </Text>
 
         <TouchableOpacity

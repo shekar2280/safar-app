@@ -4,3 +4,5 @@ android/
 ios/
 dist/
 .git/
+
+!google-services.json
