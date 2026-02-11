@@ -141,10 +141,14 @@ export default function UserTripList({ userTrips, onDelete }) {
         </View>
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Trip History</Text>
-      {otherTrips.map((trip) => (
-        <UserTripCard key={trip.id} trip={trip} onDelete={onDelete} />
-      ))}
+      {otherTrips.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>Trip History</Text>
+          {otherTrips.map((trip) => (
+            <UserTripCard key={trip.id} trip={trip} onDelete={onDelete} />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -190,6 +194,6 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     marginTop: 25,
     marginBottom: 5,
-       color: "#1A1A1A",
+    color: "#1A1A1A",
   },
 });

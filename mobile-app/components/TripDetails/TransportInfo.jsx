@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { memo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,11 +13,11 @@ import { Colors } from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
-export default function TransportInfo({ transportData }) {
+const TransportInfo = ({ transportData }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  if (!transportData?.departureIata && !departureIata) return null;
+  if (!transportData?.departureIata) return null;
 
   const { tripType, departureIata, destinationIata } = transportData;
 
@@ -130,7 +130,9 @@ export default function TransportInfo({ transportData }) {
       </View>
     </View>
   );
-}
+};
+
+export default memo(TransportInfo);
 
 const styles = StyleSheet.create({
   wrapper: { marginTop: 25 },
