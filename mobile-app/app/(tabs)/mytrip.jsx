@@ -7,26 +7,27 @@ import {
   Dimensions,
   Animated,
   StyleSheet,
+  TextInput,
+  Keyboard,
 } from "react-native";
-import React, { useEffect, useState, useContext, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Colors } from "../../constants/Colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "../../components/MyTrips/StartNewTripCard";
-import { useRouter } from "expo-router";
 import UserTripList from "../../components/MyTrips/UserTripList";
-import { CreateTripContext } from "../../context/CreateTripContext";
 import { useUser } from "../../context/UserContext";
 import NetInfo from "@react-native-community/netinfo";
 
 const { width, height } = Dimensions.get("window");
 
 export default function Mytrip() {
-  const { userTrips, setUserTrips, loading } = useUser();
+  const { userTrips, setUserTrips, userProfile, loading } = useUser();
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const router = useRouter();
-  const { setTripData } = useContext(CreateTripContext);
+  const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -63,51 +64,117 @@ export default function Mytrip() {
     setUserTrips((prev) => prev.filter((t) => t.id !== deletedId));
   };
 
+  const filteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return userTrips;
+    const q = searchQuery.toLowerCase().trim();
+    return userTrips.filter((item) => {
+      const tripName = item?.concertData?.artist
+        ? `${item.concertData.artist} Concert`
+        : item?.savedTripId
+          ? item.savedTripId.split("-")[0]
+          : "My Trip";
+      
+      const tripLocation = item?.tripData?.locationInfo?.name || "";
+      const discoverLocation = item?.discoverData?.locationInfo?.name || "";
+      
+      return (
+        tripName.toLowerCase().includes(q) ||
+        tripLocation.toLowerCase().includes(q) ||
+        discoverLocation.toLowerCase().includes(q)
+      );
+    });
+  }, [userTrips, searchQuery]);
+
+  const toggleSearch = () => {
+    if (isSearching) {
+      setSearchQuery("");
+      Keyboard.dismiss();
+    }
+    setIsSearching(!isSearching);
+  };
+
   return (
-    <ScrollView
-      style={{ paddingTop: height * 0.03, backgroundColor: Colors.WHITE }}
-      contentContainerStyle={{ padding: width * 0.05, flexGrow: 1 }}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>My Trips</Text>
-        <TouchableOpacity
-          onPress={() => {
-            setTripData({});
-            router.push("/create-trip/select-departure");
-          }}
-        >
-          <Ionicons name="add-circle" size={width * 0.14} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      {isOffline && (
-        <View style={[styles.banner, { backgroundColor: "orange" }]}>
-          <Text style={styles.bannerText}>Offline Mode</Text>
+    <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
+      <ScrollView
+        style={{ paddingTop: height * 0.03 }}
+        contentContainerStyle={{
+          paddingHorizontal: width * 0.03,
+          paddingTop: height * 0.03,
+          paddingBottom: height * 0.16,
+          flexGrow: 1,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          {isSearching ? (
+            <View style={styles.searchBarWrapper}>
+              <Ionicons name="search" size={20} color={Colors.GRAY} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search your journeys..."
+                placeholderTextColor={Colors.GRAY}
+                autoFocus={true}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <TouchableOpacity onPress={toggleSearch} style={styles.closeBtn}>
+                <Ionicons name="close-circle" size={22} color={Colors.GRAY} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.title}>Hi, {firstName}</Text>
+              <View style={styles.headerActions}>
+                <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
+                  <Ionicons name="notifications-outline" size={22} color={Colors.TEXT} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} activeOpacity={0.8} onPress={toggleSearch}>
+                  <Ionicons name="search-outline" size={22} color={Colors.TEXT} />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
-      )}
-      {showBackOnline && (
-        <Animated.View
-          style={[
-            styles.banner,
-            { backgroundColor: "green", opacity: fadeAnim },
-          ]}
-        >
-          <Text style={styles.bannerText}>Back Online</Text>
-        </Animated.View>
-      )}
 
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={Colors.PRIMARY}
-          style={{ marginTop: 50 }}
-        />
-      ) : userTrips?.length === 0 ? (
-        <StartNewTripCard />
-      ) : (
-        <UserTripList userTrips={userTrips} onDelete={handleDelete} />
-      )}
-    </ScrollView>
+        {isOffline && (
+          <View style={[styles.banner, { backgroundColor: Colors.SECONDARY }]}>
+            <Text style={styles.bannerText}>Offline Mode</Text>
+          </View>
+        )}
+        {showBackOnline && (
+          <Animated.View
+            style={[
+              styles.banner,
+              { backgroundColor: Colors.ACCENT, opacity: fadeAnim },
+            ]}
+          >
+            <Text style={styles.bannerText}>Back Online</Text>
+          </Animated.View>
+        )}
+
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.PRIMARY}
+            style={{ marginTop: 50 }}
+          />
+        ) : filteredTrips?.length === 0 ? (
+          searchQuery.trim() ? (
+            <View style={styles.noResults}>
+              <Ionicons name="map-outline" size={60} color={Colors.LIGHT_GRAY} />
+              <Text style={styles.noResultsText}>No trips matched "{searchQuery}"</Text>
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Text style={styles.clearSearch}>Clear Search</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <StartNewTripCard />
+          )
+        ) : (
+          <UserTripList userTrips={filteredTrips} onDelete={handleDelete} />
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -116,8 +183,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 50,
   },
-  title: { fontFamily: "outfitBold", fontSize: 34 },
+  title: { fontFamily: "outfitBold", fontSize: 30, color: Colors.TEXT },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.SURFACE,
+    borderWidth: 1,
+    borderColor: Colors.BORDER,
+  },
+  searchBarWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.SURFACE,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 50,
+    borderWidth: 1,
+    borderColor: Colors.BORDER,
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    fontFamily: "outfit",
+    fontSize: 16,
+    color: Colors.TEXT,
+  },
+  closeBtn: { padding: 4 },
   banner: {
     flexDirection: "row",
     padding: 8,
@@ -126,4 +233,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bannerText: { color: "white", fontFamily: "outfit" },
+  noResults: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 100,
+    gap: 12,
+  },
+  noResultsText: {
+    fontFamily: "outfitMedium",
+    fontSize: 18,
+    color: Colors.MUTED_TEXT,
+    textAlign: "center",
+  },
+  clearSearch: {
+    fontFamily: "outfit",
+    fontSize: 14,
+    color: Colors.SECONDARY,
+    textDecorationLine: "underline",
+  },
 });
+

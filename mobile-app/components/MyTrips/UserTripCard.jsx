@@ -9,8 +9,9 @@ import {
 import React, { useMemo } from "react";
 import moment from "moment";
 import { Colors } from "../../constants/Colors";
+import { Typography, Radius, Shadow, Spacing } from "../../constants/Theme";
 import { useRouter } from "expo-router";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 import { concertImages, fallbackImages } from "../../constants/Options";
@@ -101,7 +102,7 @@ export default function UserTripCard({ trip, onDelete }) {
 
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={2}>
             {tripName}
           </Text>
           <Text style={styles.dateText}>
@@ -124,36 +125,45 @@ export default function UserTripCard({ trip, onDelete }) {
 
 const styles = StyleSheet.create({
   card: {
-    height: 130,
-    borderRadius: 20,
-    marginBottom: 15,
+    minHeight: 230,
+    borderRadius: Radius.lg,
+    marginBottom: Spacing.lg,
     overflow: "hidden",
-    backgroundColor: "#000",
-    elevation: 4,
+    backgroundColor: Colors.SURFACE,
+    borderWidth: 1,
+    borderColor: Colors.BORDER,
+    ...Shadow.card,
   },
   bannerImage: { ...StyleSheet.absoluteFillObject },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.32)",
   },
   content: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    alignItems: "flex-end",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
   },
-  title: { color: "white", fontFamily: "outfitBold", fontSize: 20 },
+  title: {
+    ...Typography.body,
+    fontFamily: "outfitBold",
+    fontSize: width * 0.058,
+    lineHeight: width * 0.07,
+    color: Colors.WHITE,
+  },
   dateText: {
-    color: "rgba(255,255,255,0.8)",
-    fontFamily: "outfit",
-    fontSize: 14,
-    marginTop: 2,
+    ...Typography.bodyMuted,
+    fontSize: width * 0.037,
+    color: "rgba(249,250,251,0.86)",
+    marginTop: 6,
   },
   deleteBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 30,
-    backgroundColor: "rgba(0, 0, 0, 0.63)",
+    width: 46,
+    height: 46,
+    borderRadius: Radius.pill,
+    backgroundColor: "rgba(15,23,42,0.78)",
     justifyContent: "center",
     alignItems: "center",
   },
