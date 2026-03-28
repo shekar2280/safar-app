@@ -6,6 +6,11 @@ import {
   TouchableOpacity,
   ToastAndroid,
   Dimensions,
+  ImageBackground,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
@@ -15,6 +20,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../../../config/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 
@@ -63,113 +70,203 @@ export default function SignUp() {
         } else {
           ToastAndroid.show("Something went wrong", ToastAndroid.LONG);
         }
-        console.log(error.code, error.message);
       });
   };
 
   return (
-    <View style={styles.screen}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={width * 0.06} color="black" />
-      </TouchableOpacity>
-      <Text style={styles.title}>Create New Account</Text>
-
-      <View style={{ marginTop: height * 0.05 }}>
-        <Text style={styles.label}>Full Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Full Name"
-          onChangeText={setFullName}
-        />
-      </View>
-      <View style={{ marginTop: height * 0.025 }}>
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          onChangeText={setEmail}
-        />
-      </View>
-      <View style={{ marginTop: height * 0.025 }}>
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          secureTextEntry
-          style={styles.input}
-          placeholder="Enter Password"
-          onChangeText={setPassword}
-        />
-      </View>
-
-      <TouchableOpacity
-        style={styles.createBtn}
-        onPress={OnCreateAccount}
-        disabled={loading}
+    <ImageBackground
+      source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774696616/login2_rtocxo.jpg" }}
+      style={styles.screen}
+    >
+      <LinearGradient
+        colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)"]}
+        style={styles.gradient}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
       >
-        <Text style={styles.createText}>
-          {loading ? "Creating..." : "Create Account"}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => router.replace("auth/sign-in")}
-        style={styles.signInBtn}
-      >
-        <Text style={styles.signInText}>Sign In</Text>
-      </TouchableOpacity>
-    </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.WHITE} />
+          </TouchableOpacity>
+
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join Safar and start your next adventure today.</Text>
+          </View>
+
+          <BlurView intensity={40} tint="dark" style={styles.glassCard}>
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.6)" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  onChangeText={setFullName}
+                  value={fullName}
+                />
+              </View>
+
+              <View style={[styles.inputContainer, { marginTop: 15 }]}>
+                <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.6)" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  value={email}
+                />
+              </View>
+
+              <View style={[styles.inputContainer, { marginTop: 15 }]}>
+                <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" />
+                <TextInput
+                  secureTextEntry
+                  style={styles.input}
+                  placeholder="Password (min. 8 chars)"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  onChangeText={setPassword}
+                  value={password}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.createBtn}
+                onPress={OnCreateAccount}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                ) : (
+                  <Text style={styles.createText}>Create Account</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </BlurView>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => router.replace("auth/sign-in")}>
+              <Text style={styles.signInLink}> Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    padding: width * 0.06,
-    paddingTop: height * 0.12,
-    backgroundColor: Colors.WHITE,
     flex: 1,
+  },
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 25,
+    paddingTop: height * 0.08,
+    paddingBottom: 40,
+  },
+  backButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  header: {
+    marginTop: 30,
+    marginBottom: 40,
   },
   title: {
     fontFamily: "outfitBold",
-    fontSize: width * 0.08,
-    marginTop: height * 0.03,
+    fontSize: 34,
+    color: Colors.WHITE,
   },
-  label: {
+  subtitle: {
     fontFamily: "outfit",
-    fontSize: width * 0.045,
-    marginBottom: height * 0.005,
+    fontSize: 16,
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 5,
+  },
+  glassCard: {
+    borderRadius: 24,
+    padding: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  form: {
+    width: "100%",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    height: 60,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   input: {
-    padding: height * 0.02,
-    borderWidth: 1,
-    borderRadius: width * 0.04,
-    borderColor: Colors.GRAY,
+    flex: 1,
+    marginLeft: 10,
     fontFamily: "outfit",
-    fontSize: width * 0.045,
+    fontSize: 16,
+    color: Colors.WHITE,
   },
   createBtn: {
-    paddingVertical: height * 0.025,
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: width * 0.04,
-    marginTop: height * 0.06,
+    height: 60,
+    backgroundColor: Colors.SECONDARY,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 30,
+    shadowColor: Colors.SECONDARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   createText: {
-    color: Colors.WHITE,
-    textAlign: "center",
-    fontSize: width * 0.045,
-    fontFamily: "outfit",
-  },
-  signInBtn: {
-    paddingVertical: height * 0.025,
-    backgroundColor: Colors.WHITE,
-    borderRadius: width * 0.04,
-    marginTop: height * 0.02,
-    borderWidth: 1,
-    borderColor: Colors.GRAY,
-  },
-  signInText: {
+    fontFamily: "outfitBold",
+    fontSize: 18,
     color: Colors.PRIMARY,
-    textAlign: "center",
-    fontSize: width * 0.045,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
+  footerText: {
     fontFamily: "outfit",
+    fontSize: 15,
+    color: "rgba(255,255,255,0.6)",
+  },
+  signInLink: {
+    fontFamily: "outfitBold",
+    fontSize: 15,
+    color: Colors.SECONDARY,
   },
 });
+
