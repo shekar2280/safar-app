@@ -26,6 +26,7 @@ import LottieView from "lottie-react-native";
 import ConcertInfo from "../../components/TripDetails/ConcertInfo";
 
 const { width, height } = Dimensions.get("window");
+const SLIDESHOW_HEIGHT = height * 0.52;
 
 export default function TripDetails() {
   const user = auth.currentUser;
@@ -301,11 +302,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
   },
   slideshowContainer: {
-    height: height * 0.42,
+    height: SLIDESHOW_HEIGHT,
     backgroundColor: "#000",
     position: "relative",
   },
-  headerImage: { width: width, height: height * 0.42 },
+  headerImage: { width: width, height: SLIDESHOW_HEIGHT },
   paginationDots: {
     position: "absolute",
     bottom: 45,
