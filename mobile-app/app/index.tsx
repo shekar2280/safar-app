@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import Login from "./auth/Login";
-import { auth } from "./../config/FirebaseConfig"
+import { auth } from "@/src/lib/firebase";
 import { Redirect } from "expo-router";
 
 export default function Index() {
@@ -9,7 +9,7 @@ export default function Index() {
   return (
     <View style={{ flex: 1 }}>
       {user ? 
-        <Redirect href={"/mytrip"} />
+        <Redirect href={"/(tabs)/mytrip" as any} />
       : 
         <Login />
       }

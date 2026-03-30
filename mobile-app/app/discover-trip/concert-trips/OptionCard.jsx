@@ -1,6 +1,6 @@
 import { View, Text, Dimensions } from "react-native";
 import React from "react";
-import { Colors } from "../../../constants/Colors";
+import { Colors } from "@/src/constants/colors";
 
 const { width, height } = Dimensions.get("window");
 
