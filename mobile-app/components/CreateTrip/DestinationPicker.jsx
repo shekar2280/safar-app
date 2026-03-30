@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator } from "react-native";
 import Autocomplete from "react-native-autocomplete-input";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../../constants/Colors";
 
 export default function DestinationPicker({
   onLocationSelect,
@@ -14,13 +10,16 @@ export default function DestinationPicker({
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (query.length < 3) {
-      setResults([]);
+    if (query.length < 3 || selected) {
+      if (!selected) setResults([]);
       return;
     }
 
+    setLoading(true);
     const timeout = setTimeout(() => {
       fetch(
         `https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1`,
@@ -32,50 +31,64 @@ export default function DestinationPicker({
         }
       )
         .then((res) => res.json())
-        .then((data) => setResults(data))
-        .catch((err) => console.error("Fetch error:", err));
-    }, 500);
+        .then((data) => {
+          setResults(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Fetch error:", err);
+          setLoading(false);
+        });
+    }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query]);
+  }, [query, selected]);
 
   const handleSelect = (item) => {
-  const addr = item.address;
-  let rawCity = addr?.city || addr?.town || addr?.municipality || addr?.village || addr?.suburb || item.display_name.split(',')[0];
-  const countryCode = addr?.country_code; 
-  const countryName = addr?.country;
+    const addr = item.address;
+    let rawCity = addr?.city || addr?.town || addr?.municipality || addr?.village || addr?.suburb || item.display_name.split(',')[0];
+    const countryCode = addr?.country_code; 
+    const countryName = addr?.country;
 
-  let cleanName = rawCity
-    .replace(/City of /gi, '')    
-    .replace(/ Greater/gi, '')   
-    .replace(/Greater /gi, '')   
-    .replace(/ District/gi, '')  
-    .replace(/ Ward/gi, '')      
-    .replace(/ Zone \d+/gi, '')  
-    .trim();
+    let cleanName = rawCity
+      .replace(/City of /gi, '')    
+      .replace(/ Greater/gi, '')   
+      .replace(/Greater /gi, '')   
+      .replace(/ District/gi, '')  
+      .replace(/ Ward/gi, '')      
+      .replace(/ Zone \d+/gi, '')  
+      .trim();
 
-  const cityAliases = {
-    "london": "London",
-    "mumbai city": "Mumbai",
-    "bombay": "Mumbai",
-    "new york city": "New York",
-    "bengaluru urban": "Bengaluru",
+    const cityAliases = {
+      "london": "London",
+      "mumbai city": "Mumbai",
+      "bombay": "Mumbai",
+      "new york city": "New York",
+      "bengaluru urban": "Bengaluru",
+    };
+
+    const finalName = cityAliases[cleanName.toLowerCase()] || cleanName;
+
+    const locationInfo = {
+      name: item.display_name, 
+      shortName: finalName, 
+      country: countryName,
+      countryCode: countryCode,
+      coordinates: { lat: item.lat, lon: item.lon },
+    };
+
+    setQuery(finalName);
+    setResults([]);
+    setSelected(locationInfo);
+    onLocationSelect(locationInfo); 
   };
 
-  const finalName = cityAliases[cleanName.toLowerCase()] || cleanName;
-
-  const locationInfo = {
-    name: item.display_name, 
-    shortName: finalName, 
-    country: countryName,
-    countryCode: countryCode,
-    coordinates: { lat: item.lat, lon: item.lon },
+  const clearInput = () => {
+    setQuery("");
+    setResults([]);
+    setSelected(null);
+    onLocationSelect(null);
   };
-
-  setQuery(item.display_name);
-  setResults([]);
-  onLocationSelect(locationInfo); 
-};
 
   return (
     <View style={styles.mainWrapper}>
@@ -83,26 +96,60 @@ export default function DestinationPicker({
         data={results}
         defaultValue={query}
         autoCorrect={false}
-        onChangeText={setQuery}
+        onChangeText={(text) => {
+          setQuery(text);
+          setSelected(null);
+          onLocationSelect(null);
+        }}
+
         placeholder={placeholder}
         containerStyle={styles.autocompleteContainer}
-        inputContainerStyle={styles.inputContainer}
-        listContainerStyle={styles.listContainer}
+        inputContainerStyle={{ borderWidth: 0 }}
+        listStyle={{ borderWidth: 0 }}
+        renderTextInput={(props) => (
+          <View style={styles.inputCapsule}>
+            <View style={styles.labelSection}>
+              <Text style={styles.label}>TO</Text>
+            </View>
+            <TextInput 
+              {...props} 
+              style={styles.inputStyle} 
+              placeholderTextColor={Colors.GRAY}
+              selectionColor={Colors.SECONDARY}
+            />
+            <View style={styles.actionSection}>
+              {loading ? (
+                <ActivityIndicator size="small" color={Colors.SECONDARY} />
+              ) : query.length > 0 ? (
+                <TouchableOpacity onPress={clearInput}>
+                  <Ionicons name="close-circle" size={20} color={Colors.MUTED_TEXT} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+        )}
+        listContainerStyle={styles.suggestionList}
         flatListProps={{
+          scrollEnabled: false,
+          nestedScrollEnabled: true,
           keyExtractor: (item) => item.place_id.toString(),
-          renderItem: ({ item }) => (
-            <TouchableOpacity
-              onPress={() => handleSelect(item)}
-              style={styles.item}
-            >
-              <Ionicons name="location-outline" size={18} color="#777" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemText} numberOfLines={1}>
-                  {item.display_name}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ),
+          renderItem: ({ item }) => {
+            const [mainName, ...rest] = item.display_name.split(",");
+            return (
+              <TouchableOpacity
+                onPress={() => handleSelect(item)}
+                style={styles.suggestionItem}
+              >
+                <View style={styles.iconCircle}>
+                  <Ionicons name="map" size={14} color={Colors.SECONDARY} />
+                </View>
+                <View style={styles.textWrap}>
+                  <Text style={styles.mainText} numberOfLines={1}>{mainName.trim()}</Text>
+                  <Text style={styles.subText} numberOfLines={1}>{rest.join(",").trim()}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          },
         }}
       />
     </View>
@@ -112,44 +159,73 @@ export default function DestinationPicker({
 const styles = StyleSheet.create({
   mainWrapper: {
     zIndex: 1000,
-    elevation: 1000,
-    marginVertical: 10,
     width: "100%",
-    minHeight: 60,
+    height: 75,
   },
-  autocompleteContainer: {
-    flex: 1,
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0,
-    zIndex: 10,
-  },
-  inputContainer: {
-    borderWidth: 2,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    borderColor: "#eee",
-    backgroundColor: "white",
-    height: 55,
-    justifyContent: "center",
-  },
-  listContainer: {
-    backgroundColor: "white",
-    elevation: 5,
-    borderRadius: 10,
-    marginTop: 3,
-    borderWidth: 1,
-    borderColor: "#eee",
-    maxHeight: 200,
-  },
-  item: {
+  autocompleteContainer: { width: "100%", position: "absolute", zIndex: 10, borderWidth: 0 },
+  inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    backgroundColor: "white",
+    backgroundColor: "rgba(0,0,0,0.035)",
+    height: 65,
+    borderRadius: 22,
+    paddingHorizontal: 20,
   },
-  itemText: { marginLeft: 10, fontSize: 14, color: "#333" },
+  labelSection: { width: 40 },
+  label: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: Colors.SECONDARY,
+    letterSpacing: 1.5,
+  },
+  inputStyle: {
+    flex: 1,
+    fontFamily: "outfitBold",
+    fontSize: 18,
+    color: Colors.PRIMARY,
+    padding: 0,
+    height: "100%",
+    borderWidth: 0,
+  },
+  actionSection: { paddingLeft: 10 },
+  suggestionList: {
+    backgroundColor: Colors.WHITE,
+    borderRadius: 24,
+    marginTop: 10,
+    maxHeight: 280,
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+    overflow: "hidden",
+  },
+  suggestionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: Colors.WHITE,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  textWrap: { flex: 1 },
+  mainText: {
+    fontFamily: "outfitBold",
+    fontSize: 15,
+    color: Colors.PRIMARY,
+  },
+  subText: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: Colors.MUTED_TEXT,
+    marginTop: 1,
+  },
 });

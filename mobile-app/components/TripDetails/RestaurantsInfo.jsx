@@ -5,18 +5,53 @@ import {
   StyleSheet,
   Linking,
   TouchableOpacity,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
 import { Colors } from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { RESTAURANT_AND_LOCAL_IMAGES } from "../../constants/Options";
+import { LinearGradient } from "expo-linear-gradient";
+const { width } = Dimensions.get("window");
+
+// Regional Cloudinary food collections
+const INDIA_FOOD_COLLECTION = [
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/thali_mr4ier.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726144/roti_mtjvsm.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726140/biryani_qio38y.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/pav_qxp2ln.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726133/dosa_k6vajd.jpg",
+];
+
+const INTL_FOOD_COLLECTION = [
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726983/ramen_gjr5ip.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726982/tacos_tz41vf.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726979/hamburger_wqp27v.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726978/pizza_trzxxq.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726976/croissant_ivn0w4.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/thali_mr4ier.jpg",
+];
+
+const getTransformCloudinaryUrl = (url, w, h, gravity = "center") => {
+  if (!url || !url.includes("cloudinary.com")) return url;
+  return url.replace("/upload/", `/upload/c_fill,g_${gravity},w_${w},h_${h},f_auto,q_auto/`);
+};
 
 export default function RestaurantsInfo({ restaurantsInfo, cityName }) {
-  const localExperienceImage = RESTAURANT_AND_LOCAL_IMAGES.Experience;
-  const localFoodImage = RESTAURANT_AND_LOCAL_IMAGES.Food;
+  const globalCloudinaryFood = RESTAURANT_AND_LOCAL_IMAGES.Food;
+
+  // Detect if destination is in India (using IND country code)
+  const isIndia = cityName?.toUpperCase().includes("IND");
+  const foodCollection = isIndia ? INDIA_FOOD_COLLECTION : INTL_FOOD_COLLECTION;
   
   const openSearch = (name) => {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + " " + (cityName || ""))}`;
+    Linking.openURL(url);
+  };
+
+  const openGeneralRestaurantSearch = () => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Best Restaurants in " + cityName)}`;
     Linking.openURL(url);
   };
 
@@ -24,94 +59,106 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }) {
 
   const { localExperiences = [], restaurants = [] } = restaurantsInfo;
 
-  const SectionHeader = ({ title, icon, label, imageSource }) => (
-    <View style={styles.sectionHeaderContainer}>
-      <Image source={imageSource} style={styles.headerBg} contentFit="cover" />
-      <View style={styles.headerOverlay}>
-        <View style={styles.labelFloating}>
-          <Text style={styles.floatingLabelText}>{label}</Text>
-        </View>
-        <View style={styles.headerTextRow}>
-          <Text style={styles.headerTitleText}>{title}</Text>
-          <Ionicons name={icon} size={22} color="white" />
-        </View>
-      </View>
-    </View>
-  );
+  // Function to get the correct image source (Cloudinary Featured vs Cloudinary Fallback)
+  const getFoodImageSource = (idx) => {
+    let sourceUrl = globalCloudinaryFood; // Default fallback
+    
+    if (idx < foodCollection.length) {
+      sourceUrl = foodCollection[idx];
+    }
+    
+    return { uri: getTransformCloudinaryUrl(sourceUrl, 400, 400, "auto") };
+  };
 
   return (
-    <View style={{ marginBottom: 10 }}>
-      {/* 🌟 Local Experiences */}
-      <View style={styles.mainCard}>
-        <SectionHeader
-          title="Hidden Treasures"
-          label="LOCAL EXPERIENCES"
-          icon="sparkles"
-          imageSource={localExperienceImage}
-        />
-        <View style={styles.listContainer}>
+    <View style={styles.wrapper}>
+      {/* 🌟 Local Experiences - Premium Editorial List (Minimalist) */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.header}>
+          <Text style={styles.overline}>AUTHENTIC DISCOVERY</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.sectionTitle}>Curated Vibes</Text>
+            <View style={styles.goldDot} />
+          </View>
+        </View>
+
+        <View style={styles.experienceList}>
           {localExperiences.map((item, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.fullWidthCard}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.itemTitle}>{item.experienceName}</Text>
-              </View>
-              <Text style={styles.itemDesc}>{item.description}</Text>
-              <View style={styles.footer}>
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>{item.priceRange}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+            <View key={idx} style={styles.experienceItem}>
+               <View style={styles.expBullet} />
+               <View style={{ flex: 1 }}>
+                  <Text style={styles.expListName}>{item.experienceName}</Text>
+                  <Text style={styles.expListPrice}>{item.priceRange} • Local Perspective</Text>
+               </View>
+            </View>
           ))}
         </View>
       </View>
 
-      {/* 🍴 Restaurants */}
-      <View style={[styles.mainCard, { marginTop: 30 }]}>
-        <SectionHeader
-          title="Culinary Delights"
-          label="FOOD & DINING"
-          icon="restaurant"
-          imageSource={localFoodImage}
-        />
-        <View style={styles.listContainer}>
-          {restaurants.map((item, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.fullWidthCard}
-              onPress={() => openSearch(item.restaurantName)}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.itemTitle}>{item.restaurantName}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={Colors.PRIMARY}
-                />
-              </View>
-              <Text style={styles.itemDesc}>{item.description}</Text>
-              <View style={styles.footer}>
-                <Text style={styles.priceHighlight}>
-                  Avg. ₹{item.approximateCost}
-                </Text>
-                <View style={styles.rightInfo}>
-                  <View
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor:
-                          item.priceRange === "Budget" ? "#4CAF50" : "#FF9800",
-                      },
-                    ]}
+      {/* 🍴 Restaurants - Uniform Split Card Layout with Local Images */}
+      <View style={[styles.sectionContainer, { marginTop: 40 }]}>
+        <View style={styles.header}>
+          <Text style={styles.overline}>EPICUREAN SPOTLIGHT</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.sectionTitle}>Elite Dining</Text>
+            <View style={styles.goldDot} />
+          </View>
+        </View>
+
+        <View style={styles.waterfallList}>
+          {restaurants.map((item, idx) => {
+             const isLeftImage = idx % 2 === 0;
+             const imageSource = getFoodImageSource(idx);
+
+             return (
+               <TouchableOpacity
+                 key={idx}
+                 style={[styles.splitCard, !isLeftImage && { flexDirection: "row-reverse" }]}
+                 onPress={() => openSearch(item.restaurantName)}
+                 activeOpacity={0.9}
+               >
+                  <Image 
+                     source={imageSource} 
+                     style={styles.splitImage} 
+                     contentFit="cover" 
                   />
-                  <Text style={styles.rangeText}>{item.priceRange}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+                  <View style={styles.splitDetails}>
+                     <View style={[styles.expertBadge, { alignSelf: "flex-start", marginBottom: 8 }]}>
+                        <Text style={styles.expertBadgeText}>TOP PICK</Text>
+                     </View>
+                     <Text style={styles.splitName}>{item.restaurantName}</Text>
+                     <Text style={styles.splitDesc}>{item.description}</Text>
+                     <View style={styles.splitFooter}>
+                        <Text style={styles.splitPrice}>{item.priceRange}</Text>
+                        <View style={styles.priceCircle} />
+                        <Text style={styles.splitPrice}>₹{item.approximateCost}</Text>
+                     </View>
+                  </View>
+               </TouchableOpacity>
+             );
+          })}
+        </View>
+
+        {/* 🚀 PROMINENT DINING SEARCH CTA */}
+        <View style={styles.ctaContainer}>
+          <Text style={styles.ctaSubtitle}>
+             Discover even more flavors. Search all top-rated restaurants in {cityName}.
+          </Text>
+          <TouchableOpacity
+             activeOpacity={0.9}
+             style={styles.searchButton}
+             onPress={openGeneralRestaurantSearch}
+          >
+             <LinearGradient
+                colors={[Colors.PRIMARY, "#2C2C2C"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientBtn}
+             >
+                <Ionicons name="restaurant-outline" size={20} color={Colors.WHITE} style={{ marginRight: 10 }} />
+                <Text style={styles.searchButtonText}>Explore More Dining in {cityName}</Text>
+             </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -119,95 +166,161 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }) {
 }
 
 const styles = StyleSheet.create({
-  mainCard: {
-    backgroundColor: Colors.WHITE,
-    borderRadius: 24,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    marginHorizontal: 5,
+  wrapper: { marginTop: 0, marginBottom: 0 },
+  sectionContainer: {},
+  header: {
+    paddingHorizontal: 4,
+    marginBottom: 20,
   },
-  sectionHeaderContainer: { height: 160, width: "100%" },
-  headerBg: { ...StyleSheet.absoluteFillObject },
-  headerOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-    padding: 15,
-  },
-  labelFloating: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  floatingLabelText: {
-    color: "white",
-    fontFamily: "outfitBold",
+  overline: {
+    fontFamily: "outfitMedium",
     fontSize: 10,
-    letterSpacing: 1,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  headerTextRow: {
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginTop: -4,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontFamily: "playfairBold",
+    color: Colors.TEXT,
+  },
+  experienceList: {
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+  experienceItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
-  headerTitleText: { color: "white", fontSize: 22, fontFamily: "outfitBold" },
-  listContainer: {
-    padding: 15,
+  expBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.SECONDARY,
+    marginRight: 16,
   },
-  fullWidthCard: {
-    backgroundColor: "#FAFAFA",
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+  expListName: {
+    fontFamily: "playfairBold",
+    fontSize: 18,
+    color: Colors.TEXT,
+    marginBottom: 2,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  itemTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 17,
-    color: "#1A1A1A",
-    flex: 1,
-  },
-  itemDesc: {
+  expListPrice: {
     fontFamily: "outfit",
     fontSize: 13,
-    color: "#666",
+    color: Colors.MUTED_TEXT,
+  },
+  waterfallList: {
+    paddingHorizontal: 4,
+  },
+  splitCard: {
+    flexDirection: "row",
+    backgroundColor: Colors.SURFACE,
+    borderRadius: 24,
+    minHeight: 180,
+    marginBottom: 20,
+    overflow: "hidden",
+    elevation: 4,
+    shadowOpacity: 0.05,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  splitImage: {
+    width: "40%",
+    height: "100%",
+  },
+  splitDetails: {
+    flex: 1,
+    padding: 16,
+    justifyContent: "center",
+  },
+  splitName: {
+    fontFamily: "playfairBold",
+    fontSize: 18,
+    color: Colors.TEXT,
+    marginBottom: 6,
+  },
+  splitDesc: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: "#6B7280",
     lineHeight: 18,
     marginBottom: 12,
   },
-  footer: {
+  splitFooter: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
   },
-  rightInfo: { flexDirection: "row", alignItems: "center" },
-  tag: {
-    backgroundColor: "#F0F0F0",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  tagText: { fontFamily: "outfitMedium", fontSize: 11, color: "#555" },
-  priceHighlight: {
+  splitPrice: {
     fontFamily: "outfitBold",
-    fontSize: 14,
-    color: Colors.PRIMARY,
+    fontSize: 12,
+    color: Colors.MUTED_TEXT,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  rangeText: { fontFamily: "outfitMedium", fontSize: 12, color: "#666" },
+  priceCircle: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.MUTED_TEXT,
+    opacity: 0.3,
+  },
+  expertBadge: {
+    backgroundColor: Colors.SECONDARY,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 4,
+  },
+  expertBadgeText: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: Colors.BLACK,
+    letterSpacing: 0.5,
+  },
+  ctaContainer: {
+    marginTop: 10,
+    paddingHorizontal: 4,
+    alignItems: "center",
+  },
+  ctaSubtitle: {
+    fontFamily: "outfit",
+    fontSize: 14,
+    color: Colors.MUTED_TEXT,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+    paddingHorizontal: 20,
+  },
+  searchButton: {
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 6,
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+  },
+  gradientBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+  },
+  searchButtonText: {
+    color: Colors.WHITE,
+    fontFamily: "outfitBold",
+    fontSize: 16,
+  },
 });

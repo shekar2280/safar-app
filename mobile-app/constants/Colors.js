@@ -1,7 +1,21 @@
-export const Colors={
-    WHITE:'#fff',
-    PRIMARY:'#000',
-    GRAY:'#7d7d7d',
-    LIGHT_GRAY: '#eae9e9',
-    BLUE: "#2196F3",
-}
+export const Colors = {
+  BACKGROUND: "#F7F3F0", 
+  SURFACE: "#FFFFFF", 
+  PRIMARY: "#1C1C1C", 
+  SECONDARY: "#E1C16E", 
+  ACCENT: "#E1C16E",
+  TEXT: "#1F2933",
+  MUTED_TEXT: "#6B7280",
+  BORDER: "#E0E0E0",
+  HIGHLIGHT: "#FFFFFF", 
+
+  WHITE: "#FFFFFF",
+  BLACK: "#1C1C1C",
+  GRAY: "#9CA3AF",
+  LIGHT_GRAY: "#E5E7EB",
+  BLUE: "#1C1C1C",
+  RED: "#EF4444",
+
+
+  TAB_INACTIVE: "rgba(31,41,51,0.6)",
+};

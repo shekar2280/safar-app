@@ -12,6 +12,8 @@ import { Colors } from "../../constants/Colors";
 import { Typography, Radius, Shadow, Spacing } from "../../constants/Theme";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import SafarAlert from "../Generic/SafarAlert";
+
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "../../config/FirebaseConfig";
 import { concertImages, fallbackImages } from "../../constants/Options";
@@ -21,6 +23,8 @@ const { width } = Dimensions.get("window");
 
 export default function UserTripCard({ trip, onDelete }) {
   const router = useRouter();
+  const [deleteVisible, setDeleteVisible] = React.useState(false);
+
 
   const tripData =
     trip?.tripData ||
@@ -65,23 +69,20 @@ export default function UserTripCard({ trip, onDelete }) {
   }, [trip, randomFallback, concertFallback]);
 
   const confirmDelete = () => {
-    Alert.alert("Delete Trip", "Remove this journey?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const user = auth.currentUser;
-            await deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id));
-            onDelete?.(trip.id);
-          } catch (error) {
-            console.error(error);
-          }
-        },
-      },
-    ]);
+    setDeleteVisible(true);
   };
+
+  const handleDeleteFinal = async () => {
+    try {
+      const user = auth.currentUser;
+      await deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id));
+      onDelete?.(trip.id);
+      setDeleteVisible(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
 
   return (
     <TouchableOpacity
@@ -119,6 +120,17 @@ export default function UserTripCard({ trip, onDelete }) {
           />
         </TouchableOpacity>
       </View>
+
+      <SafarAlert
+        visible={deleteVisible}
+        title="Delete Trip"
+        message="Are you sure you want to remove this journey? This action cannot be undone."
+        type="confirm"
+        confirmText="Delete"
+        cancelText="Keep Trip"
+        onConfirm={handleDeleteFinal}
+        onCancel={() => setDeleteVisible(false)}
+      />
     </TouchableOpacity>
   );
 }

@@ -6,34 +6,41 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Dimensions,
 } from "react-native";
 import * as Location from "expo-location";
 import Autocomplete from "react-native-autocomplete-input";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocation } from "../../context/LocationContext";
 import { Colors } from "../../constants/Colors";
+
+
+const { width } = Dimensions.get("window");
 
 export default function LocationPicker({
   title,
   onLocationChange,
   placeholder = "Search city...",
 }) {
+  const { currentLocation, updateLocation, refreshGPS } = useLocation();
   const [state, setState] = useState({
-    loading: true,
-    manualMode: false,
-    query: "",
+    loading: !currentLocation,
+    query: currentLocation?.name || "",
     results: [],
+    selected: currentLocation || null,
   });
+
+
+  useEffect(() => {
+    if (currentLocation && onLocationChange) {
+      onLocationChange(currentLocation);
+    }
+  }, [currentLocation]);
+
 
   const formatLocationData = (data, lat, lon) => {
     const address = data.address || {};
-
-    let rawCity =
-      address.city ||
-      address.town ||
-      address.village ||
-      address.state_district ||
-      "";
-
+    let rawCity = address.city || address.town || address.village || address.state_district || "";
     let cleanCity = rawCity
       .replace(/City of /gi, "")
       .replace(/ City/gi, "")
@@ -67,6 +74,11 @@ export default function LocationPicker({
   };
 
   useEffect(() => {
+    if (currentLocation) {
+        setState((s) => ({ ...s, loading: false }));
+        return;
+    }
+
     (async () => {
       try {
         let { status } = await Location.getForegroundPermissionsAsync();
@@ -75,45 +87,34 @@ export default function LocationPicker({
           status = response.status;
         }
         if (status !== "granted") {
-          setState((s) => ({ ...s, loading: false, manualMode: true }));
+          setState((s) => ({ ...s, loading: false }));
           return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const { latitude, longitude } = loc.coords;
 
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-          {
-            headers: {
-              "User-Agent": "safar-travel-app",
-              "Accept-Language": "en",
-            },
-          },
+          { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } },
         );
         const data = await res.json();
-
         const formatted = formatLocationData(data, latitude, longitude);
+        
 
-        onLocationChange(formatted);
-
-        setState((s) => ({
-          ...s,
-          loading: false,
-          manualMode: false,
-          query: data.display_name,
-        }));
+        updateLocation(formatted);
+        
+        if (onLocationChange) onLocationChange(formatted);
+        setState((s) => ({ ...s, loading: false, query: formatted.name, selected: formatted }));
       } catch (err) {
-        setState((s) => ({ ...s, loading: false, manualMode: true }));
+        setState((s) => ({ ...s, loading: false }));
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (state.query.length < 3) {
-      setState((s) => ({ ...s, results: [] }));
+    if (state.query.length < 3 || state.selected) {
+      if (!state.selected) setState((s) => ({ ...s, results: [] }));
       return;
     }
     const timeout = setTimeout(async () => {
@@ -127,7 +128,7 @@ export default function LocationPicker({
       } catch (err) {
         console.error(err);
       }
-    }, 500);
+    }, 400);
     return () => clearTimeout(timeout);
   }, [state.query]);
 
@@ -138,14 +139,17 @@ export default function LocationPicker({
         { headers: { "User-Agent": "safar-travel-app" } },
       );
       const data = await res.json();
-
       const formatted = formatLocationData(data, item.lat, item.lon);
-      onLocationChange(formatted);
 
-      setState((s) => ({
-        ...s,
-        query: item.display_name,
-        results: [],
+
+      updateLocation(formatted);
+
+      if (onLocationChange) onLocationChange(formatted);
+      setState((s) => ({ 
+        ...s, 
+        query: formatted.name, 
+        results: [], 
+        selected: formatted 
       }));
     } catch (err) {
       console.error("Selection normalization failed:", err);
@@ -153,185 +157,142 @@ export default function LocationPicker({
   };
 
   const clearInput = () => {
-    setState((s) => ({ ...s, query: "", results: [] }));
+    setState((s) => ({ ...s, query: "", results: [], selected: null }));
     onLocationChange(null);
   };
 
   return (
     <View style={styles.wrapper}>
-      {state.manualMode ? (
-        <View style={styles.manualContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <View style={styles.autocompleteWrapper}>
-            <Autocomplete
-              data={state.results}
-              defaultValue={state.query}
-              autoCorrect={false}
-              onChangeText={(text) => setState((s) => ({ ...s, query: text }))}
-              placeholder={placeholder}
-              containerStyle={styles.autocompleteContainer}
-              renderTextInput={(props) => (
-                <View style={styles.searchBar}>
-                  <TextInput {...props} style={styles.inputStyle} />
-                  {state.query.length > 0 && (
-                    <TouchableOpacity
-                      onPress={clearInput}
-                      style={styles.clearButton}
-                    >
-                      <Ionicons name="close-circle" size={20} color="#999" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-              listContainerStyle={styles.suggestionList}
-              flatListProps={{
-                keyExtractor: (item) => String(item.place_id),
-                keyboardShouldPersistTaps: "always",
-                renderItem: ({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => handleItemSelect(item)}
-                    style={styles.suggestionItem}
-                  >
-                    <Ionicons name="location-outline" size={18} color="#777" />
-                    <Text style={styles.suggestionText} numberOfLines={1}>
-                      {item.display_name}
-                    </Text>
-                  </TouchableOpacity>
-                ),
-              }}
+      <Autocomplete
+        data={state.results}
+        defaultValue={state.query}
+        autoCorrect={false}
+        onChangeText={(text) => {
+          setState((s) => ({ ...s, query: text, selected: null }));
+          onLocationChange(null);
+        }}
+
+        placeholder={state.loading ? "Locating..." : placeholder}
+        containerStyle={styles.autocompleteContainer}
+        inputContainerStyle={{ borderWidth: 0 }}
+        listStyle={{ borderWidth: 0 }}
+        renderTextInput={(props) => (
+          <View style={styles.inputCapsule}>
+            <View style={styles.labelSection}>
+              <Text style={styles.label}>FROM</Text>
+            </View>
+            <TextInput 
+              {...props} 
+              style={styles.inputStyle} 
+              editable={!state.loading} 
+              placeholderTextColor={Colors.GRAY}
+              selectionColor={Colors.SECONDARY}
             />
+            <View style={styles.actionSection}>
+              {state.loading ? (
+                <ActivityIndicator size="small" color={Colors.SECONDARY} />
+              ) : state.query.length > 0 ? (
+                <TouchableOpacity onPress={clearInput}>
+                  <Ionicons name="close-circle" size={20} color={Colors.MUTED_TEXT} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
-        </View>
-      ) : (
-        <View style={[styles.statusCard, !state.loading && styles.activeCard]}>
-          {state.loading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={Colors.PRIMARY} />
-              <Text style={styles.loadingText}>Detecting location...</Text>
-            </View>
-          ) : (
-            <View>
-              <View style={styles.locationHeader}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="navigate" size={20} color="white" />
-                </View>
-                <Text style={styles.label}>LIVE DETECTION</Text>
-              </View>
-              <Text style={styles.addressText} numberOfLines={3}>
-                {state.query}
-              </Text>
+        )}
+        listContainerStyle={styles.suggestionList}
+        flatListProps={{
+          scrollEnabled: false,
+          nestedScrollEnabled: true,
+          keyExtractor: (item) => String(item.place_id),
+          renderItem: ({ item }) => {
+            const [mainName, ...rest] = item.display_name.split(",");
+            return (
               <TouchableOpacity
-                onPress={() => setState((s) => ({ ...s, manualMode: true }))}
-                style={styles.changeButton}
+                onPress={() => handleItemSelect(item)}
+                style={styles.suggestionItem}
               >
-                <Text style={styles.changeButtonText}>
-                  Not correct? Edit manually
-                </Text>
+                <View style={styles.iconCircle}>
+                    <Ionicons name="location" size={14} color={Colors.PRIMARY} />
+                </View>
+                <View style={styles.textWrap}>
+                    <Text style={styles.mainText} numberOfLines={1}>{mainName.trim()}</Text>
+                    <Text style={styles.subText} numberOfLines={1}>{rest.join(",").trim()}</Text>
+                </View>
               </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
+            );
+          },
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { width: "100%", minHeight: 180 },
-  title: {
-    fontSize: 28,
-    fontFamily: "outfitBold",
-    marginBottom: 20,
-    color: "#000",
-  },
-  manualContainer: { zIndex: 1000, elevation: 1000 },
-  autocompleteWrapper: {
-    position: "relative",
-    width: "100%",
-    zIndex: 100,
-    height: 55,
-  },
-  autocompleteContainer: { width: "100%", position: "absolute", zIndex: 10 },
-  searchBar: {
+  wrapper: { width: "100%", zIndex: 1000, height: 75 },
+  autocompleteContainer: { width: "100%", position: "absolute", zIndex: 10, borderWidth: 0 },
+  inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderRadius: 12,
-    borderColor: "#CCC",
-    backgroundColor: "white",
-    paddingHorizontal: 12,
-    height: 55,
+    backgroundColor: "rgba(0,0,0,0.035)",
+    height: 65,
+    borderRadius: 22,
+    paddingHorizontal: 20,
   },
-  inputStyle: { flex: 1, height: "100%", fontFamily: "outfit", fontSize: 15 },
-  clearButton: { padding: 5 },
-  statusCard: {
-    backgroundColor: "#F0F0F0",
-    borderRadius: 20,
-    padding: 20,
-    minHeight: 160,
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderStyle: "dashed",
-  },
-  activeCard: {
-    backgroundColor: "#FFF",
-    borderColor: Colors.PRIMARY,
-    borderStyle: "solid",
-    elevation: 4,
-  },
-  center: { alignItems: "center" },
-  loadingText: { marginTop: 15, fontFamily: "outfit", color: "#666" },
-  locationHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  iconCircle: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 6,
-    borderRadius: 50,
-    marginRight: 10,
-  },
+  labelSection: { width: 55 },
   label: {
     fontFamily: "outfitBold",
-    fontSize: 12,
+    fontSize: 10,
+    color: Colors.SECONDARY,
+    letterSpacing: 1.5,
+  },
+  inputStyle: {
+    flex: 1,
+    fontFamily: "outfitBold",
+    fontSize: 18,
     color: Colors.PRIMARY,
-    letterSpacing: 1,
+    padding: 0,
+    height: "100%",
+    borderWidth: 0,
   },
-  addressText: {
-    fontSize: 16,
-    fontFamily: "outfit",
-    color: "#333",
-    lineHeight: 22,
-  },
-  changeButton: {
-    marginTop: 15,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-  },
-  changeButtonText: {
-    color: "#777",
-    fontFamily: "outfit",
-    fontSize: 13,
-    textDecorationLine: "underline",
-  },
+  actionSection: { paddingLeft: 10 },
   suggestionList: {
-    backgroundColor: "white",
-    elevation: 5,
-    borderRadius: 10,
-    marginTop: 5,
-    maxHeight: 250,
-    borderWidth: 1,
-    borderColor: "#eee",
+    backgroundColor: Colors.WHITE,
+    borderRadius: 24,
+    marginTop: 10,
+    maxHeight: 280,
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+    overflow: "hidden",
   },
   suggestionItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    padding: 16,
+    backgroundColor: Colors.WHITE,
   },
-  suggestionText: { marginLeft: 10, fontSize: 14, color: "#444" },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  textWrap: { flex: 1 },
+  mainText: {
+    fontFamily: "outfitBold",
+    fontSize: 15,
+    color: Colors.PRIMARY,
+  },
+  subText: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: Colors.MUTED_TEXT,
+    marginTop: 1,
+  },
 });

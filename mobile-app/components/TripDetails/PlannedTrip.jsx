@@ -5,289 +5,248 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Linking,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
 import {
   Ionicons,
-  FontAwesome5,
-  MaterialIcons,
-  MaterialCommunityIcons,
 } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
 export default function PlannedTrip({
   itineraryDetails,
   cityName,
-  onActivatePress,
-  hideActivateBanner,
+  isActive,
+  onActivate,
+  onNavigateToActive,
 }) {
-  const placesArray = Array.isArray(itineraryDetails)
-    ? itineraryDetails
-    : itineraryDetails?.places || [];
-
-  const getTimeSlotColor = (timeSlot) => {
-    const slot = timeSlot?.toLowerCase() || "";
-    if (slot.includes("morning")) return "#f0c33b";
-    if (slot.includes("afternoon")) return "#F97316";
-    if (slot.includes("evening") || slot.includes("night")) return "#6366F1";
-    return "#64748B";
-  };
-
-  const locationNavigation = (placeName) => {
-    const query = encodeURIComponent(`${placeName} ${cityName || ""}`);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    Linking.openURL(url);
-  };
-
-  if (!placesArray.length) {
+  // 🔒 PREMIUM LOCKED VIEW
+  if (!isActive) {
     return (
       <View style={styles.wrapper}>
-        <Text style={styles.emptyText}>No discovery data available.</Text>
+        <View style={styles.header}>
+          <Text style={styles.overline}>PERSONAL GUIDE</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.sectionTitle}>Locked Feature</Text>
+            <View style={styles.goldDot} />
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          activeOpacity={0.95} 
+          onPress={onActivate}
+          style={styles.premiumLockCard}
+        >
+          <LinearGradient
+            colors={[Colors.PRIMARY, "#2C2C2C"]}
+            style={styles.gradientBg}
+          >
+            <View style={styles.lockIconContainer}>
+               <Ionicons name="sparkles" size={32} color={Colors.SECONDARY} />
+               <View style={styles.lockBadge}>
+                  <Ionicons name="lock-closed" size={14} color={Colors.BLACK} />
+               </View>
+            </View>
+
+            <Text style={styles.lockTitle}>Unlock Your Personal Guide</Text>
+            <Text style={styles.lockSubtitle}>
+              Activate your trip to reveal your curated itinerary, hidden local gems, and AI-powered travel tools.
+            </Text>
+
+            <View style={styles.unlockButton}>
+              <Text style={styles.unlockButtonText}>Reveal My Itinerary</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.BLACK} />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  // 🔓 PREMIUM UNLOCKED/ACTIVE VIEW (Gate only, no list)
   return (
     <View style={styles.wrapper}>
-      <View style={styles.outlineContainer}>
-        <View style={styles.labelWrapper}>
-          <Text style={styles.outlineLabel}>DISCOVERY POOL</Text>
+      <View style={styles.header}>
+        <Text style={styles.overline}>PERSONAL GUIDE</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.sectionTitle}>Smart Itinerary</Text>
+          <View style={styles.goldDot} />
         </View>
-
-        <Text style={styles.sectionTitle}>Places to Explore</Text>
-
-        {!hideActivateBanner && (
-          <TouchableOpacity
-            style={styles.activateTripBanner}
-            onPress={onActivatePress}
-            activeOpacity={0.8}
-          >
-            <View style={styles.activateIconBg}>
-              <MaterialCommunityIcons
-                name="lightning-bolt"
-                size={20}
-                color="#FFFFFF"
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.activateTitle}>Activate your trip</Text>
-              <Text style={styles.activateSubtitle}>
-                Unlock your personal guide and trip-based wallet.
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.PRIMARY} />
-          </TouchableOpacity>
-        )}
-
-        {placesArray.map((item, index) => (
-          <View key={index} style={styles.placeCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.titleContainer}>
-                <Text style={styles.placeTitle}>{item.placeName}</Text>
-                <Text style={[styles.timeTag, { gap: 5 }]}>
-                  Best Time:{" "}
-                  <Text
-                    style={[
-                      styles.timeTag,
-                      { color: getTimeSlotColor(item.timeSlot) },
-                    ]}
-                  >
-                    {item.timeSlot}
-                  </Text>
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.navIconBtn}
-                onPress={() => locationNavigation(item.placeName)}
-              >
-                <FontAwesome5 name="directions" size={18} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.placeDesc} numberOfLines={4}>
-              {item.placeDetails}
-            </Text>
-
-            <View style={styles.footerRow}>
-              <View style={styles.metaItem}>
-                <Ionicons
-                  name="time-outline"
-                  size={14}
-                  color={Colors.PRIMARY}
-                />
-                <Text style={styles.metaText}>{item.bestTimeToVisit}</Text>
-              </View>
-
-              {item.ticketPricing > 0 && (
-                <View style={styles.metaItemRow}>
-                  <View style={styles.metaItem}>
-                    <Ionicons
-                      name="wallet-outline"
-                      size={14}
-                      color={Colors.PRIMARY}
-                    />
-                    <Text style={styles.metaText}>₹{item.ticketPricing}</Text>
-                  </View>
-
-                  <View style={styles.warningContainer}>
-                    <MaterialIcons
-                      name="info-outline"
-                      size={12}
-                      color="#f13232"
-                    />
-                    <Text style={styles.warningText}>
-                      Prices are indicative
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-        ))}
       </View>
+
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={onNavigateToActive}
+        style={styles.successCard}
+      >
+        <LinearGradient
+          colors={[Colors.SECONDARY, "#D4AF37"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.successGradient}
+        >
+          <View style={styles.successIconBadge}>
+             <Ionicons name="compass" size={24} color={Colors.WHITE} />
+          </View>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+             <Text style={styles.successTitle}>Itinerary is Ready</Text>
+             <Text style={styles.successSubtitle}>Access your real-time journey & smart tools.</Text>
+          </View>
+          <View style={styles.goActiveBtn}>
+             <Text style={styles.goActiveBtnText}>GO LIVE</Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 25, marginBottom: 25 },
-  outlineContainer: {
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 24,
-    padding: 20,
-    backgroundColor: "#FFFFFF",
+  wrapper: { marginTop: 0, marginBottom: 10 },
+  header: {
+    paddingHorizontal: 4,
+    marginBottom: 20,
   },
-  labelWrapper: {
-    position: "absolute",
-    top: -12,
-    left: 20,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
+  overline: {
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  outlineLabel: {
-    fontFamily: "outfitBold",
-    fontSize: 11,
-    color: Colors.PRIMARY,
-    letterSpacing: 1.5,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginTop: -4,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontFamily: "outfitBold",
-    color: "#0F172A",
-    marginBottom: 15,
+    fontSize: 28,
+    fontFamily: "playfairBold",
+    color: Colors.TEXT,
   },
-  // ACTIVATE TRIP STYLES
-  activateTripBanner: {
-    backgroundColor: "#F0F7FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    borderRadius: 16,
-    padding: 12,
-    flexDirection: "row",
+  goldDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.SECONDARY,
+    marginLeft: 4,
+    marginBottom: 6,
+  },
+  premiumLockCard: {
+    borderRadius: 32,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  gradientBg: {
+    padding: 35,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lockIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  lockBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: Colors.SECONDARY,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: Colors.PRIMARY,
+  },
+  lockTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 24,
+    color: Colors.WHITE,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  lockSubtitle: {
+    fontFamily: "outfit",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 30,
+    paddingHorizontal: 10,
+  },
+  unlockButton: {
+    backgroundColor: Colors.SECONDARY,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  unlockButtonText: {
+    fontFamily: "outfitBold",
+    fontSize: 16,
+    color: Colors.BLACK,
+  },
+  successCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: Colors.SECONDARY,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  successGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
     gap: 12,
   },
-  activateIconBg: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 8,
-    borderRadius: 12,
-  },
-  activateTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 14,
-    color: "#1E40AF",
-  },
-  activateSubtitle: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    color: "#3B82F6",
-  },
-  placeCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
-  },
-  titleContainer: { flex: 1, marginRight: 10 },
-  placeTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 18,
-    color: "#1E293B",
-  },
-  timeTag: {
-    fontFamily: "outfitBold",
-    fontSize: 10,
-    color: "#64748B",
-    textTransform: "uppercase",
-    marginTop: 2,
-  },
-  navIconBtn: {
-    backgroundColor: Colors.PRIMARY,
-    width: 42,
-    height: 42,
+  successIconBadge: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+    width: 44,
+    height: 44,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
-  placeDesc: {
+  successTitle: {
+    fontFamily: "outfitBold",
+    fontSize: 15,
+    color: Colors.BLACK,
+  },
+  successSubtitle: {
     fontFamily: "outfit",
-    fontSize: 14,
-    color: "#475569",
-    lineHeight: 20,
-    marginBottom: 15,
+    fontSize: 11,
+    color: "rgba(0,0,0,0.6)",
+    marginTop: 1,
   },
-  footerRow: {
-    flexDirection: "column",
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    paddingTop: 12,
+  goActiveBtn: {
+    backgroundColor: Colors.BLACK,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  metaItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  metaText: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    color: "#64748B",
-  },
-  warningContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  warningText: {
-    fontFamily: "outfit",
+  goActiveBtnText: {
+    fontFamily: "outfitBold",
     fontSize: 10,
-    color: "#f13232",
-    fontStyle: "italic",
-  },
-  emptyText: {
-    textAlign: "center",
-    fontFamily: "outfit",
-    color: "#94A3B8",
-    marginTop: 20,
+    color: Colors.WHITE,
+    letterSpacing: 1,
   },
 });

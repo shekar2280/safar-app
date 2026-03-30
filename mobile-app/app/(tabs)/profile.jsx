@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.6)",
     marginTop: 4,
   },
-  content: { paddingHorizontal: 30, paddingVertical: 30 },
+  content: { paddingHorizontal: 22, paddingVertical: 30 },
   subHeading: {
     fontSize: 12,
     fontFamily: "outfitBold",

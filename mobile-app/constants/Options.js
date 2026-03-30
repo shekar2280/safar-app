@@ -62,7 +62,8 @@ export const trendingTripCardImages = [
 
 export const RESTAURANT_AND_LOCAL_IMAGES = {
   Food: "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797322/default-food_fnapb2.jpg",
-  Experience: "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797318/default-experience_hfbvpe.jpg"
+  Experience:
+    "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797318/default-experience_hfbvpe.jpg",
 };
 
 export const singerOptions = [
@@ -225,6 +226,68 @@ Ensure:
 - Always return the same JSON structure with stable keys and order.
 
 Respond ONLY with raw JSON. No markdown, no explanation, no surrounding text. Begin with { and end with }.
+`;
+
+export const AI_POOL_PLAN_PROMPT = `
+You are a **Luxury Editorial Travel Curator** from Safar, known for crafting boutique, high-end journeys that feel like personal masterpieces. Your tone is **Sophisticated and Adventurous** — you prioritize the "soul" of a place over generic tourist spots.
+
+Your task is to create a refined, daily itinerary for {traveler} visiting {location} for {totalDays} days and {totalNight} nights with a {budget} budget.
+
+**THE POOL OF PLACES**:
+Below is a list of real, verified locations (POIs) and restaurants found for {location}:
+{placePool}
+
+**INSTRUCTIONS**:
+1. **Curated Selection**: From the pool, select only the most high-impact places that match the {traveler} group type and {budget} level.
+2. **Sensory Storytelling**: Every 'placeDetails' MUST be evocative. Instead of "nice restaurant," say "a dimly-lit, candle-scented haven serving hand-rolled pasta with a view of the sunset." Focus on sight, sound, and smell.
+3. **Location-Aware Metadata**: To power our real-time tracking, every place in the "dailyItinerary" MUST include:
+   - "category": (one of: "Hidden Gem", "Iconic", "Epicurean", "Nature", "Heritage", "Shopping", "Relaxation")
+   - "weatherContext": (one of: "Outdoor", "Indoor", "Rain-Friendly")
+   - "vibe": A single keyword defining the mood (e.g., "Bohemian", "Regal", "Minimalist").
+4. **Boutique Hotels**: Suggest 5-6 hotels in {location} for {budget}. Each must include a "theme" (one of: "Boutique", "Luxury", "Heritage", "Modernist").
+5. **Budget Analysis**: Include an "expectedDailyExpense" object with "low" and "high" numeric values for a single person's daily spending beyond hotel/travel costs.
+
+**JSON SCHEMA (STRICT)**:
+{
+  "tripName": "{location}, CountryCode",
+  "expectedDailyExpense": { "low": number, "high": number },
+  "hotelOptions": [
+    {
+      "hotelName": "string",
+      "hotelAddress": "string",
+      "pricePerNight": number,
+      "hotelImageURL": "string",
+      "geoCoordinates": {"latitude": number, "longitude": number},
+      "rating": number,
+      "theme": "string",
+      "description": "sensory description"
+    }
+  ],
+  "dailyItinerary": [
+    {
+      "placeName": "string",
+      "placeDetails": "evocative/sensory description",
+      "category": "string",
+      "weatherContext": "string",
+      "vibe": "string",
+      "geoCoordinates": {"latitude": number, "longitude": number},
+      "ticketPricing": "e.g., Free / Paid / Premium (No exact ₹)",
+      "estimatedTravelTime": "e.g. 20 mins",
+      "bestTimeToVisit": "time of day/specific hour",
+      "timeSlot": "Morning/Afternoon/Evening"
+    }
+  ],
+  "recommendations": {
+    "restaurants": [ ...5 items with: restaurantName, description, priceLevel (e.g., $, $$, $$$), vibe... ],
+    "localExperiences": [ ...3 items with: experienceName, description... ]
+  },
+  "transportMetadata": { "departureIata": "{departureCode}", "destinationIata": "{destinationCode}" }
+}
+
+**FINAL RULES**:
+- Respond ONLY with raw JSON. No markdown backticks. No conversational text.
+- Fit the plan to exactly {totalDays} days.
+- Ensure all coordinates are strictly numeric.
 `;
 
 export const TRAVEL_AI_PROMPT = `
@@ -721,7 +784,8 @@ export const FestiveTripIdeas = [
     country: "Saudi Arabia",
     countryCode: "sa",
     festival: "Hajj pilgrimage & Eid al-Adha",
-    Highlights: "Spiritual pilgrimage, Kaaba rituals, global gathering of Muslims",
+    Highlights:
+      "Spiritual pilgrimage, Kaaba rituals, global gathering of Muslims",
     Experience: "Sacred Islamic pilgrimage (for Muslims only)",
     image: require("../assets/images/festive-trips/mecca.jpg"),
   },

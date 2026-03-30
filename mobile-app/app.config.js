@@ -28,6 +28,7 @@ export default {
       favicon: "./assets/images/favicon.png",
     },
     plugins: [
+      "@react-native-google-signin/google-signin",
       "expo-router",
       "expo-font",
       "expo-video",
