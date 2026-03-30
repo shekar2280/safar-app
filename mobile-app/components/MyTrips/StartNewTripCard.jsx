@@ -52,7 +52,7 @@ export default function StartNewTripCard() {
       </Text>
 
       <TouchableOpacity
-        onPress={() => router.push("/create-trip/select-departure")}
+        onPress={() => router.push("/create-trip")}
         style={{
           paddingVertical: height * 0.018,
           paddingHorizontal: width * 0.08,

@@ -24,6 +24,7 @@ import { fallbackImages } from "../../constants/Options";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 import ConcertInfo from "../../components/TripDetails/ConcertInfo";
+import AIDisclaimer from "../../components/AIDisclaimer";
 
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
@@ -214,18 +215,23 @@ export default function TripDetails() {
         </View>
 
         <View style={styles.container}>
-          <Text style={styles.title}>
-            {tripDetails?.tripPlan?.tripName ||
-              `${tripDetails?.concertData?.artist} Concert` ||
-              "Trip Details"}
-          </Text>
-          <View style={styles.infoRow}>
+          <View style={styles.headerBlock}>
+            <Text style={styles.overline}>YOUR CURATED JOURNEY</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>
+                {tripDetails?.tripPlan?.tripName ||
+                  `${tripDetails?.concertData?.artist} Concert` ||
+                  "Trip Details"}
+              </Text>
+              <View style={styles.goldDot} />
+            </View>
             <Text style={styles.dateText}>
-              {moment(tripDetails.startDate).format("DD MMM YYYY")} -{" "}
-              {moment(tripDetails.endDate).format("DD MMM YYYY")}
+               {moment(tripDetails.startDate).format("DD MMM YYYY")} -{" "}
+               {moment(tripDetails.endDate).format("DD MMM YYYY")}
             </Text>
           </View>
-          {!tripDetails.isActive && !tripDetails?.concertData ? (
+
+          {(!tripDetails.isActive && !tripDetails?.concertData) && (
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
                 onPress={handleActivateTrip}
@@ -236,46 +242,52 @@ export default function TripDetails() {
                 </Text>
               </TouchableOpacity>
             </Animated.View>
-          ) : tripDetails.isActive ? (
-            <View style={styles.activeBadge}>
-              <Ionicons
-                name="checkmark-done-circle"
-                size={24}
-                color="#00A86B"
-              />
-              <Text style={styles.activeText}>Trip is Active.</Text>
-            </View>
-          ) : null}
+          )}
 
           {tripDetails?.concertData && (
             <ConcertInfo concertDetails={tripDetails} />
           )}
 
+          <View style={styles.divider} />
+
           <TransportInfo transportData={transportData} />
+          
+          <View style={styles.divider} />
 
           <HotelInfo
             hotelData={tripDetails?.tripPlan?.hotelOptions}
             cityName={tripDetails?.tripPlan?.tripName}
           />
 
-          <View style={{ paddingTop: 20 }}>
-            <PlannedTrip
-              itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
-              cityName={
-                tripDetails?.tripPlan?.tripName ||
-                tripDetails?.tripPlan?.tripMetadata?.tripName
-              }
-              onActivatePress={scrollToTop}
-              hideActivateBanner={!!tripDetails?.concertData}
-            />
-            <RestaurantsInfo
-              restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations }}
-              cityName={
-                tripDetails?.tripPlan?.tripName ||
-                tripDetails?.tripPlan?.tripMetadata?.tripName
-              }
-            />
-          </View>
+          <View style={styles.divider} />
+
+          <PlannedTrip
+            itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
+            cityName={
+              tripDetails?.tripPlan?.tripName ||
+              tripDetails?.tripPlan?.tripMetadata?.tripName
+            }
+            onActivatePress={scrollToTop}
+            hideActivateBanner={!!tripDetails?.concertData}
+            isActive={tripDetails?.isActive}
+            onActivate={handleActivateTrip}
+            onNavigateToActive={() => router.push({
+              pathname: "/activeTrips",
+              params: { tripId: tripDetails.id },
+            })}
+          />
+
+          <View style={styles.divider} />
+
+          <RestaurantsInfo
+            restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations }}
+            cityName={
+              tripDetails?.tripPlan?.tripName ||
+              tripDetails?.tripPlan?.tripMetadata?.tripName
+            }
+          />
+
+          <AIDisclaimer />
         </View>
       </ScrollView>
 
@@ -340,9 +352,43 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 35,
     paddingBottom: 100,
   },
-  title: { fontSize: 26, fontFamily: "outfitBold" },
-  infoRow: { flexDirection: "row", marginVertical: 10 },
-  dateText: { fontFamily: "outfit", fontSize: 16, color: Colors.GRAY },
+  headerBlock: {
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  overline: {
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+  },
+  title: { 
+    fontSize: 32, 
+    fontFamily: "playfairBold", 
+    color: Colors.TEXT,
+    lineHeight: 40,
+  },
+  goldDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.SECONDARY,
+    marginLeft: 6,
+    marginBottom: 8,
+  },
+  dateText: { 
+    fontFamily: "outfit", 
+    fontSize: 14, 
+    color: Colors.GRAY,
+    marginTop: 6,
+  },
   activateButton: {
     backgroundColor: Colors.PRIMARY,
     padding: 18,
@@ -383,5 +429,11 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 18,
     color: Colors.PRIMARY,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    marginVertical: 25,
+    marginHorizontal: width * 0.05,
   },
 });

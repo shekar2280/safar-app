@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import React from "react";
 import { Colors } from "../../constants/Colors";
+import { trendingTripCardImages } from "../../constants/Options";
+
 
 const { width, height } = Dimensions.get("window");
 

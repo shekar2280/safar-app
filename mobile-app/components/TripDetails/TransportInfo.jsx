@@ -8,10 +8,13 @@ import {
   Animated,
   Easing,
   Alert,
+  Dimensions,
 } from "react-native";
 import { Colors } from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+
+const { width } = Dimensions.get("window");
 
 const TransportInfo = ({ transportData }) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -61,18 +64,12 @@ const TransportInfo = ({ transportData }) => {
         </View>
 
         <View style={{ flex: 1, marginLeft: 15 }}>
-          <Text style={[styles.agencyName, { color }]}>{name}</Text>
+          <Text style={styles.agencyName}>{name}</Text>
           <Text style={styles.subText}>Find best {tripType} rates</Text>
         </View>
 
         <View style={[styles.viewBtn, { backgroundColor: color }]}>
-          <Text style={styles.viewBtnText}>Open</Text>
-          <Ionicons
-            name="arrow-forward-outline"
-            size={14}
-            color="white"
-            style={{ marginLeft: 5 }}
-          />
+          <Ionicons name="arrow-forward" size={16} color="white" />
         </View>
       </View>
     </TouchableOpacity>
@@ -80,33 +77,39 @@ const TransportInfo = ({ transportData }) => {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.outlineContainer}>
-        <View style={styles.labelWrapper}>
-          <Text style={styles.outlineLabel}>TRANSPORT DETAILS</Text>
+      <View style={styles.header}>
+        <Text style={styles.overline}>TRANSPORT LOGISTICS</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.sectionTitle}>Travel Route</Text>
+          <View style={styles.goldDot} />
         </View>
+      </View>
 
+      <View style={styles.routeContainer}>
         <View style={styles.routeHeader}>
           <View style={styles.iataBox}>
             <Text style={styles.iataCode}>{activeOrigin}</Text>
-            <Text style={styles.cityLabel}>Origin</Text>
+            <Text style={styles.cityLabel}>DEPARTURE</Text>
           </View>
 
           <View style={styles.planeLine}>
-            <TouchableOpacity style={styles.planeCircle} onPress={handleFlip}>
+             <View style={styles.dashLine} />
+            <TouchableOpacity style={styles.planeCircle} onPress={handleFlip} activeOpacity={0.9}>
               <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Ionicons name="airplane" size={20} color="white" />
+                <Ionicons name="airplane" size={24} color={Colors.SECONDARY} />
               </Animated.View>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.iataBox, { alignItems: "flex-end" }]}>
             <Text style={styles.iataCode}>{activeDest}</Text>
-            <Text style={styles.cityLabel}>Destination</Text>
+            <Text style={styles.cityLabel}>ARRIVAL</Text>
           </View>
         </View>
+      </View>
 
-        <Text style={styles.sectionTitle}>Book Your Journey</Text>
-
+      <View style={{ marginTop: 25 }}>
+        <Text style={styles.smallTitle}>BOOKING OPTIONS</Text>
         <BookingCard
           name="MakeMyTrip"
           url="https://www.makemytrip.com/"
@@ -117,7 +120,7 @@ const TransportInfo = ({ transportData }) => {
         <BookingCard
           name="Cleartrip"
           url="https://www.cleartrip.com/"
-          color="#3366CC"
+          color="#1A1A1A"
           image={require("../../assets/images/clear-trip.png")}
         />
 
@@ -135,81 +138,139 @@ const TransportInfo = ({ transportData }) => {
 export default memo(TransportInfo);
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 25 },
-  outlineContainer: {
-    borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    borderRadius: 20,
-    padding: 20,
-    paddingTop: 25,
+  wrapper: { marginTop: 0 },
+  header: {
+    paddingHorizontal: 4,
+    marginBottom: 20,
   },
-  labelWrapper: {
-    position: "absolute",
-    top: -12,
-    left: 20,
-    backgroundColor: Colors.WHITE,
-    paddingHorizontal: 10,
+  overline: {
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  outlineLabel: {
-    fontFamily: "outfitBold",
-    fontSize: 12,
-    color: Colors.PRIMARY,
-    letterSpacing: 1,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginTop: -4,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontFamily: "playfairBold",
+    color: Colors.TEXT,
+  },
+  goldDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.SECONDARY,
+    marginLeft: 4,
+    marginBottom: 6,
+  },
+  routeContainer: {
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 32,
+    padding: 24,
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
   },
   routeHeader: {
     flexDirection: "row",
-    backgroundColor: "#1A1A1A",
-    padding: 22,
-    borderRadius: 22,
     alignItems: "center",
-    marginBottom: 20,
-    elevation: 5,
+    justifyContent: "space-between",
   },
   iataBox: { flex: 1 },
-  iataCode: { fontSize: 26, fontFamily: "outfitBold", color: "white" },
-  cityLabel: { fontSize: 12, fontFamily: "outfit", color: "#AAA" },
-  planeLine: { flex: 1.5, alignItems: "center", justifyContent: "center" },
-  planeCircle: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "#1A1A1A",
+  iataCode: { 
+    fontSize: 32, 
+    fontFamily: "playfairBold", 
+    color: Colors.WHITE,
+    letterSpacing: 1,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: "outfitBold",
-    marginBottom: 15,
-    color: "#333",
+  cityLabel: { 
+    fontSize: 10, 
+    fontFamily: "outfitMedium", 
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
+  planeLine: { 
+    flex: 1.5, 
+    alignItems: "center", 
+    justifyContent: "center",
+  },
+  dashLine: {
+    position: 'absolute',
+    width: '100%',
+    height: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderStyle: 'dashed',
+    borderRadius: 1,
+  },
+  planeCircle: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  smallTitle: {
+    fontFamily: "outfitMedium",
+    fontSize: 10,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 2,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   card: {
-    backgroundColor: "white",
-    borderRadius: 16,
+    backgroundColor: Colors.SURFACE,
+    borderRadius: 24,
     marginBottom: 12,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "rgba(0,0,0,0.03)",
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   content: { flexDirection: "row", alignItems: "center" },
   logoCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F9F9F9",
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F8F8F8",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  logoImage: { width: "80%", height: "80%" },
-  agencyName: { fontFamily: "outfitBold", fontSize: 16 },
-  subText: { color: Colors.GRAY, fontFamily: "outfit", fontSize: 11 },
-  viewBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+  logoImage: { width: "70%", height: "70%" },
+  agencyName: { 
+    fontFamily: "outfitBold", 
+    fontSize: 16,
+    color: Colors.TEXT 
   },
-  viewBtnText: { color: "white", fontFamily: "outfitBold", fontSize: 12 },
+  subText: { 
+    color: Colors.MUTED_TEXT, 
+    fontFamily: "outfit", 
+    fontSize: 12,
+    marginTop: 1,
+  },
+  viewBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

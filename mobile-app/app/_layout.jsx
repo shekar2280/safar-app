@@ -1,24 +1,31 @@
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
+import {
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_400Regular,
+} from "@expo-google-fonts/playfair-display";
 import { CreateTripContext } from "../context/CreateTripContext";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConcertTripProvider } from "../context/ConcertTripContext";
 import { TripProvider } from "../context/CommonTripContext";
 import { UserProvider } from "../context/UserContext";
-import {ActiveTripProvider} from "../context/ActiveTripContext";
+import { ActiveTripProvider } from "../context/ActiveTripContext";
+import { LocationProvider } from "../context/LocationContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/config/FirebaseConfig";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LOCAL_HOTEL_IMAGES } from "../constants/Options";
 import { Asset } from "expo-asset";
-import { Image } from "react-native"; 
+import { Image } from "react-native";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     outfit: require("./../assets/fonts/Outfit-Regular.ttf"),
     outfitBold: require("./../assets/fonts/Outfit-Bold.ttf"),
     outfitMedium: require("./../assets/fonts/Outfit-Medium.ttf"),
+    playfair: PlayfairDisplay_400Regular,
+    playfairBold: PlayfairDisplay_700Bold,
   });
 
   const [tripData, setTripData] = useState([]);
@@ -73,15 +80,15 @@ export default function RootLayout() {
           <ConcertTripProvider>
             <TripProvider>
               <ActiveTripProvider>
+              <LocationProvider>
               <Stack screenOptions={{ headerShown: false }}>
-                {showLogin ? (
-                  <Stack.Screen name="auth/Login" />
-                ) : !isSignedIn ? (
-                  <Stack.Screen name="auth/sign-in/index" />
+                {!isSignedIn ? (
+                  <Stack.Screen name="auth" />
                 ) : (
                   <Stack.Screen name="(tabs)" />
                 )}
               </Stack>
+              </LocationProvider>
               </ActiveTripProvider>
             </TripProvider>
           </ConcertTripProvider>
