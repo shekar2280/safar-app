@@ -231,6 +231,7 @@ export interface UserContextValue {
   loading: boolean;
   transactions: unknown[];
   setTransactions: (transactions: unknown[]) => void;
+  refreshTrips: () => Promise<void>;
 }
 
 export interface SafarAlertProps {

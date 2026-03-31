@@ -17,8 +17,7 @@ import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
 import RestaurantsInfo from "@/src/components/trip-details/RestaurantsInfo";
 import TransportInfo from "@/src/components/trip-details/TransportInfo";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
+import { auth } from "@/src/lib/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { fallbackImages } from "@/src/constants/travel-data";
 import { Image } from "expo-image";
@@ -26,6 +25,7 @@ import LottieView from "lottie-react-native";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
 import AIDisclaimer from "@/src/components/common/AIDisclaimer";
 import { UserTrip } from "@/src/types/interfaces";
+import { apiGet, apiPatch } from "@/src/lib/api";
 
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
@@ -65,21 +65,20 @@ export default function TripDetails() {
     }
   }, [parsedTrip]);
 
-  const fetchStaticItinerary = async (savedTripId: string) => {
+  const fetchStaticItinerary = async (savedTripKey: string) => {
     setLoadingStaticData(true);
     try {
-      const docRef = doc(db, "SavedTripData", savedTripId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const staticData = docSnap.data();
+      const data = await apiGet<any>(`/api/trips/saved/${encodeURIComponent(savedTripKey)}`);
+      if (data) {
+        const imageUrls: string[] = data.image_urls ?? [];
         setTripDetails((prev) => ({
           ...prev,
-          tripPlan: staticData.tripPlan,
-          imageUrl: prev.imageUrl || staticData.imageUrl,
+          tripPlan: data.trip_plan,
+          imageUrl: imageUrls.length > 0 ? imageUrls : prev.imageUrl,
         }));
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Not cached — trip plan was passed inline
     } finally {
       setLoadingStaticData(false);
     }
@@ -108,11 +107,10 @@ export default function TripDetails() {
   };
 
   const handleActivateTrip = async () => {
-    if (!tripDetails.id || !user) return;
+    if (!tripDetails.id) return;
     try {
       setIsAnimating(true);
-      const tripRef = doc(db, "UserTrips", user.uid, "trips", tripDetails.id);
-      await updateDoc(tripRef, { isActive: true, activatedAt: new Date() });
+      await apiPatch(`/api/trips/${tripDetails.id}/activate`, {});
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
         setIsAnimating(false);
@@ -121,7 +119,7 @@ export default function TripDetails() {
           params: { tripId: tripDetails.id },
         });
       }, 3000);
-    } catch (error) {
+    } catch {
       setIsAnimating(false);
       Alert.alert("Error", "Failed to activate trip.");
     }

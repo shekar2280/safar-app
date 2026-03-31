@@ -1,4 +1,6 @@
 import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
   PlayfairDisplay_700Bold,
@@ -72,9 +74,11 @@ export default function RootLayout() {
   if (!fontsLoaded || !assetsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <UserProvider>
-        <CreateTripContext.Provider value={{ tripData, setTripData }}>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="dark" />
+        <UserProvider>
+          <CreateTripContext.Provider value={{ tripData, setTripData }}>
           <ConcertTripProvider>
             <TripProvider>
               <ActiveTripProvider>
@@ -92,6 +96,7 @@ export default function RootLayout() {
           </ConcertTripProvider>
         </CreateTripContext.Provider>
       </UserProvider>
-    </GestureHandlerRootView>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
