@@ -1,0 +1,17 @@
+fastapi
+firebase-admin
+email-validator
+uvicorn
+python-dotenv
+httpx
+google-genai
+slowapi
+python-jose[cryptography]
+fastapi-cache2[redis]
+sqlalchemy
+psycopg2-binary
+passlib[bcrypt]
+pydantic[email]
+pydantic-settings
+python-multipart
+jinja2

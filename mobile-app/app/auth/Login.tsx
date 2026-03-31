@@ -16,9 +16,9 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithCredential, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "@/src/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { auth } from "@/src/lib/firebase";
 import { LinearGradient } from "expo-linear-gradient";
+import { syncUserWithBackend } from "@/src/lib/api";
 
 const { height, width } = Dimensions.get("window");
 
@@ -75,24 +75,15 @@ export default function Login() {
       }
       const credential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, credential);
-      const user = userCredential.user;
+      const firebaseToken = await userCredential.user.getIdToken();
       await AsyncStorage.setItem("seenLogin", "true");
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          email: user.email ?? null,
-          displayName: user.displayName ?? null,
-          photoURL: user.photoURL ?? null,
-          lastLogin: new Date(),
-        },
-        { merge: true },
-      );
+      await syncUserWithBackend(firebaseToken);
       router.replace("/mytrip" as any);
     } catch (error: any) {
       const msg =
         error?.code === "auth/invalid-credential"
           ? "Invalid credentials"
-          : "Google Sign-In failed.";
+          : error?.message ?? "Google Sign-In failed.";
       showToast(msg);
     } finally {
       setGoogleLoading(false);
@@ -161,7 +152,7 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.08,
     paddingBottom: height * 0.06,
   },
-  content: { flex: 1, justifyBetween: "space-between" } as any,
+  content: { flex: 1, justifyContent: "space-between" },
   topSection: { alignItems: "center" },
   brandTitle: {
     fontFamily: "outfitBold",

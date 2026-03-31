@@ -10,19 +10,15 @@ import LottieView from "lottie-react-native";
 import { Colors } from "@/src/constants/colors";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
-import { auth, db } from "@/src/lib/firebase";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  collection,
-  getDoc,
-} from "firebase/firestore";
+import { auth } from "@/src/lib/firebase";
 import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import * as Haptics from "expo-haptics";
 import { CITY_TO_IATA } from "@/src/constants/iata";
 import { AI_PROMPT } from "@/src/constants/prompts";
+import { apiGet, apiPost, JWT_KEY } from "@/src/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "@/src/context/UserContext";
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +29,7 @@ export default function GenerateTrip() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const user = auth.currentUser;
+  const { refreshTrips } = useUser();
   const hasGenerated = useRef(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -59,20 +56,15 @@ export default function GenerateTrip() {
     try {
       const firstBracket = rawText.indexOf("{");
       const lastBracket = rawText.lastIndexOf("}");
-
       if (firstBracket === -1 || lastBracket === -1) return "{}";
-
       let jsonString = rawText.substring(firstBracket, lastBracket + 1);
-
       jsonString = jsonString
         .replace(/```json/g, "")
         .replace(/```/g, "")
         .replace(/,\s*([\]}])/g, "$1")
         .trim();
-
       return jsonString;
-    } catch (err) {
-      console.error("Cleaning error:", err);
+    } catch {
       return "{}";
     }
   };
@@ -96,29 +88,36 @@ export default function GenerateTrip() {
       CITY_TO_IATA[tripData.departureInfo?.name?.split(",")[0].toLowerCase() || ""] ||
       "BOM";
 
-    let itineraryData, finalImageUrl, destinationIata;
+    let itineraryData: any, finalImageUrl: any, destinationIata: string;
 
     while (attempts < maxAttempts && !success) {
       try {
         setRetryCount(attempts);
 
-        const savedTripRef = doc(db, "SavedTripData", normalizedKey);
-        const existingTrip = await getDoc(savedTripRef);
+        // 1. Check if a shared cached plan already exists in Neon (replaces Firestore getDoc)
+        let cached: any = null;
+        try {
+          cached = await apiGet(`/api/trips/saved/${encodeURIComponent(normalizedKey)}`);
+        } catch {
+          // 404 means not cached yet — proceed to generate
+        }
 
-        if (existingTrip.exists()) {
-          const cached = existingTrip.data();
-          itineraryData = cached.tripPlan;
-          finalImageUrl = cached.imageUrl || "";
-          destinationIata = cached.destinationIata || "N/A";
+        if (cached) {
+          console.log(`[CACHE HIT] Returning instant itinerary from DB for key: "${normalizedKey}"`);
+          itineraryData = cached.trip_plan;
+          finalImageUrl = cached.image_url || "";
+          destinationIata = cached.destination_iata || "N/A";
         } else {
+          console.log(`[CACHE MISS] No DB cache for key: "${normalizedKey}" — calling Gemini AI`);
           const days = parseInt(tripData.totalDays!.toString());
           const totalPlaces = days * 4;
           const perSlot = days;
           const totalRecs = days * 2;
 
-          const FINAL_ITINERARY_PROMPT = AI_PROMPT.replace(/{location}/g, tripData.destinationInfo?.name || "")
+          const FINAL_ITINERARY_PROMPT = AI_PROMPT
+            .replace(/{location}/g, tripData.destinationInfo?.name || "")
             .replace(/{totalDays}/g, tripData.totalDays!.toString())
-            .replace(/{totalNight}/g, (parseInt(tripData.totalDays!.toString()) - 1).toString())
+            .replace(/{totalNight}/g, (days - 1).toString())
             .replace(/{traveler}/g, tripData.traveler?.title || "")
             .replace(/{budget}/g, tripData.budget || "")
             .replace(/{totalPlaces}/g, totalPlaces.toString())
@@ -145,42 +144,38 @@ export default function GenerateTrip() {
           itineraryData = normalizeItinerary(aiData);
           finalImageUrl = result.imageUrl || result.imageUrls || "";
           destinationIata = aiData.destinationIata || "N/A";
-
-          await setDoc(savedTripRef, {
-            savedTripId: normalizedKey,
-            tripPlan: itineraryData,
-            imageUrl: finalImageUrl,
-            destinationIata,
-            createdAt: serverTimestamp(),
-          });
         }
 
-        const userTripRef = doc(collection(db, "UserTrips", user.uid, "trips"));
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { icon, ...cleanTraveler } = tripData.traveler as any;
+        // 3. Save to Neon — upserts shared plan + creates user trip (replaces two Firestore setDoc calls)
+        const jwt = await AsyncStorage.getItem(JWT_KEY);
+        if (!jwt) throw new Error("Not authenticated with backend");
 
-        await setDoc(userTripRef, {
-          userEmail: user.email,
-          userId: user.uid,
-          savedTripId: normalizedKey,
-          startDate: tripData.startDate,
-          endDate: tripData.endDate,
+        const { icon: _icon, ...cleanTraveler } = (tripData.traveler as any) || {};
+
+        await apiPost("/api/trips", {
+          normalized_key: normalizedKey,
+          trip_plan: itineraryData,
+          image_urls: Array.isArray(finalImageUrl)
+            ? finalImageUrl
+            : finalImageUrl
+              ? [finalImageUrl]
+              : [],
+          destination_iata: destinationIata,
+          start_date: tripData.startDate,
+          end_date: tripData.endDate,
           traveler: cleanTraveler,
-          isInternational: tripData.isInternational || false,
-          departureIata: localDepartureIata,
-          destinationIata, 
-          tripType: tripData.tripType || "planned",
-          isActive: false,
-          createdAt: serverTimestamp(),
+          is_international: tripData.isInternational || false,
+          departure_iata: localDepartureIata,
+          trip_type: tripData.tripType || "planned",
         });
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
         setLoading(false);
+        await refreshTrips();
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {
         attempts++;
-        console.error(`Attempt ${attempts} failed:`, err);
         if (attempts < maxAttempts) {
           await delay(2000);
         } else {
@@ -217,10 +212,7 @@ export default function GenerateTrip() {
         <View style={{ alignItems: "center", width: "100%" }}>
           <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            onPress={generateAiTrip}
-            style={styles.primaryButton}
-          >
+          <TouchableOpacity onPress={generateAiTrip} style={styles.primaryButton}>
             <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
           <TouchableOpacity

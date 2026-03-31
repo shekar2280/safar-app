@@ -20,9 +20,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "@/src/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { auth } from "@/src/lib/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { syncUserWithBackend } from "@/src/lib/api";
 
 const { height } = Dimensions.get("window");
 
@@ -76,19 +76,10 @@ export default function SignIn() {
         return;
       }
       const credential = GoogleAuthProvider.credential(idToken);
-      const userCredential = await signInWithCredential(auth, credential);
-      const user = userCredential.user;
+      const result = await signInWithCredential(auth, credential);
+      const firebaseToken = await result.user.getIdToken();
       await AsyncStorage.setItem("seenLogin", "true");
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          email: user.email ?? null,
-          displayName: user.displayName ?? null,
-          photoURL: user.photoURL ?? null,
-          lastLogin: new Date(),
-        },
-        { merge: true },
-      );
+      await syncUserWithBackend(firebaseToken);
       router.replace("/mytrip" as any);
     } catch (error: any) {
       const msg = error?.code === "auth/invalid-credential" ? "Invalid credentials" : "Google Sign-In failed.";
@@ -107,17 +98,9 @@ export default function SignIn() {
     setLoading(true);
     signInWithEmailAndPassword(auth, email.trim(), password.trim())
       .then(async (userCredential) => {
-        const user = userCredential.user;
+        const idToken = await userCredential.user.getIdToken();
         await AsyncStorage.setItem("seenLogin", "true");
-
-        await setDoc(
-          doc(db, "users", user.uid),
-          {
-            lastLogin: new Date(),
-          },
-          { merge: true },
-        );
-
+        await syncUserWithBackend(idToken);
         router.replace("/mytrip" as any);
       })
       .catch((error) => {

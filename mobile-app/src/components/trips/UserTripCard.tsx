@@ -12,11 +12,10 @@ import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { deleteDoc, doc } from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
 import { concertImages, fallbackImages } from "@/src/constants/travel-data";
 import { Image } from "expo-image";
 import { UserTripCardProps } from "@/src/types/interfaces";
+import { apiDelete } from "@/src/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -63,9 +62,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   const handleDeleteFinal = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      await deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id));
+      await apiDelete(`/api/trips/${trip.id}`);
       onDelete?.(trip.id);
       setDeleteVisible(false);
     } catch {

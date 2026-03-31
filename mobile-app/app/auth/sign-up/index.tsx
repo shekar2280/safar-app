@@ -18,9 +18,9 @@ import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/src/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { auth } from "@/src/lib/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { syncUserWithBackend } from "@/src/lib/api";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -54,14 +54,9 @@ export default function SignUp() {
     setLoading(true);
     createUserWithEmailAndPassword(auth, email.trim(), password.trim())
       .then(async (userCredential) => {
-        const user = userCredential.user;
+        const idToken = await userCredential.user.getIdToken();
         await AsyncStorage.setItem("seenLogin", "true");
-        await setDoc(doc(db, "users", user.uid), {
-          fullName: fullName.trim(),
-          email: email.trim(),
-          createdAt: new Date(),
-          lastLogin: new Date(),
-        });
+        await syncUserWithBackend(idToken);
         router.replace("/mytrip" as any);
       })
       .catch((error: any) => {
