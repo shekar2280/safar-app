@@ -13,7 +13,10 @@ const palette = {
   gray: "#9CA3AF",
   lightGray: "#E5E7EB",
   red: "#EF4444",
+  gold: "#D4AF37",
+  darkSurface:"#121212",
   tabInactive: "rgba(31,41,51,0.6)",
+  green: "#34a326ff",
 } as const;
 
 export const Colors = {
@@ -33,6 +36,9 @@ export const Colors = {
   BLUE: palette.primary,
   RED: palette.red,
   TAB_INACTIVE: palette.tabInactive,
+  GOLD: palette.gold,
+  DARK_SURFACE: palette.darkSurface,
+  GREEN: palette.green
 } as const;
 
 export type ColorKey = keyof typeof Colors;

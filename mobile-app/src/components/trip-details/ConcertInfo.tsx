@@ -42,10 +42,12 @@ const DetailItem = ({ icon, label, value, isLast = false, onPress = null }: Deta
 export default function ConcertInfo({ concertDetails }: { concertDetails?: any }) {
   if (!concertDetails) return null;
 
+  const data = concertDetails?.concert_data || concertDetails?.concertData || {};
+
   const openMaps = () => {
-    const query = encodeURIComponent(
-      `${concertDetails?.concertData?.venueName}, ${concertDetails?.concertData?.venueAddress}`
-    );
+    const venue = data?.venueName || data?.destinationInfo?.venueName;
+    const address = data?.venueAddress || data?.destinationInfo?.venueAddress;
+    const query = encodeURIComponent(`${venue}, ${address}`);
     const url = Platform.select({
       ios: `maps:0,0?q=${query}`,
       android: `geo:0,0?q=${query}`,
@@ -53,7 +55,8 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
     if (url) Linking.openURL(url);
   };
 
-  const rawPrice = concertDetails?.tripPlan?.concertDetails?.ticketPrice || 0;
+  const rawPrice =
+    data?.priceRange?.min || concertDetails?.tripPlan?.concertDetails?.ticketPrice || 0;
   const formattedPrice =
     rawPrice > 0 ? `₹${rawPrice.toLocaleString("en-IN")}` : "Check on Booking Site";
 
@@ -62,7 +65,7 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
       <View style={styles.header}>
         <Text style={styles.overline}>EXCLUSIVE EVENT</Text>
         <View style={styles.titleRow}>
-          <Text style={styles.sectionTitle}>Concert Pass</Text>
+          <Text style={[styles.sectionTitle, { flexShrink: 1 }]}>Concert Pass</Text>
           <View style={styles.goldDot} />
         </View>
       </View>
@@ -71,7 +74,14 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
         <View style={styles.cardHeader}>
           <View style={styles.artistInfo}>
             <Text style={styles.artistLabel}>PERFORMING ARTIST</Text>
-            <Text style={styles.artistName}>{concertDetails?.concertData?.artist}</Text>
+            <Text 
+              style={styles.artistName} 
+              numberOfLines={1} 
+              adjustsFontSizeToFit 
+              minimumFontScale={0.7}
+            >
+              {data?.artist}
+            </Text>
           </View>
           <View style={styles.passBadge}>
             <Ionicons name="ticket" size={20} color={Colors.BLACK} />
@@ -79,30 +89,43 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
         </View>
 
         <View style={styles.body}>
-          <DetailItem icon="calendar-outline" label="EVENT DATE" value={concertDetails?.concertData?.destinationInfo?.concertDate} />
-          <DetailItem icon="time-outline" label="DOORS OPEN" value={concertDetails?.concertData?.destinationInfo?.concertTime} />
+          <DetailItem
+            icon="calendar-outline"
+            label="EVENT DATE"
+            value={data?.concertDate || data?.destinationInfo?.concertDate}
+          />
+          <DetailItem
+            icon="time-outline"
+            label="DOORS OPEN"
+            value={data?.concertTime || data?.destinationInfo?.concertTime || "Evening"}
+          />
           <DetailItem icon="cash-outline" label="ESTIMATED PRICE" value={formattedPrice} />
           <DetailItem
             icon="location-outline"
             label="VENUE"
-            value={`${concertDetails?.concertData?.destinationInfo?.venueName}\n${concertDetails?.concertData?.destinationInfo?.venueAddress}`}
+            value={`${data?.venueName || data?.destinationInfo?.venueName}\n${data?.venueAddress || data?.destinationInfo?.venueAddress}`}
             isLast
             onPress={openMaps}
           />
         </View>
 
-        {(concertDetails?.concertData?.destinationInfo?.bookingUrl || concertDetails?.bookingUrl) && (
+        {(data?.bookingUrl || data?.destinationInfo?.bookingUrl || concertDetails?.bookingUrl) && (
           <TouchableOpacity
             onPress={() =>
               Linking.openURL(
-                concertDetails?.concertData?.destinationInfo?.bookingUrl || concertDetails?.bookingUrl
+                data?.bookingUrl || data?.destinationInfo?.bookingUrl || concertDetails?.bookingUrl
               )
             }
             style={styles.bookButton}
             activeOpacity={0.9}
           >
             <Text style={styles.bookButtonText}>Secure Your Tickets</Text>
-            <Ionicons name="arrow-forward" size={18} color={Colors.WHITE} style={{ marginLeft: 8 }} />
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color={Colors.WHITE}
+              style={{ marginLeft: 8 }}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -113,15 +136,15 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
 const styles = StyleSheet.create({
   wrapper: { marginTop: 35, marginBottom: 20 },
   header: { paddingHorizontal: 4, marginBottom: 20 },
-  overline: { fontFamily: "outfitMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
+  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold", color: Colors.TEXT },
   goldDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.SECONDARY, marginLeft: 4, marginBottom: 6 },
   card: { borderRadius: 28, backgroundColor: Colors.SURFACE, overflow: "hidden", shadowColor: Colors.BLACK, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 6, borderWidth: 1, borderColor: "rgba(0,0,0,0.03)" },
   cardHeader: { backgroundColor: Colors.PRIMARY, padding: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   artistInfo: { flex: 1 },
-  artistLabel: { color: "rgba(255,255,255,0.5)", fontFamily: "outfitMedium", fontSize: 10, letterSpacing: 2, marginBottom: 4 },
-  artistName: { color: Colors.WHITE, fontFamily: "playfairBold", fontSize: 32 },
+  artistLabel: { color: "rgba(255,255,255,0.5)", fontFamily: "interMedium", fontSize: 10, letterSpacing: 2, marginBottom: 4 },
+  artistName: { color: Colors.WHITE, fontFamily: "playfairBold", fontSize: 28 },
   passBadge: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.SECONDARY, justifyContent: "center", alignItems: "center", shadowColor: Colors.SECONDARY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   body: { padding: 24 },
   detailItem: { flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.03)" },

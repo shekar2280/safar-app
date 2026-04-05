@@ -16,11 +16,39 @@ import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/
 export default function DestinationPicker({
   onLocationSelect,
   placeholder = "Search destination...",
-}: DestinationPickerProps) {
-  const [query, setQuery] = useState("");
+  value,
+}: DestinationPickerProps & { value?: DestinationData | null }) {
+  const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState<NominatimResult[]>([]);
-  const [selected, setSelected] = useState<DestinationData | null>(null);
+  const [selected, setSelected] = useState<DestinationData | null>(value || null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      if (value.coordinates && (value.coordinates.lat !== 0 || value.coordinates.lon !== 0)) {
+        setQuery(value.name);
+        setSelected(value);
+      } else if (value.name) {
+        setQuery(value.name);
+        setLoading(true);
+        fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value.name)}&format=json&addressdetails=1`,
+          { headers: { "User-Agent": "safar-travel-app" } }
+        )
+          .then((res) => res.json())
+          .then((data: NominatimResult[]) => {
+            if (data && data.length > 0) {
+              handleSelect(data[0]);
+            }
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      }
+    } else {
+      setQuery("");
+      setSelected(null);
+    }
+  }, [value?.name]); 
 
   useEffect(() => {
     if (query.length < 3 || selected) {
@@ -135,7 +163,7 @@ export default function DestinationPicker({
                 <ActivityIndicator size="small" color={Colors.SECONDARY} />
               ) : query.length > 0 ? (
                 <TouchableOpacity onPress={clearInput}>
-                  <Ionicons name="close-circle" size={20} color={Colors.MUTED_TEXT} />
+                  <Text style={styles.clearText}>Clear</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -153,9 +181,6 @@ export default function DestinationPicker({
                 onPress={() => handleSelect(item)}
                 style={styles.suggestionItem}
               >
-                <View style={styles.iconCircle}>
-                  <Ionicons name="map" size={14} color={Colors.SECONDARY} />
-                </View>
                 <View style={styles.textWrap}>
                   <Text style={styles.mainText} numberOfLines={1}>{mainName.trim()}</Text>
                   <Text style={styles.subText} numberOfLines={1}>{rest.join(",").trim()}</Text>
@@ -197,6 +222,13 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   actionSection: { paddingLeft: 10 },
+  clearText: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: Colors.MUTED_TEXT,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   suggestionList: {
     backgroundColor: Colors.WHITE,
     borderRadius: 24,

@@ -5,39 +5,56 @@ import {
   Text,
   View,
   StyleSheet,
+  TouchableOpacity,
+  StatusBar,
 } from "react-native";
-import React from "react";
+import React, { useMemo } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import { useUser } from "@/src/context/UserContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ActiveTripCard from "@/src/components/wallet/ActiveTripCard";
 import { UserTrip } from "@/src/types/interfaces";
+import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
 export default function ActiveTrips() {
+  const insets = useSafeAreaInsets();
   const { userTrips, loading } = useUser();
+  const router = useRouter();
 
-  const activeTrips = (userTrips || [])
-    .filter((trip: UserTrip) => trip.isActive === true)
-    .sort((a, b) => {
-      const parseDate = (val: any) => {
-        if (!val) return 0;
-        if (val.seconds) return val.seconds * 1000;
-        return new Date(val).getTime();
-      };
+  const sortedTrips = useMemo(() => {
+    return (userTrips || [])
+      .filter((t: UserTrip) => t.isActive || t.isFinished)
+      .sort((a, b) => {
 
-      return parseDate((b as any).activatedAt) - parseDate((a as any).activatedAt);
-    });
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+
+        const parseDate = (val: any) => {
+          if (!val) return 0;
+          if (val.seconds) return val.seconds * 1000;
+          return new Date(val).getTime();
+        };
+
+        if (a.isFinished && b.isFinished) {
+          return parseDate(b.completedAt) - parseDate(a.completedAt);
+        }
+
+        return parseDate(b.activatedAt) - parseDate(a.activatedAt);
+      });
+  }, [userTrips]);
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.subtitle}>CURRENT ADVENTURES</Text>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <Text style={styles.subtitle}>MY JOURNEY HISTORY</Text>
           <View style={styles.titleRow}>
             <Text style={styles.title}>Active Trips</Text>
             <View style={styles.goldDot} />
@@ -52,7 +69,7 @@ export default function ActiveTrips() {
           />
         )}
 
-        {!loading && activeTrips.length === 0 && (
+        {!loading && sortedTrips.length === 0 && (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
               name="bag-checked"
@@ -62,13 +79,19 @@ export default function ActiveTrips() {
             <Text style={styles.emptyTitle}>You have no active trips.</Text>
             <Text style={styles.emptySubtitle}>
               Activate a trip from the "My Trips" details page to manage its
-              expenses here.
+              expenses and itinerary here.
             </Text>
+            <TouchableOpacity
+              style={styles.exploreBtn}
+              onPress={() => router.push("/mytrip")}
+            >
+              <Text style={styles.exploreBtnText}>Browse My Portfolio</Text>
+            </TouchableOpacity>
           </View>
         )}
 
         <View style={styles.listContainer}>
-          {activeTrips.map((trip) => (
+          {sortedTrips.map((trip) => (
             <ActiveTripCard key={trip.id} trip={trip as any} />
           ))}
         </View>
@@ -80,16 +103,15 @@ export default function ActiveTrips() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.BACKGROUND,
+    backgroundColor: Colors.WHITE,
   },
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: Colors.BACKGROUND,
-    paddingBottom: height * 0.16,
+    backgroundColor: Colors.WHITE,
+    paddingBottom: 160,
   },
   header: {
     paddingHorizontal: width * 0.03,
-    paddingTop: height * 0.06,
     paddingBottom: 20,
   },
   subtitle: {
@@ -140,8 +162,21 @@ const styles = StyleSheet.create({
     marginTop: height * 0.01,
     textAlign: "center",
   },
+  exploreBtn: {
+    marginTop: 35,
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 50,
+  },
+  exploreBtnText: {
+    color: "#FFF",
+    fontFamily: "outfitBold",
+    fontSize: 15,
+  },
   listContainer: {
     paddingHorizontal: width * 0.03,
     marginTop: 10,
+    gap: 15,
   },
 });

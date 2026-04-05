@@ -13,6 +13,8 @@ import {
 import React, { useState, useEffect } from "react";
 import { Colors } from "@/src/constants/colors";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithCredential, GoogleAuthProvider } from "firebase/auth";
@@ -32,7 +34,6 @@ function showToast(message: string) {
 
 function getGoogleSignin() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require("@react-native-google-signin/google-signin").GoogleSignin;
   } catch {
     return null;
@@ -40,6 +41,7 @@ function getGoogleSignin() {
 }
 
 export default function Login() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -99,8 +101,9 @@ export default function Login() {
       >
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.85)"]}
-          style={styles.gradientOverlay}
+          style={[styles.gradientOverlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
         >
+          <StatusBar style="dark" />
           <View style={styles.content}>
             <View style={styles.topSection}>
               <Text style={styles.brandTitle}>Safar</Text>
@@ -149,8 +152,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
     paddingHorizontal: width * 0.08,
-    paddingTop: height * 0.08,
-    paddingBottom: height * 0.06,
   },
   content: { flex: 1, justifyContent: "space-between" },
   topSection: { alignItems: "center" },

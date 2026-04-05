@@ -5,23 +5,27 @@ import {
   Dimensions,
   TouchableOpacity,
   StyleSheet,
+  StatusBar,
 } from "react-native";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import { useRouter } from "expo-router";
 import { DiscoverIdeasList } from "@/src/constants/travel-data";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
+import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 
 const { width, height } = Dimensions.get("window");
 
 export default function Discover() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <GlobalLocationHeader />
+      <StatusBar barStyle="dark-content" />
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerContent}>
           <Text style={styles.subtitle}>EXPLORE NEW HORIZONS</Text>
           <View style={styles.titleRow}>
@@ -29,6 +33,10 @@ export default function Discover() {
             <View style={styles.goldDot} />
           </View>
         </View>
+      </View>
+
+      <View style={{ paddingHorizontal: width * 0.03 }}>
+        <HomeLocationPrompt />
       </View>
 
       <FlatList
@@ -61,11 +69,10 @@ export default function Discover() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.BACKGROUND,
+    backgroundColor: Colors.WHITE,
   },
   header: {
-    paddingHorizontal: width * 0.03,
-    paddingTop: height * 0.05,
+    paddingHorizontal: width * 0.01,
     paddingBottom: 15,
   },
   headerContent: {
@@ -104,6 +111,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: width * 0.03,
-    paddingBottom: height * 0.16,
+    paddingBottom: 160,
   },
 });

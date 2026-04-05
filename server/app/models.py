@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text, JSON, Date
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text, JSON, Date, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -22,6 +22,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     last_login = Column(DateTime)
+    home_location = Column(JSON, nullable=True)
 
     user_trips = relationship("UserTrip", back_populates="user")
 
@@ -33,7 +34,7 @@ class SavedTrip(Base):
     id = Column(UUID(as_uuid=False), primary_key=True, default=_uuid, index=True)
     normalized_key = Column(String, unique=True, index=True, nullable=False)
     trip_plan = Column(JSON, nullable=False)
-    image_urls = Column(JSON, default=list)       # ← was a single image_url Text; now a list
+    image_urls = Column(JSON, default=list)
     destination_iata = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -49,23 +50,42 @@ class UserTrip(Base):
     saved_trip_id = Column(UUID(as_uuid=False), ForeignKey("saved_trips.id"), nullable=False)
     normalized_key = Column(String, index=True)
 
-    # Use proper Date columns instead of String
-    start_date = Column(Date)
-    end_date = Column(Date)
+    total_days = Column(Integer, nullable=False, default=1)
 
     traveler = Column(JSON)
     is_international = Column(Boolean, default=False)
     departure_iata = Column(String)
     destination_iata = Column(String)
-    trip_type = Column(String, default="planned")
+    traveler_mode = Column(String, default="SOLO")
+    
+    # Lifecycle
     is_active = Column(Boolean, default=False)
+    is_finished = Column(Boolean, default=False)
+    activated_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
 
-    # Soft delete instead of hard delete
-    is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(DateTime, nullable=True)
+    # Wallet & Progress (Space-Efficient)
+    total_budget = Column(Float, default=0.0)
+    visited_indices = Column(JSON, default=list)
+    archived_spendings = Column(JSON, nullable=True) # Compact historical data
+
+    # Personal Event Data (Overwrites shared SavedTrip photos/info if present)
+    concert_data = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="user_trips")
     saved_trip = relationship("SavedTrip", back_populates="user_trips")
+
+
+class TrendingCache(Base):
+    """Cached trending destinations by country, refreshed every 3-6 months."""
+    __tablename__ = "trending_cache"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=_uuid, index=True)
+    country = Column(String, unique=True, index=True, nullable=False)
+    trending_data = Column(JSON, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

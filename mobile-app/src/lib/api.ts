@@ -103,3 +103,7 @@ export async function apiDelete(endpoint: string): Promise<void> {
     throw new Error(err.detail ?? `Request failed: ${res.status}`);
   }
 }
+
+export async function updateUserProfile(data: { home_location?: any }): Promise<void> {
+  await apiPatch("/api/auth/me", data);
+}

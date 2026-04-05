@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/src/constants/colors";
 import { useLocation } from "@/src/context/LocationContext";
@@ -16,19 +17,20 @@ import LocationPicker from "@/src/components/trip/LocationPicker";
 const { height } = Dimensions.get("window");
 
 export default function GlobalLocationHeader() {
+  const insets = useSafeAreaInsets();
   const { currentLocation } = useLocation();
   const [modalVisible, setModalVisible] = useState(false);
 
   const cityName = currentLocation?.name || "Select Location";
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 5 }]}>
       <TouchableOpacity
         style={styles.trigger}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
       >
-        <Ionicons name="location" size={16} color={Colors.SECONDARY} />
+        <Ionicons name="location" size={26} color={Colors.SECONDARY} />
         <View style={styles.textContainer}>
           <View style={styles.row}>
             <Text style={styles.cityName} numberOfLines={1}>
@@ -47,7 +49,7 @@ export default function GlobalLocationHeader() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-            <SafeAreaView style={styles.modalContent}>
+            <View style={[styles.modalContent, { paddingTop: insets.top + 20 }]}>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Where are you?</Text>
                     <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
@@ -71,7 +73,7 @@ export default function GlobalLocationHeader() {
                         We use this to surface the best hidden gems and experiences near you.
                     </Text>
                 </View>
-            </SafeAreaView>
+            </View>
         </View>
       </Modal>
     </View>
@@ -80,8 +82,7 @@ export default function GlobalLocationHeader() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
     backgroundColor: "transparent",
   },
   trigger: {

@@ -29,14 +29,37 @@ export default function LocationPicker({
   title,
   onLocationChange,
   placeholder = "Search city...",
-}: LocationPickerProps) {
+  value,
+}: LocationPickerProps & { value?: LocationData | null }) {
   const { currentLocation, updateLocation } = useLocation();
   const [state, setState] = useState<PickerState>({
-    loading: !currentLocation,
-    query: currentLocation?.name || "",
+    loading: !currentLocation && !value,
+    query: value?.name || currentLocation?.name || "",
     results: [],
-    selected: currentLocation || null,
+    selected: value || currentLocation || null,
   });
+
+  useEffect(() => {
+    if (value) {
+      if (value.coordinates && (value.coordinates.lat !== 0 || value.coordinates.lon !== 0)) {
+        setState(s => ({ ...s, query: value.name, selected: value }));
+      } else if (value.name) {
+        setState(s => ({ ...s, query: value.name, loading: true }));
+        fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value.name)}&format=json&addressdetails=1`,
+          { headers: { "User-Agent": "safar-travel-app" } }
+        )
+          .then((res) => res.json())
+          .then((data: NominatimResult[]) => {
+            if (data && data.length > 0) {
+              handleItemSelect(data[0]);
+            }
+            setState(s => ({ ...s, loading: false }));
+          })
+          .catch(() => setState(s => ({ ...s, loading: false })));
+      }
+    }
+  }, [value?.name]);
 
   useEffect(() => {
     if (currentLocation && onLocationChange) {
@@ -82,40 +105,10 @@ export default function LocationPicker({
   useEffect(() => {
     if (currentLocation) {
       setState((s) => ({ ...s, loading: false }));
-      return;
+    } else {
+      setState((s) => ({ ...s, loading: false }));
     }
-
-    (async () => {
-      try {
-        let { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== "granted") {
-          const response = await Location.requestForegroundPermissionsAsync();
-          status = response.status;
-        }
-        if (status !== "granted") {
-          setState((s) => ({ ...s, loading: false }));
-          return;
-        }
-
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const { latitude, longitude } = loc.coords;
-
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-          { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
-        );
-        const data: NominatimResult = await res.json();
-        const formatted = formatLocationData(data, latitude, longitude);
-
-        updateLocation(formatted);
-
-        if (onLocationChange) onLocationChange(formatted);
-        setState((s) => ({ ...s, loading: false, query: formatted.name, selected: formatted }));
-      } catch {
-        setState((s) => ({ ...s, loading: false }));
-      }
-    })();
-  }, []);
+  }, [currentLocation]);
 
   useEffect(() => {
     if (state.query.length < 3 || state.selected) {
@@ -189,7 +182,7 @@ export default function LocationPicker({
                 <ActivityIndicator size="small" color={Colors.SECONDARY} />
               ) : state.query.length > 0 ? (
                 <TouchableOpacity onPress={clearInput}>
-                  <Ionicons name="close-circle" size={20} color={Colors.MUTED_TEXT} />
+                  <Text style={styles.clearText}>Clear</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -251,6 +244,13 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   actionSection: { paddingLeft: 10 },
+  clearText: {
+    fontFamily: "outfit",
+    fontSize: 12,
+    color: Colors.MUTED_TEXT,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   suggestionList: {
     backgroundColor: Colors.WHITE,
     borderRadius: 24,
