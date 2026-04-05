@@ -9,9 +9,8 @@ export default function AIDisclaimer({ style }: AIDisclaimerProps) {
     <View style={[styles.container, style] as ViewStyle[]}>
       <View style={styles.divider} />
       <View style={styles.content}>
-        <Ionicons name="sparkles-outline" size={14} color={Colors.GRAY} />
         <Text style={styles.text}>
-          Curated by Safar AI. Locations, hours, and estimated pricing are indicative. 
+          Locations, hours, and estimated pricing are indicative. 
           Please verify with official sources before visiting.
         </Text>
       </View>
@@ -21,7 +20,7 @@ export default function AIDisclaimer({ style }: AIDisclaimerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 10,
     opacity: 0.8,
   },

@@ -6,15 +6,18 @@ import {
   ActivityIndicator,
   Dimensions,
   Animated,
-  StyleSheet,
   TextInput,
   Keyboard,
+  StatusBar,
+  StyleSheet,
 } from "react-native";
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "@/src/components/trips/StartNewTripCard";
 import UserTripList from "@/src/components/trips/UserTripList";
+import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
 import NetInfo from "@react-native-community/netinfo";
@@ -23,6 +26,7 @@ import { UserTrip } from "@/src/types/interfaces";
 const { width, height } = Dimensions.get("window");
 
 export default function Mytrip() {
+  const insets = useSafeAreaInsets();
   const { userTrips, setUserTrips, userProfile, loading } = useUser();
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
@@ -103,18 +107,19 @@ export default function Mytrip() {
         : "GOOD EVENING";
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
+    <View style={{ flex: 1, backgroundColor: Colors.WHITE }}>
+      <StatusBar barStyle="dark-content" />
       <ScrollView
-        style={{ paddingTop: height * 0.05 }}
+        style={{ paddingTop: insets.top + 10 }}
         contentContainerStyle={{
           paddingHorizontal: width * 0.03,
           paddingTop: 0,
-          paddingBottom: height * 0.25,
+          paddingBottom: 160,
           flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <GlobalLocationHeader />
+        {/* <GlobalLocationHeader /> */}
         <View style={styles.header}>
           {isSearching ? (
             <View style={styles.searchBarWrapper}>
@@ -186,6 +191,8 @@ export default function Mytrip() {
             <Text style={styles.bannerText}>Back Online</Text>
           </Animated.View>
         )}
+
+        <HomeLocationPrompt />
 
         {loading ? (
           <ActivityIndicator

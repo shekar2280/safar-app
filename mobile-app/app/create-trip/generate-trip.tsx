@@ -4,32 +4,37 @@ import {
   Dimensions,
   TouchableOpacity,
   StyleSheet,
+  StatusBar,
 } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "@/src/constants/colors";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth } from "@/src/lib/firebase";
 import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import * as Haptics from "expo-haptics";
 import { CITY_TO_IATA } from "@/src/constants/iata";
 import { AI_PROMPT } from "@/src/constants/prompts";
-import { apiGet, apiPost, JWT_KEY } from "@/src/lib/api";
+import { apiGet, apiPost, JWT_KEY, updateUserProfile } from "@/src/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/src/context/UserContext";
+import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 
 const { width } = Dimensions.get("window");
 
 export default function GenerateTrip() {
+  const insets = useSafeAreaInsets();
   const context = useContext(CreateTripContext);
+  const concertContext = useContext(ConcertTripContext);
   const { tripData } = context || {};
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const user = auth.currentUser;
-  const { refreshTrips } = useUser();
+  const { refreshTrips, userProfile } = useUser();
   const hasGenerated = useRef(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -39,9 +44,7 @@ export default function GenerateTrip() {
       tripData?.departureInfo?.name &&
       tripData?.totalDays &&
       tripData?.traveler?.title &&
-      tripData?.budget &&
-      tripData?.startDate &&
-      tripData?.endDate;
+      tripData?.budget;
 
     if (isTripReady && user && !hasGenerated.current) {
       hasGenerated.current = true;
@@ -93,22 +96,17 @@ export default function GenerateTrip() {
     while (attempts < maxAttempts && !success) {
       try {
         setRetryCount(attempts);
-
-        // 1. Check if a shared cached plan already exists in Neon (replaces Firestore getDoc)
         let cached: any = null;
         try {
           cached = await apiGet(`/api/trips/saved/${encodeURIComponent(normalizedKey)}`);
         } catch {
-          // 404 means not cached yet — proceed to generate
         }
 
         if (cached) {
-          console.log(`[CACHE HIT] Returning instant itinerary from DB for key: "${normalizedKey}"`);
           itineraryData = cached.trip_plan;
           finalImageUrl = cached.image_url || "";
           destinationIata = cached.destination_iata || "N/A";
         } else {
-          console.log(`[CACHE MISS] No DB cache for key: "${normalizedKey}" — calling Gemini AI`);
           const days = parseInt(tripData.totalDays!.toString());
           const totalPlaces = days * 4;
           const perSlot = days;
@@ -122,7 +120,8 @@ export default function GenerateTrip() {
             .replace(/{budget}/g, tripData.budget || "")
             .replace(/{totalPlaces}/g, totalPlaces.toString())
             .replace(/{perSlot}/g, perSlot.toString())
-            .replace(/{totalRecs}/g, totalRecs.toString());
+            .replace(/{totalRecs}/g, totalRecs.toString())
+            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO");
 
           const response = await fetch(API_BASE_URL, {
             method: "POST",
@@ -131,6 +130,8 @@ export default function GenerateTrip() {
               itineraryPrompt: FINAL_ITINERARY_PROMPT,
               locationName: tripData.destinationInfo?.name,
               tripCategory: "GENERAL",
+              latitude: tripData.destinationInfo?.coordinates?.lat,
+              longitude: tripData.destinationInfo?.coordinates?.lon,
             }),
           });
 
@@ -146,28 +147,49 @@ export default function GenerateTrip() {
           destinationIata = aiData.destinationIata || "N/A";
         }
 
-        // 3. Save to Neon — upserts shared plan + creates user trip (replaces two Firestore setDoc calls)
         const jwt = await AsyncStorage.getItem(JWT_KEY);
         if (!jwt) throw new Error("Not authenticated with backend");
 
         const { icon: _icon, ...cleanTraveler } = (tripData.traveler as any) || {};
 
+        const isConcert = !!tripData.destinationInfo?.festival;
+
+        const festivalName = tripData.destinationInfo?.festival;
+        const artistFallback = festivalName ? festivalName.replace(" Concert", "") : "";
+        const finalArtist = concertContext?.concertData?.artist || artistFallback;
+
+        const concertPayload = isConcert ? {
+          artist: finalArtist,
+          title: festivalName,
+          venueName: tripData.destinationInfo?.name,
+          venueAddress: (tripData.destinationInfo as any)?.venueAddress,
+          concertDate: tripData.destinationInfo?.concertDate,
+          concertTime: (tripData.destinationInfo as any)?.concertTime,
+          bookingUrl: (tripData.destinationInfo as any)?.bookingUrl,
+          priceRange: (tripData.destinationInfo as any)?.priceRange,
+          image_urls: tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : []
+        } : null;
+
         await apiPost("/api/trips", {
           normalized_key: normalizedKey,
           trip_plan: itineraryData,
-          image_urls: Array.isArray(finalImageUrl)
-            ? finalImageUrl
-            : finalImageUrl
-              ? [finalImageUrl]
-              : [],
           destination_iata: destinationIata,
-          start_date: tripData.startDate,
-          end_date: tripData.endDate,
+          total_days: tripData.totalDays,
           traveler: cleanTraveler,
           is_international: tripData.isInternational || false,
           departure_iata: localDepartureIata,
-          trip_type: tripData.tripType || "planned",
+          traveler_mode: tripData.travelerMode || "SOLO",
+          concert_data: concertPayload,
         });
+
+        const userHome = userProfile?.homeLocation;
+        const currentDeparture = tripData.departureInfo;
+        
+        if (currentDeparture && JSON.stringify(currentDeparture) !== JSON.stringify(userHome)) {
+          updateUserProfile({ home_location: currentDeparture }).catch(e => 
+            console.error("Failed to update home location:", e)
+          );
+        }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
@@ -195,32 +217,36 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" />
       {loading && (
-        <View style={{ alignItems: "center" }}>
+        <View style={styles.loadingWrapper}>
           <LottieView
             source={require("../../assets/animations/loading.json")}
             autoPlay
             loop
-            style={{ width: width * 0.7, height: width * 0.7 }}
+            style={styles.lottie}
           />
-          <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
+          <Text style={styles.loadingText}>{getLoadingMessage().toUpperCase()}</Text>
+          <Text style={styles.loadingSub}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
         </View>
       )}
 
       {error && (
-        <View style={{ alignItems: "center", width: "100%" }}>
-          <Text style={{ fontSize: width * 0.2 }}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={generateAiTrip} style={styles.primaryButton}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.replace("/(tabs)/mytrip" as any)}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Back to Home</Text>
-          </TouchableOpacity>
+        <View style={styles.errorWrapper}>
+          <Text style={styles.errorTitle}>INTERRUPTION</Text>
+          <Text style={styles.errorText}>{error.toUpperCase()}</Text>
+          <View style={styles.buttonStack}>
+            <TouchableOpacity onPress={generateAiTrip} style={styles.primaryButton}>
+              <Text style={styles.buttonText}>RETRY GENERATION</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.replace("/(tabs)/mytrip" as any)}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>RETURN TO HOME</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -230,48 +256,90 @@ export default function GenerateTrip() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: width * 0.06,
     backgroundColor: Colors.WHITE,
     justifyContent: "center",
     alignItems: "center",
   },
+  loadingWrapper: {
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 40,
+  },
+  lottie: {
+    width: width * 0.6,
+    height: width * 0.6,
+  },
   loadingText: {
-    fontSize: width * 0.07,
+    fontSize: 16,
     fontFamily: "outfitBold",
+    color: Colors.PRIMARY,
+    letterSpacing: 4,
     textAlign: "center",
     marginTop: 20,
+  },
+  loadingSub: {
+    fontSize: 9,
+    fontFamily: "outfitBold",
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 2,
+    marginTop: 8,
+  },
+  errorWrapper: {
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 12,
+    fontFamily: "outfitBold",
+    color: Colors.PRIMARY,
+    letterSpacing: 5,
+    marginBottom: 20,
+    opacity: 0.5,
   },
   errorText: {
-    fontFamily: "outfitMedium",
-    textAlign: "center",
-    marginVertical: 10,
-    paddingHorizontal: 20,
-  },
-  primaryButton: {
-    marginTop: 20,
-    backgroundColor: Colors.PRIMARY,
-    padding: 15,
-    borderRadius: 15,
-    width: width * 0.7,
-  },
-  buttonText: {
-    color: "white",
-    textAlign: "center",
     fontFamily: "outfitBold",
-    fontSize: 16,
-  },
-  secondaryButton: {
-    marginTop: 15,
-    padding: 15,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: Colors.PRIMARY,
-    width: width * 0.7,
-  },
-  secondaryButtonText: {
+    fontSize: 14,
     color: Colors.PRIMARY,
     textAlign: "center",
+    lineHeight: 22,
+    letterSpacing: 1,
+    marginBottom: 40,
+  },
+  buttonStack: {
+    width: "100%",
+    gap: 15,
+  },
+  primaryButton: {
+    backgroundColor: Colors.PRIMARY,
+    height: 65,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  buttonText: {
+    color: Colors.WHITE,
     fontFamily: "outfitBold",
-    fontSize: 16,
+    fontSize: 13,
+    letterSpacing: 2,
+  },
+  secondaryButton: {
+    height: 65,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryButtonText: {
+    color: Colors.MUTED_TEXT,
+    fontFamily: "outfitBold",
+    fontSize: 13,
+    letterSpacing: 2,
   },
 });

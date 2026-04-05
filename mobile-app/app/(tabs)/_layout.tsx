@@ -1,49 +1,74 @@
 import React from "react";
 import { Tabs, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Colors } from "@/src/constants/colors";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  Easing, 
+  runOnJS 
+} from "react-native-reanimated";
 
-const { width } = Dimensions.get("window");
-const iconSize = width * 0.06;
-const fabSize = 70;
+const iconSize = 25;
+const createIconSize = 35;
 
 export default function TabLayout() {
   const router = useRouter();
+  const rotation = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: `${rotation.value}deg` }],
+    };
+  });
+
+  const handlePress = () => {
+    rotation.value = 0;
+    rotation.value = withTiming(360, {
+      duration: 700,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+    }, (finished) => {
+      if (finished) {
+        runOnJS(router.push)("/create-trip" as any);
+      }
+    });
+  };
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarInactiveTintColor: Colors.TAB_INACTIVE,
-        tabBarActiveTintColor: Colors.SECONDARY,
+        tabBarInactiveTintColor: "#777",
+        tabBarActiveTintColor: Colors.GOLD,
         tabBarStyle: {
           position: "absolute",
-          bottom: 20,
-          left: 14,
-          right: 14,
+          bottom: 30,
+          left: 16,
+          right: 16,
           height: 65,
-          margin: 15,
-          borderRadius: 32,
-          backgroundColor: Colors.SURFACE,
-          borderTopWidth: 0.5,
-          borderColor: Colors.BORDER,
-          paddingBottom: 0,
+          margin: 10,
+          borderRadius: 44,
+          backgroundColor: Colors.DARK_SURFACE,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: "#222",
+          paddingBottom: 22,
+          paddingTop: 5,
+          paddingLeft: 5,
+          paddingRight: 5,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.08,
-          shadowRadius: 24,
-          elevation: 8,
-          overflow: "visible",
+          shadowOpacity: 0.4,
+          shadowRadius: 15,
+          elevation: 10,
         },
         tabBarLabelStyle: {
           fontFamily: "outfit",
           fontSize: 11,
-          fontWeight: "600",
-          marginBottom: 6,
-        },
-        tabBarIconStyle: {
-          marginTop: 8,
+          fontWeight: "700",
+          marginTop: 0,
         },
       }}
     >
@@ -69,17 +94,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          tabBarLabel: "",
+          tabBarLabel: "Create",
           tabBarButton: () => (
-            <View style={styles.fabSlot} pointerEvents="box-none">
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => router.push("/create-trip" as any)}
-                style={styles.fab}
-              >
-                <Ionicons name="add" size={42} color={Colors.BLACK} />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handlePress}
+              style={styles.createButtonContainer}
+            >
+              <Animated.View style={[styles.createIconWrapper, animatedStyle]}>
+                <Ionicons name="navigate" size={createIconSize} color={Colors.BLACK} />
+              </Animated.View>
+            </TouchableOpacity>
           ),
         }}
       />
@@ -87,7 +112,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="activeTrips"
         options={{
-          tabBarLabel: "Active Trips",
+          tabBarLabel: "Active",
           tabBarIcon: ({ color }) => (
             <Ionicons name="rocket" size={iconSize} color={color} />
           ),
@@ -107,25 +132,19 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  fabSlot: {
-    width: fabSize,
-    alignItems: "center",
+  createButtonContainer: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 15,
   },
-  fab: {
-    width: fabSize,
-    height: fabSize,
-    borderRadius: fabSize / 2,
-    backgroundColor: Colors.SECONDARY,
+  createIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 40,
+    backgroundColor: Colors.GOLD,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: Colors.BLACK,
-    marginTop: -24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 10,
+    elevation: 6,
   },
 });

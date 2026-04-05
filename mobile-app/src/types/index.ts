@@ -1,6 +1,8 @@
-export enum TripType {
-  Oneway = "Oneway",
-  Round = "Round",
+export enum TravelerMode {
+  Solo = "SOLO",
+  Couple = "COUPLE",
+  Family = "FAMILY",
+  Friends = "FRIENDS",
 }
 
 export enum BudgetTier {
