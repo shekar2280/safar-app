@@ -1,15 +1,30 @@
-# Local environment variables
+# --- Python Specific ---
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache/
+.python-version
+venv/
+.venv/
+
+# --- Environment & Secrets ---
 .env
 .env.local
+firebase-service-account.json  # IMPORTANT: Do not push this if it contains secrets!
 
-# Vercel folders
-.vercel
-
-# Node modules
-node_modules/
-
-# Expo / React Native
-.expo/
+# --- Vercel & Deployment ---
+.vercel/
 dist/
+
+# --- IDEs ---
+.vscode/
+.idea/
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- Mobile (Cleanup) ---
+.expo/
 android/
 ios/
