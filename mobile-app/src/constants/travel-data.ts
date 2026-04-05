@@ -63,6 +63,23 @@ export const RESTAURANT_AND_LOCAL_IMAGES: Record<string, string> = {
     "https://res.cloudinary.com/dbjgmxt8h/image/upload/w_1000,c_limit,f_auto,q_auto/v1769797318/default-experience_hfbvpe.jpg",
 };
 
+export const INDIA_FOOD_COLLECTION: string[] = [
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/thali_mr4ier.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726144/roti_mtjvsm.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726140/biryani_qio38y.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/pav_qxp2ln.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726133/dosa_k6vajd.jpg",
+];
+
+export const INTL_FOOD_COLLECTION: string[] = [
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726983/ramen_gjr5ip.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726982/tacos_tz41vf.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726979/hamburger_wqp27v.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726978/pizza_trzxxq.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726976/croissant_ivn0w4.jpg",
+  "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774726134/thali_mr4ier.jpg",
+];
+
 export const SelectBudgetOptions: BudgetOption[] = [
   {
     id: 1,
@@ -109,7 +126,7 @@ export const DiscoverIdeasList = [
     title: "Trending Places",
     desc: "Trending places near you",
     tripCategory: "TRENDING",
-    route: "/create-trip",
+    route: "/discover-trip/trending",
     image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933449/trending_zz1svj.png",
   },
   {
@@ -117,7 +134,7 @@ export const DiscoverIdeasList = [
     title: "Hidden Gems",
     desc: "Discover underrated and offbeat destinations",
     tripCategory: "HIDDEN",
-    route: "/create-trip",
+    route: "/discover-trip/hidden-gems",
     image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933447/hidden_gems_y5qu3m.webp",
   },
   {
@@ -132,7 +149,7 @@ export const DiscoverIdeasList = [
     title: "Festive Getaways",
     desc: "Trips during local or global festivals",
     tripCategory: "FESTIVE",
-    route: "/create-trip",
+    route: "/discover-trip/festive",
     image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1764933446/festive_rjm4kc.jpg",
   },
 ];
@@ -195,3 +212,31 @@ export const FestiveTripIdeas = [
   { id: 9, name: "Lourdes", title: "Lourdes, France", country: "France", countryCode: "fr", festival: "Feast of the Assumption (Aug 15)", Highlights: "Torchlight processions, healing masses", Experience: "Major pilgrimage for Catholics", image: require("../../assets/images/festive-trips/assumption-day.jpg") },
   { id: 10, name: "Bali", title: "Bali, Indonesia", country: "Indonesia", countryCode: "id", festival: "Balinese New Year (Day of Silence)", Highlights: "Day-long silence, Ogoh-Ogoh monster parades before Nyepi", Experience: "Unique Hindu traditions not found elsewhere", image: require("../../assets/images/festive-trips/nyepi.jpg") },
 ];
+
+export const TRANSPORT_INSIGHTS_IMAGES = {
+  NAVIGATOR: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416833/navigator_sagida.jpg",
+  WEATHER: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416834/weather_kvgpmw.jpg",
+} as const;
+
+export const WEATHER_CONFIG = {
+  SUNNY: {
+    bg: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416584/pexels-photo-912364_rjedqj.jpg",
+    icon: "sunny",
+    color: "#FFD700",
+  },
+  RAINY: {
+    bg: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416642/pexels-photo-34250457_zj9xzj.jpg",
+    icon: "rainy",
+    color: "#60A5FA",
+  },
+  CLOUDY: {
+    bg: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416690/pexels-photo-18145805_gt20qa.jpg",
+    icon: "cloudy",
+    color: "#94A3B8",
+  },
+  WINTER: {
+    bg: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775416761/pexels-photo-2050601_cmd0sx.jpg",
+    icon: "snow",
+    color: "#E2E8F0",
+  },
+} as const;

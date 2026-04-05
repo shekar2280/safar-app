@@ -1,8 +1,14 @@
 import React from "react";
 import { View, Text, Dimensions, ImageBackground, StyleSheet } from "react-native";
 import { Colors } from "@/src/constants/colors";
-import { trendingTripCardImages } from "@/src/constants/travel-data";
+import { 
+  trendingTripCardImages, 
+} from "@/src/constants/travel-data";
 import { DiscoverCardProps } from "@/src/types/interfaces";
+
+const DISCOVER_IMAGES = [
+  ...trendingTripCardImages,
+];
 
 const { width, height } = Dimensions.get("window");
 
@@ -11,12 +17,23 @@ export default function DiscoverCard({ option, selectedOption, cardHeight }: Dis
   const defaultHeight = height * 0.14;
   const cardRadius = width * 0.04;
 
-  const getImageSource = () => {
+  const originalSource = React.useMemo(() => {
     if (option?.image) {
       return typeof option.image === "string" ? { uri: option.image } : option.image;
     }
-    const fallbackIndex = (option?.id || 0) % trendingTripCardImages.length;
-    return { uri: trendingTripCardImages[fallbackIndex] };
+    const fallbackIndex = (option?.id || 0) % DISCOVER_IMAGES.length;
+    return { uri: DISCOVER_IMAGES[fallbackIndex] };
+  }, [option]);
+
+  const [imgSource, setImgSource] = React.useState(originalSource);
+
+  React.useEffect(() => {
+     setImgSource(originalSource);
+  }, [originalSource]);
+
+  const handleError = () => {
+    const randomIdx = Math.floor(Math.random() * DISCOVER_IMAGES.length);
+    setImgSource({ uri: DISCOVER_IMAGES[randomIdx] });
   };
 
   return (
@@ -31,7 +48,8 @@ export default function DiscoverCard({ option, selectedOption, cardHeight }: Dis
       }}
     >
       <ImageBackground
-        source={getImageSource()}
+        source={imgSource}
+        onError={handleError}
         resizeMode="cover"
         style={{
           flex: 1,

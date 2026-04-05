@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -23,6 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { syncUserWithBackend } from "@/src/lib/api";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "react-native";
 
 const { height } = Dimensions.get("window");
 
@@ -35,6 +37,7 @@ function showToast(message: string) {
 }
 
 export default function SignUp() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,12 +83,13 @@ export default function SignUp() {
         colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)"]}
         style={styles.gradient}
       />
+      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
@@ -171,8 +175,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 25,
-    paddingTop: height * 0.08,
-    paddingBottom: 40,
   },
   backButton: {
     width: 45,

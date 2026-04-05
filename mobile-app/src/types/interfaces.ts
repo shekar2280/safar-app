@@ -1,5 +1,11 @@
-import { TripType, BudgetTier, TripCategory, TimeSlot, AlertType } from "./index";
-export { TripType, BudgetTier, TripCategory, TimeSlot, AlertType };
+import {
+  TravelerMode,
+  BudgetTier,
+  TripCategory,
+  TimeSlot,
+  AlertType,
+} from "./index";
+export { TravelerMode, BudgetTier, TripCategory, TimeSlot, AlertType };
 
 export interface GeoCoordinates {
   latitude: number;
@@ -12,7 +18,12 @@ export interface LocationData {
   fullAddress: string;
   country: string;
   countryCode: string;
-  coordinates: { lat?: number; lon?: number; latitude?: number; longitude?: number };
+  coordinates: {
+    lat?: number;
+    lon?: number;
+    latitude?: number;
+    longitude?: number;
+  };
   iataCode?: string;
 }
 
@@ -24,9 +35,14 @@ export interface DestinationData {
   coordinates: { lat: number; lon: number };
   title?: string;
   festival?: string;
-  concertDate?: string;
   imageUrl?: string;
   bookingUrl?: string;
+  venueName?: string;
+  venueAddress?: string;
+  concertDate?: string;
+  concertTime?: string;
+  priceRange?: any;
+  eventId?: string;
 }
 
 export interface TravelerGroup {
@@ -46,11 +62,9 @@ export interface BudgetOption {
 export interface TripData {
   departureInfo: LocationData | null;
   destinationInfo: DestinationData | null;
-  tripType: TripType;
+  travelerMode: TravelerMode;
   isInternational: boolean;
-  startDate: string | null;
-  endDate: string | null;
-  totalDays: number | null;
+  totalDays: number;
   traveler: TravelerGroup | null;
   budget: string | null;
   tripCategory?: TripCategory;
@@ -67,6 +81,7 @@ export interface UserProfile {
   email: string;
   uid: string;
   photoURL?: string;
+  homeLocation?: LocationData | null;
 }
 
 export interface UserTrip {
@@ -74,18 +89,31 @@ export interface UserTrip {
   savedTripId?: string;
   userEmail: string;
   userId: string;
-  startDate: string;
-  endDate: string;
+  totalDays: number;
   traveler: TravelerGroup;
   isInternational: boolean;
   departureIata: string;
   destinationIata?: string;
-  tripType: string;
+  travelerMode?: string;
   isActive: boolean;
-  createdAt: unknown;
+  isFinished: boolean;
+  activatedAt?: string;
+  completedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
   tripPlan?: TripPlan;
-  imageUrl?: string | string[];
-  concertData?: ConcertData;
+  totalBudget: number;
+  visitedIndices: number[];
+  archivedSpendings?: any[];
+  concertData?: any;
+  imageUrl?: string[] | string;
+  savedTrip?: {
+    id: string;
+    normalized_key: string;
+    trip_plan: any;
+    image_urls: string[];
+    destination_iata?: string;
+  };
 }
 
 export interface HotelOption {
@@ -96,6 +124,7 @@ export interface HotelOption {
   geoCoordinates: GeoCoordinates;
   rating: number;
   description: string;
+  suitabilityReason?: string;
 }
 
 export interface PlaceItem {
@@ -106,6 +135,8 @@ export interface PlaceItem {
   estimatedTravelTime: string;
   bestTimeToVisit: string;
   timeSlot: TimeSlot;
+  vibe?: string;
+  searchKeyword?: string;
 }
 
 export interface Restaurant {
@@ -115,6 +146,7 @@ export interface Restaurant {
   address?: string;
   approximateCost?: string;
   geoCoordinates: GeoCoordinates;
+  recommendedDishes?: string[];
 }
 
 export interface LocalExperience {
@@ -137,6 +169,8 @@ export interface TripPlan {
     localExperiences: LocalExperience[];
   };
   imageUrl?: string | string[];
+  bestTransport?: string;
+  weatherInsight?: string;
 }
 
 export interface NormalizedTripPlan extends Omit<TripPlan, "dailyItinerary"> {
@@ -169,7 +203,7 @@ export interface ConcertData {
   artistImageUrl?: string;
   locationOptions?: ConcertEvent[];
   departureInfo?: LocationData | null;
-  tripType?: TripType;
+  travelerMode?: TravelerMode;
   isInternational?: boolean;
   startDate?: string;
   endDate?: string;
@@ -181,13 +215,11 @@ export interface ConcertTripContextValue {
 }
 
 export interface CommonTripDetails {
-  tripType: TripType | null;
+  travelerMode: TravelerMode | null;
   departureInfo: LocationData | null;
   destinationInfo: DestinationData | null;
   traveler: TravelerGroup | null;
   budget: string | null;
-  startDate: string | null;
-  endDate: string | null;
   totalDays: number | null;
   tripCategory: TripCategory | null;
   trendingPlaces: unknown[];
@@ -203,6 +235,7 @@ export interface CommonTripContextValue {
 export interface ActiveTripData {
   id: string;
   completedPlaceIds?: string[];
+  visitedIndices?: number[];
   tripPlan?: TripPlan;
   imageUrl?: string | string[];
 }
@@ -213,7 +246,12 @@ export interface ActiveTripContextValue {
   clearActiveTrip: () => void;
   lastRefreshed: Date | null;
   setLastRefreshed: (date: Date | null) => void;
-  markAsDone: (placeId: string, userId: string, tripId: string) => Promise<void>;
+  markAsDone: (
+    placeId: string,
+    userId: string,
+    tripId: string,
+    index?: number,
+  ) => Promise<void>;
 }
 
 export interface LocationContextValue {
@@ -225,12 +263,21 @@ export interface LocationContextValue {
 
 export interface UserContextValue {
   userProfile: UserProfile | null;
-  setUserProfile: (profile: UserProfile | null) => void;
+  setUserProfile: (
+    profile:
+      | UserProfile
+      | null
+      | ((prev: UserProfile | null) => UserProfile | null),
+  ) => void;
   userTrips: UserTrip[];
-  setUserTrips: (trips: UserTrip[] | ((prev: UserTrip[]) => UserTrip[])) => void;
+  setUserTrips: (
+    trips: UserTrip[] | ((prev: UserTrip[]) => UserTrip[]),
+  ) => void;
   loading: boolean;
   transactions: unknown[];
-  setTransactions: (transactions: unknown[]) => void;
+  setTransactions: (
+    transactions: unknown[] | ((prev: unknown[]) => unknown[]),
+  ) => void;
   refreshTrips: () => Promise<void>;
 }
 
@@ -313,11 +360,6 @@ export interface TrendingLocationData {
   coordinates: { lat: number | string; lon: number | string };
 }
 
-export interface TrendingLocationPickerProps {
-  title?: string;
-  onLocationChange: (location: TrendingLocationData | null) => void;
-  placeholder?: string;
-}
 export interface ActionButtonProps {
   title: string | React.ReactNode;
   onPress: () => void;
@@ -361,11 +403,6 @@ export interface LocationPickerProps {
   onLocationChange: (location: LocationData | null) => void;
   placeholder?: string;
   title?: string;
-}
-
-export interface TripTypeToggleProps {
-  selectedType: TripType;
-  onSelectType: (type: TripType) => void;
 }
 
 export interface HotelInfoProps {

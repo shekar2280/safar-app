@@ -24,19 +24,27 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   const [deleteVisible, setDeleteVisible] = React.useState(false);
 
   const tripData =
+    trip?.concertData ||
     (trip as any)?.tripData ||
     (trip as any)?.discoverData ||
     (trip as any)?.festiveData ||
-    (trip as any)?.concertData ||
     (trip as any)?.trendingData ||
     {};
 
-  const tripName = trip?.concertData?.artist
-    ? `${trip.concertData.artist} Concert`
-    : trip?.savedTripId
-      ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
-        trip.savedTripId.split("-")[0].slice(1)
-      : "My Trip";
+  const isConcertLegacy = useMemo(() => {
+    const searchStr = (trip?.savedTripId || trip?.savedTrip?.normalized_key || "").toLowerCase();
+    const keywords = ["center", "stadium", "arena", "theater", "theatre", "hall", "atx", "bowl", "concert"];
+    return keywords.some(k => searchStr.includes(k));
+  }, [trip]);
+
+  const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival)
+    ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival) as string).toLowerCase().includes("concert") ? "" : " Concert"}`
+    : isConcertLegacy 
+      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ( (trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
+      : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
+        ? (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].charAt(0).toUpperCase() +
+          (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
+        : "My Trip";
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -47,18 +55,22 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   }, [trip?.id]);
 
   const finalSource = useMemo(() => {
-    if (trip?.concertData) {
-      const concertImg =
-        trip?.concertData?.artistImageUrl ||
-        trip?.concertData?.locationInfo?.coordinates ||
-        trip?.imageUrl;
-      return concertImg ? { uri: concertImg as string } : { uri: concertFallback };
+    const personalImages = trip?.concertData?.image_urls;
+    if (personalImages && Array.isArray(personalImages) && personalImages.length > 0) {
+      return { uri: personalImages[0] };
     }
-    const img = trip?.imageUrl;
-    if (Array.isArray(img) && img.length > 0) return { uri: img[0] };
-    if (typeof img === "string" && img.trim().length > 0) return { uri: img };
+
+    const legacyImg = (trip as any)?.imageUrl || (trip as any)?.image_urls;
+    if (Array.isArray(legacyImg) && legacyImg.length > 0) return { uri: legacyImg[0] };
+    if (typeof legacyImg === "string" && legacyImg.trim().length > 0) return { uri: legacyImg };
+
+    if (trip?.savedTrip?.image_urls && trip.savedTrip.image_urls.length > 0) {
+      return { uri: trip.savedTrip.image_urls[0] };
+    }
+
+    if (trip?.concertData || isConcertLegacy) return { uri: concertFallback };
     return { uri: randomFallback };
-  }, [trip, randomFallback, concertFallback]);
+  }, [trip, randomFallback, concertFallback, isConcertLegacy]);
 
   const handleDeleteFinal = async () => {
     try {
@@ -85,14 +97,33 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
       <Image source={finalSource} style={styles.bannerImage} transition={400} />
       <View style={styles.overlay} />
 
+      {(trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) && (
+        <View style={styles.badgeContainer}>
+          <View style={styles.eventBadge}>
+            <Text style={styles.badgeText}>LIVE EVENT</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text 
+            style={styles.title} 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            minimumFontScale={0.7}
+          >
             {tripName}
           </Text>
           <Text style={styles.dateText}>
-            {moment(tripData.startDate).format("DD MMM YYYY")} •{" "}
-            {trip?.traveler?.title || "1"}
+            {(trip?.concertData?.concertDate) ? (
+              <>
+                <MaterialIcons name="calendar-today" size={14} color="rgba(249,250,251,0.86)" />
+                {` ${trip?.concertData?.concertDate} • ${trip?.concertData?.venueName || "Venue"}`}
+              </>
+            ) : (
+              `${trip.totalDays} ${trip.totalDays === 1 ? "Day" : "Days"} • ${trip?.traveler?.title || "1"}`
+            )}
           </Text>
         </View>
 
@@ -103,8 +134,8 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
       <SafarAlert
         visible={deleteVisible}
-        title="Delete Trip"
-        message="Are you sure you want to remove this journey? This action cannot be undone."
+        title="Delete Journey"
+        message="Are you sure you want to permanently remove this trip from your collection? This action cannot be revoked."
         type="confirm"
         confirmText="Delete"
         cancelText="Keep Trip"
@@ -158,5 +189,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.78)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  badgeContainer: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    zIndex: 10,
+  },
+  eventBadge: {
+    backgroundColor: Colors.SECONDARY,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    ...Shadow.sm,
+  },
+  badgeText: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    color: Colors.BLACK,
+    letterSpacing: 2,
   },
 });

@@ -36,7 +36,6 @@ function showToast(message: string) {
 
 function getGoogleSignin() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require("@react-native-google-signin/google-signin").GoogleSignin;
   } catch {
     return null;

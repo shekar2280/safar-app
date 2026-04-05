@@ -1,29 +1,45 @@
-import { db } from "@/src/lib/firebase";
-import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { ActiveTripContextValue, ActiveTripData } from "@/src/types/interfaces";
+import { apiPatch } from "@/src/lib/api";
+import { useUser } from "./UserContext";
+import { Alert } from "react-native";
 
 const ActiveTripContext = createContext<ActiveTripContextValue | null>(null);
 
 export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
   const [activeTrip, setActiveTrip] = useState<ActiveTripData | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const { refreshTrips } = useUser();
 
   const clearActiveTrip = () => {
     setActiveTrip(null);
     setLastRefreshed(null);
   };
 
-  const markAsDone = async (placeId: string, userId: string, tripId: string): Promise<void> => {
-    const tripRef = doc(db, "UserTrips", userId, "trips", tripId);
-    await updateDoc(tripRef, {
-      completedPlaceIds: arrayUnion(placeId),
-    });
-    setActiveTrip((prev) =>
-      prev
-        ? { ...prev, completedPlaceIds: [...(prev.completedPlaceIds || []), placeId] }
-        : prev
-    );
+  const markAsDone = async (placeName: string, userId: string, tripId: string, index?: number): Promise<void> => {
+    if (typeof index !== 'number') {
+        console.warn("markAsDone now requires an 'index' parameter for the SQL backend.");
+        return;
+    }
+
+    const currentVisited = activeTrip?.visitedIndices || [];
+    const newVisited = currentVisited.includes(index)
+      ? currentVisited.filter((i: number) => i !== index)
+      : [...currentVisited, index];
+
+    try {
+      setActiveTrip((prev) => prev ? { ...prev, visitedIndices: newVisited } : prev);
+      
+      await apiPatch(`/api/trips/${tripId}/visited-indices`, {
+        visited_indices: newVisited,
+      });
+      
+      await refreshTrips();
+    } catch (error) {
+      setActiveTrip((prev) => prev ? { ...prev, visitedIndices: currentVisited } : prev);
+      console.error("Failed to sync visited status:", error);
+      Alert.alert("Sync Error", "Failed to update visited status in global journey.");
+    }
   };
 
   return (
