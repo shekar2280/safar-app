@@ -13,3 +13,7 @@ node_modules/
 dist/
 android/
 ios/
+
+# Python cache
+__pycache__/
+*.pyc
