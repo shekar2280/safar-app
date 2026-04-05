@@ -6,11 +6,13 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
 import { SpendingItemProps } from "@/src/types/interfaces";
+import SafarAlert from "@/src/components/ui/SafarAlert";
 
 const { width } = Dimensions.get("window");
 const SWIPE_LIMIT = -width * 0.2;
 
 export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
+  const [deleteVisible, setDeleteVisible] = React.useState(false);
   const translateX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
@@ -31,32 +33,35 @@ export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
   }));
 
   const deletePath = () => {
-    Alert.alert("Delete", "Remove this expense?", [
-      { text: "Cancel", onPress: () => (translateX.value = withSpring(0)) },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const user = auth.currentUser;
-            if (!user) return;
-            await deleteDoc(
-              doc(
-                db,
-                "UserTrips",
-                user.uid,
-                "trips",
-                tripId,
-                "transactions",
-                item.id
-              )
-            );
-          } catch (error) {
-            Alert.alert("Error", "Failed to delete expense");
-          }
-        },
-      },
-    ]);
+    setDeleteVisible(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      await deleteDoc(
+        doc(
+          db,
+          "UserTrips",
+          user.uid,
+          "trips",
+          tripId,
+          "transactions",
+          item.id
+        )
+      );
+      setDeleteVisible(false);
+    } catch (error) {
+       setDeleteVisible(false);
+       translateX.value = withSpring(0);
+       Alert.alert("Error", "Failed to delete expense");
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteVisible(false);
+    translateX.value = withSpring(0);
   };
 
   return (
@@ -78,6 +83,17 @@ export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
           <Text style={styles.amount}>₹{item.amount}</Text>
         </Animated.View>
       </GestureDetector>
+
+      <SafarAlert
+        visible={deleteVisible}
+        title="Delete Transaction"
+        message={`Are you sure you want to remove "${item.name}"? This action will permanently delete this record from your trip history.`}
+        type="confirm"
+        confirmText="Delete"
+        cancelText="Keep"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={handleCancelDelete}
+      />
     </View>
   );
 };
@@ -124,7 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  name: { fontSize: 16, fontWeight: "600" },
-  date: { fontSize: 12, color: "#888" },
-  amount: { fontSize: 16, fontWeight: "bold" },
+  name: { fontSize: 16, fontFamily: "outfitBold", color: "#1E293B" },
+  date: { fontSize: 12, fontFamily: "outfit", color: "#64748B", marginTop: 2 },
+  amount: { fontSize: 16, fontFamily: "outfitBold", color: "#0F172A" },
 });

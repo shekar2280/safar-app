@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,27 +6,28 @@ import {
   Dimensions,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Colors } from "@/src/constants/colors";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { auth, db } from "@/src/lib/firebase";
-import {
-  doc,
-  collection,
-  getDocs,
-  writeBatch,
-  deleteField,
-} from "firebase/firestore";
+import SafarAlert from "@/src/components/ui/SafarAlert";
+import { useActiveTrip } from "@/src/context/ActiveTripContext";
+import { useUser } from "@/src/context/UserContext";
+import { apiPatch } from "@/src/lib/api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { fallbackImages } from "@/src/constants/travel-data";
 import { ActiveTripCardProps } from "@/src/types/interfaces";
+import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
+import { auth, db } from "@/src/lib/firebase";
 
 export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
+  const { refreshTrips } = useUser();
   const router = useRouter();
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveVisible, setArchiveVisible] = useState(false);
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -46,10 +47,10 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const tripName = trip?.concertData?.artist
     ? `${trip.concertData.artist} Concert`
     : trip?.tripPlan?.tripName ||
-      (trip?.savedTripId
-        ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
-          trip.savedTripId.split("-")[0].slice(1)
-        : "Active Trip");
+    (trip?.savedTripId
+      ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
+      trip.savedTripId.split("-")[0].slice(1)
+      : "Active Trip");
 
   const goToPlanner = () => {
     setActiveTrip(trip as any);
@@ -64,55 +65,73 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   };
 
   const handleResetWallet = () => {
-    Alert.alert("Deactivate Hub", "This session will be archived.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Deactivate",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const user = auth.currentUser;
-            if (!user || !trip.id) return;
-            const batch = writeBatch(db);
-            const transRef = collection(
-              db,
-              "UserTrips",
-              user.uid,
-              "trips",
-              trip.id,
-              "transactions"
-            );
-            const snapshot = await getDocs(transRef);
-            snapshot.forEach((tDoc) => batch.delete(tDoc.ref));
-            const tripDocRef = doc(db, "UserTrips", user.uid, "trips", trip.id);
-            batch.update(tripDocRef, {
-              isActive: false,
-              totalBudget: deleteField(),
-              activatedAt: deleteField(),
-            });
-            await batch.commit();
-          } catch (error) {
-            Alert.alert("Error", "Action failed.");
-          }
-        },
-      },
-    ]);
+    setArchiveVisible(true);
+  };
+
+  const handleArchiveConfirmed = async () => {
+    try {
+      if (!trip.id) return;
+      setArchiveVisible(false);
+      setIsArchiving(true);
+
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not found");
+
+      const transactionsRef = collection(db, "UserTrips", user.uid, "trips", trip.id, "transactions");
+      const q = query(transactionsRef, where("tripId", "==", trip.id));
+      const snapshot = await getDocs(q);
+
+      const spendingsToArchive = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          timestamp: data.date?.toDate()?.getTime() || Date.now(),
+          date: data.date?.toDate()?.toLocaleString() || new Date().toLocaleString(),
+          isArchived: true
+        };
+      });
+
+      if (spendingsToArchive.length > 0) {
+        await apiPatch(`/api/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
+      }
+
+      await apiPatch(`/api/trips/${trip.id}/deactivate`, {});
+
+      if (spendingsToArchive.length > 0) {
+        const batchDeletes = snapshot.docs.map(d => deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id, "transactions", d.id)));
+        await Promise.all(batchDeletes);
+      }
+
+      await refreshTrips();
+      setIsArchiving(false);
+    } catch (error) {
+      console.error(error);
+      setIsArchiving(false);
+      Alert.alert("Error", "Failed to archive history.");
+    }
   };
 
   return (
     <View style={styles.cardContainer}>
-      <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner}>
+      <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner} disabled={isArchiving}>
         <Image source={tripImageSource} style={styles.bannerImage} transition={500} />
 
         <View style={styles.topRow}>
           <BlurView intensity={75} tint="dark" style={styles.liveBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.liveText}>ON JOURNEY</Text>
+            <View style={[styles.statusDot, trip.isFinished && { backgroundColor: "#94A3B8" }]} />
+            <Text style={styles.liveText}>
+              {isArchiving ? "ARCHIVING..." : trip.isFinished ? "COMPLETED" : "ON JOURNEY"}
+            </Text>
           </BlurView>
 
-          <TouchableOpacity onPress={handleResetWallet} style={styles.closeBtn}>
-            <Ionicons name="close" size={18} color="white" />
-          </TouchableOpacity>
+          {!trip.isFinished && !isArchiving && (
+            <TouchableOpacity onPress={handleResetWallet} style={styles.closeBtn}>
+              <Ionicons name="close" size={18} color="white" />
+            </TouchableOpacity>
+          )}
+
+          {isArchiving && <ActivityIndicator size="small" color="#FFF" />}
         </View>
 
         <View style={styles.bottomSection}>
@@ -130,14 +149,14 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
             </View>
 
             <View style={styles.actionGroup}>
-              <TouchableOpacity onPress={goToPlanner} style={styles.actionIconBtn}>
+              <TouchableOpacity onPress={goToPlanner} style={styles.actionIconBtn} disabled={isArchiving}>
                 <Ionicons name="compass-outline" size={24} color="white" />
                 <Text style={styles.actionLabel}>GUIDE</Text>
               </TouchableOpacity>
 
               <View style={styles.verticalDivider} />
 
-              <TouchableOpacity onPress={goToWallet} style={styles.actionIconBtn}>
+              <TouchableOpacity onPress={goToWallet} style={styles.actionIconBtn} disabled={isArchiving}>
                 <Ionicons name="wallet-outline" size={24} color="white" />
                 <Text style={styles.actionLabel}>WALLET</Text>
               </TouchableOpacity>
@@ -145,6 +164,17 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
           </BlurView>
         </View>
       </TouchableOpacity>
+
+      <SafarAlert
+        visible={archiveVisible}
+        title="Finalize Journey"
+        message="Completing this journey will archive your spending records and finalize your current itinerary. This action is permanent."
+        type="confirm"
+        confirmText="Archive"
+        cancelText="Keep Going"
+        onConfirm={handleArchiveConfirmed}
+        onCancel={() => setArchiveVisible(false)}
+      />
     </View>
   );
 }
@@ -164,7 +194,7 @@ const styles = StyleSheet.create({
   },
   card: { height: 160, borderRadius: 30, overflow: "hidden", backgroundColor: "#F0F0F0" },
   bannerImage: { ...StyleSheet.absoluteFillObject },
-  topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, alignItems: 'center' },
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",

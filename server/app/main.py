@@ -1,5 +1,7 @@
 import os
 import datetime
+import json
+import re
 from typing import Optional, List
 
 import firebase_admin
@@ -20,6 +22,9 @@ import httpx
 from app import models, schemas, auth_utils
 from app.database import engine, Base, get_db
 from app.logger import auth_logger, trip_logger, api_logger, db_logger
+from app.services.amadeus_service import amadeus_service
+from app.services.weather_service import weather_service
+from app.services.opentripmap_service import opentripmap_service
 
 Base.metadata.create_all(bind=engine)
 
@@ -75,7 +80,6 @@ def get_gemini_client():
     return genai.Client(api_key=os.getenv("GOOGLE_GENERATIVE_AI_API_KEY"))
 
 
-# --- JWT Auth Dependency ---
 async def get_current_user(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
@@ -92,9 +96,8 @@ async def get_current_user(
     return user
 
 
-# -------------------------------------------------------------------
-# AUTH ENDPOINTS
-# -------------------------------------------------------------------
+    return user
+
 
 @app.get("/")
 def read_root():
@@ -103,10 +106,6 @@ def read_root():
 
 @app.post("/api/auth/sync-user", response_model=schemas.SyncUserResponse)
 async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)):
-    """
-    Receives a Firebase ID token from the mobile app,
-    verifies it, upserts the user in Neon DB, and returns a JWT.
-    """
     try:
         decoded = firebase_auth.verify_id_token(body.firebase_id_token)
     except Exception as e:
@@ -137,6 +136,7 @@ async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)
             email=email,
             full_name=full_name,
             photo_url=photo_url,
+            home_location=None,
             created_at=now,
             last_login=now,
         )
@@ -163,20 +163,48 @@ async def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
-# -------------------------------------------------------------------
-# ITINERARY GENERATION
-# -------------------------------------------------------------------
+@app.patch("/api/auth/me", response_model=schemas.UserProfile)
+async def update_me(
+    body: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if body.home_location is not None:
+        current_user.home_location = body.home_location
+    
+    current_user.updated_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
 
 @app.post("/api/generate", response_model=schemas.ItineraryResponse)
 @limiter.limit("5/minute")
 async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
     try:
+        poi_context = ""
+        if body.latitude and body.longitude:
+            try:
+                pois = await opentripmap_service.get_places_by_radius(body.latitude, body.longitude, radius=10000)
+                if pois:
+                    poi_names = [p.get("name") for p in pois if p.get("name")][:15]
+                    poi_context = f"\n\nREAL VERIFIED PLACES IN {body.locationName} (PRIORITIZE THESE IN THE ITINERARY):\n" + ", ".join(poi_names) + "\n\n"
+            except Exception as e:
+                api_logger.warning("Failed to fetch POIs for context", extra={"error": str(e)})
+
+        final_prompt = body.itineraryPrompt + poi_context
+
         client = get_gemini_client()
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=body.itineraryPrompt,
+            contents=final_prompt,
         )
         itinerary_text = response.text
+
+        print("\n" + "="*50)
+        print("📄 RAW RESPONSE FROM GEMINI:")
+        print(itinerary_text[:1000] + "..." if len(itinerary_text) > 1000 else itinerary_text)
+        print("="*50 + "\n")
 
         image_urls = [
             "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80",
@@ -214,6 +242,57 @@ async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
 
 
 # -------------------------------------------------------------------
+# DISCOVERY (Amadeus, Weather, OpenTripMap)
+# -------------------------------------------------------------------
+
+@app.get("/api/discovery/inspiration", response_model=schemas.InspirationResponse)
+@cache(expire=3600)
+async def get_flight_inspiration(
+    current_user: models.User = Depends(get_current_user),
+    max_price: Optional[int] = None
+):
+    # Use user's home location if available
+    origin = "BOM" # Default fallback
+    if current_user.home_location and isinstance(current_user.home_location, dict):
+        origin = current_user.home_location.get("iataCode")
+        if not origin:
+            # Try to search by city name if IATA is missing
+            city = current_user.home_location.get("name") or current_user.home_location.get("city")
+            if city:
+                airports = await amadeus_service.search_airports(city)
+                if airports:
+                    origin = airports[0].get("iataCode")
+        
+    if not origin:
+        origin = "BOM"
+
+    data = await amadeus_service.get_flight_inspiration(origin, max_price)
+    return {"destinations": data}
+
+
+@app.get("/api/discovery/weather")
+async def get_weather(
+    city: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """
+    Fetch weather info for a city, optionally for a specific date range.
+    """
+    current = await weather_service.get_current_weather(city)
+    # If start_date is provided, try to get specific forecast
+    forecast = await weather_service.get_forecast_weather(city)
+    return {"current": current, "forecast": forecast}
+
+
+@app.get("/api/discovery/places", response_model=schemas.PlacesResponse)
+@cache(expire=3600)
+async def get_places(lat: float, lon: float, radius: int = 5000):
+    data = await opentripmap_service.get_places_by_radius(lat, lon, radius)
+    return {"places": data}
+
+
+# -------------------------------------------------------------------
 # CONCERT FINDER
 # -------------------------------------------------------------------
 
@@ -239,18 +318,119 @@ async def find_concerts(request: Request, artistName: str):
 # TRENDING PLACES
 # -------------------------------------------------------------------
 
+async def get_pexels_image(query: str) -> str:
+    """Fetch a high-quality landscape image from Pexels API."""
+    api_key = os.getenv("PEXELS_API_KEY")
+    if not api_key:
+        return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(
+                "https://api.pexels.com/v1/search",
+                params={"query": query, "per_page": 1, "orientation": "landscape"},
+                headers={"Authorization": api_key},
+                timeout=5.0
+            )
+            if res.status_code == 200:
+                data = res.json()
+                photos = data.get("photos", [])
+                if photos:
+                    # Use 'large' or 'landscape' for good quality/aspect ratio
+                    return photos[0]["src"]["large"]
+    except Exception as e:
+        api_logger.warning("Pexels fetch failed", extra={"query": query, "error": str(e)})
+    
+    return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
+
+
 @app.post("/api/trendingPlaces", response_model=schemas.TrendingPlacesResponse)
 @limiter.limit("5/minute")
-async def get_trending_places(request: Request, body: schemas.TrendingPlacesRequest):
+async def get_trending_places(
+    request: Request, 
+    body: schemas.TrendingPlacesRequest,
+    db: Session = Depends(get_db)
+):
     try:
+        country_key = body.country.strip().upper() if body.country else "GLOBAL"
+        
+        # 1. Check DB Cache
+        cached = db.query(models.TrendingCache).filter(models.TrendingCache.country == country_key).first()
+        if cached:
+            now = datetime.datetime.utcnow()
+            # 90 days = 3 months
+            if (now - cached.created_at).days < 90:
+                api_logger.info("TRENDING CACHE HIT", extra={"country": country_key})
+                return {"trendingPlaces": cached.trending_data}
+            else:
+                api_logger.info("TRENDING CACHE STALE, REFRESHING", extra={"country": country_key, "age_days": (now - cached.created_at).days})
+        
+        # 2. Fetch from Gemini
+        api_logger.info("FETCHING NEW TRENDING PLACES (12 ITEMS)", extra={"country": country_key})
         client = get_gemini_client()
+        
+        country_name = body.country or "India"
+        final_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
+        Return the result as a raw JSON array of objects with these keys: "name", "title", "country", "desc", "famous_landmark" (a specific famous place in that destination for image searching). 
+        No markdown, no extra text."""
+
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=body.trendingPlacesPrompt,
+            model="gemini-2.5-flash",
+            contents=final_prompt,
         )
-        return {"trendingPlaces": response.text}
+        
+        raw_text = response.text
+        api_logger.info("GEMINI RESPONSE RECEIVED", extra={"raw_text_preview": raw_text[:200]})
+
+        # Extract JSON list using regex
+        json_match = re.search(r"\[[\s\S]*\]", raw_text)
+        if not json_match:
+            api_logger.error("NO JSON ARRAY FOUND IN GEMINI RESPONSE", extra={"raw_text": raw_text})
+            raise HTTPException(status_code=500, detail="Failed to parse trending places from AI response")
+
+        json_str = json_match.group(0)
+        try:
+            destinations = json.loads(json_str)
+        except Exception as json_err:
+            api_logger.error("JSON PARSE ERROR", extra={"error": str(json_err), "json_str": json_str})
+            raise HTTPException(status_code=500, detail="Invalid JSON format in AI response")
+
+        if not isinstance(destinations, list):
+            api_logger.error("GEMINI RESPONSE IS NOT A LIST", extra={"type": str(type(destinations))})
+            raise HTTPException(status_code=500, detail="AI response format invalid (not a list)")
+
+        # 3. Enrich with Pexels Images
+        api_logger.info("ENRICHING TRENDING PLACES WITH PEXELS PHOTOS")
+        enriched_places = []
+        for i, dest in enumerate(destinations[:12]): # Ensure max 12
+            landmark = dest.get("famous_landmark") or dest.get("name")
+            search_query = f"{landmark} {dest.get('name')}"
+            image_url = await get_pexels_image(search_query)
+            
+            enriched_places.append({
+                "name": dest.get("name"),
+                "title": dest.get("title") or dest.get("name"),
+                "country": dest.get("country"),
+                "desc": dest.get("desc"),
+                "famous_landmark": dest.get("famous_landmark"),
+                "image": image_url
+            })
+
+        # 4. Update/Insert in DB
+        if cached:
+            cached.trending_data = enriched_places
+            cached.created_at = datetime.datetime.utcnow()
+        else:
+            new_cache = models.TrendingCache(
+                country=country_key,
+                trending_data=enriched_places
+            )
+            db.add(new_cache)
+        
+        db.commit()
+        return {"trendingPlaces": enriched_places}
     except Exception as e:
-        api_logger.error("Trending places failed", extra={"error": str(e)})
+        api_logger.error("Trending places failed", extra={"error": str(e), "country": body.country if 'body' in locals() else "unknown"})
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -294,13 +474,14 @@ async def save_trip(
         user_id=current_user.id,
         saved_trip_id=saved.id,
         normalized_key=body.normalized_key,
-        start_date=body.start_date,
-        end_date=body.end_date,
+        total_days=body.total_days,
         traveler=body.traveler,
         is_international=body.is_international,
         departure_iata=body.departure_iata,
         destination_iata=body.destination_iata,
-        trip_type=body.trip_type,
+        traveler_mode=body.traveler_mode,
+        is_finished=False,
+        concert_data=body.concert_data,
     )
     db.add(user_trip)
     db.commit()
@@ -321,7 +502,6 @@ async def get_user_trips(
         .options(joinedload(models.UserTrip.saved_trip))
         .filter(
             models.UserTrip.user_id == current_user.id,
-            models.UserTrip.is_deleted == False,        # ← soft delete filter
         )
         .order_by(models.UserTrip.created_at.desc())
         .all()
@@ -339,42 +519,133 @@ async def activate_trip(
     trip = db.query(models.UserTrip).filter(
         models.UserTrip.id == trip_id,
         models.UserTrip.user_id == current_user.id,
-        models.UserTrip.is_deleted == False,
     ).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
+    if trip.is_finished:
+        raise HTTPException(status_code=403, detail="Trip is already finished and cannot be reactivated.")
+
+    now = datetime.datetime.utcnow()
+
     # Deactivate all other trips first — only one active trip at a time
+    # Also mark them as finished if they were already active
     db.query(models.UserTrip).filter(
         models.UserTrip.user_id == current_user.id,
         models.UserTrip.id != trip_id,
-    ).update({"is_active": False}, synchronize_session=False)
+        models.UserTrip.is_active == True,
+    ).update({
+        "is_active": False, 
+        "is_finished": True,
+        "completed_at": now,
+        "updated_at": now
+    }, synchronize_session=False)
 
     trip.is_active = True
-    trip.updated_at = datetime.datetime.utcnow()
+    trip.is_finished = False # Just in case, though checked above
+    trip.activated_at = now
+    trip.updated_at = now
     db.commit()
     trip_logger.info("Trip activated", extra={"trip_id": trip_id, "user_id": current_user.id})
     return {"success": True}
 
 
-@app.delete("/api/trips/{trip_id}")
-async def delete_trip(
-    trip_id: str,                                       # ← str UUID now
+@app.patch("/api/trips/{trip_id}/deactivate")
+async def deactivate_trip(
+    trip_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Soft-delete a user's trip (sets is_deleted=True, records deleted_at)."""
+    """Mark a specific trip as inactive."""
     trip = db.query(models.UserTrip).filter(
         models.UserTrip.id == trip_id,
         models.UserTrip.user_id == current_user.id,
-        models.UserTrip.is_deleted == False,
     ).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
-    trip.is_deleted = True
-    trip.deleted_at = datetime.datetime.utcnow()
+    now = datetime.datetime.utcnow()
+    trip.is_active = False
+    trip.is_finished = True
+    trip.completed_at = now
+    trip.updated_at = now
+    db.commit()
+    trip_logger.info("Trip deactivated (finished)", extra={"trip_id": trip_id, "user_id": current_user.id})
+    return {"success": True}
+
+
+@app.patch("/api/trips/{trip_id}/budget", response_model=schemas.UserTripOut)
+async def update_trip_budget(
+    trip_id: str,
+    req: schemas.UpdateTripBudgetRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.UserTrip).filter(
+        models.UserTrip.id == trip_id,
+        models.UserTrip.user_id == current_user.id,
+    ).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    trip.total_budget = req.total_budget
     trip.updated_at = datetime.datetime.utcnow()
     db.commit()
-    trip_logger.info("Trip soft-deleted", extra={"trip_id": trip_id, "user_id": current_user.id})
-    return {"success": True}
+    db.refresh(trip)
+    return trip
+
+
+@app.patch("/api/trips/{trip_id}/visited-indices", response_model=schemas.UserTripOut)
+async def update_trip_visited_indices(
+    trip_id: str,
+    req: schemas.UpdateTripVisitedRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.UserTrip).filter(
+        models.UserTrip.id == trip_id,
+        models.UserTrip.user_id == current_user.id,
+    ).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    trip.visited_indices = req.visited_indices
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(trip, "visited_indices")
+    trip.updated_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(trip)
+    return trip
+
+
+@app.patch("/api/trips/{trip_id}/archive-spendings", response_model=schemas.UserTripOut)
+async def archive_trip_spendings(
+    trip_id: str,
+    req: schemas.ArchiveSpendingsRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.UserTrip).filter(
+        models.UserTrip.id == trip_id,
+        models.UserTrip.user_id == current_user.id,
+    ).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    trip.archived_spendings = req.spendings
+    trip.updated_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(trip)
+    return trip
+
+
+@app.delete("/api/trips/{trip_id}")
+async def delete_trip(trip_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    trip = db.query(models.UserTrip).filter(models.UserTrip.id == trip_id, models.UserTrip.user_id == current_user.id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    db.delete(trip)
+    db.commit()
+    trip_logger.info("TRIP DELETED (Hard)", extra={"trip_id": trip_id, "user_id": current_user.id})
+    return {"message": "Trip successfully deleted"}

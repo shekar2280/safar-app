@@ -5,58 +5,109 @@ import {
   TouchableOpacity,
   Dimensions,
   StyleSheet,
-  Modal,
-  Alert,
+  StatusBar,
 } from "react-native";
-import React, { useContext, useEffect, useState, useCallback } from "react";
-import { useNavigation, useRouter, useFocusEffect } from "expo-router";
+import React, { useContext, useEffect, useState, useCallback, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation, useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
-import { Ionicons } from "@expo/vector-icons";
+import { UserContext } from "@/src/context/UserContext";
+import { MAX_TRIP_DAYS } from "@/src/constants/limits";
 import LocationPicker from "@/src/components/trip/LocationPicker";
 import DestinationPicker from "@/src/components/trip/DestinationPicker";
-import TripTypeToggle from "@/src/components/trip/TripTypeToggle";
 import { SelectBudgetOptions } from "@/src/constants/travel-data";
-import { Calendar } from "react-native-calendars";
-import dayjs from "dayjs";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { LocationData, DestinationData, TravelerGroup, BudgetOption, TripType } from "@/src/types/interfaces";
+import { MotiView } from "moti";
+import { Easing } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types/interfaces";
 
 const { width, height } = Dimensions.get("window");
-const MAX_RANGE_DAYS = 5;
 
-const getTravelerObject = (count: number): TravelerGroup => {
-  if (count === 1) return { id: 1, title: "Just Me", desc: "A solo traveler on a personal journey", people: "1" };
-  if (count === 2) return { id: 2, title: "Couple", desc: "Two people traveling together", people: "2" };
-  if (count >= 3 && count <= 5) return { id: 3, title: "Family", desc: "A family trip with parents and kids", people: "3 to 5" };
-  return { id: 4, title: "Friends", desc: "A fun trip with friends", people: "5+" };
+const travelerModes = [
+  { mode: TravelerMode.Solo, label: "SOLO", count: 1 },
+  { mode: TravelerMode.Couple, label: "COUPLE", count: 2 },
+  { mode: TravelerMode.Family, label: "FAMILY", count: 3 },
+  { mode: TravelerMode.Friends, label: "FRIENDS", count: 5 },
+];
+
+const getTravelerObject = (mode: TravelerMode, count: number): TravelerGroup => {
+  if (mode === TravelerMode.Solo) return { id: 1, title: "Just Me", desc: "A solo traveler on a personal journey", people: "1" };
+  if (mode === TravelerMode.Couple) return { id: 2, title: "Couple", desc: "Two people traveling together", people: "2" };
+  if (mode === TravelerMode.Family) return { id: 3, title: "Family", desc: "A family trip with parents and kids", people: `${count}` };
+  return { id: 4, title: "Friends", desc: "A fun trip with friends", people: `${count}` };
 };
 
 export default function CreateTripIndex() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const router = useRouter();
+  const params = useLocalSearchParams();
   const context = useContext(CreateTripContext);
   if (!context) return null;
   const { setTripData } = context;
 
-  const [departure, setDeparture] = useState<LocationData | null>(null);
+  const userCtx = useContext(UserContext);
+  const userProfile = userCtx?.userProfile;
+
+  const [departure, setDeparture] = useState<LocationData | null>(userProfile?.homeLocation || null);
   const [destination, setDestination] = useState<DestinationData | null>(null);
-  const [tripType, setTripType] = useState<TripType>(TripType.Oneway);
+  const [travelerMode, setTravelerMode] = useState<TravelerMode>(TravelerMode.Solo);
   const [travelerCount, setTravelerCount] = useState(1);
   const [budget, setBudget] = useState<BudgetOption | null>(null);
+  const [totalDays, setTotalDays] = useState(1);
 
-  const [isCalendarVisible, setCalendarVisible] = useState(false);
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
+  const processedParamsRef = useRef<string>("");
+
+  useEffect(() => {
+    const paramsKey = JSON.stringify(params);
+    if (processedParamsRef.current === paramsKey) return;
+    processedParamsRef.current = paramsKey;
+
+    if (params.destName) {
+      const cityOnly = (params.destName as string).split(",")[0].trim();
+      setDestination({
+        name: cityOnly,
+        shortName: cityOnly,
+        country: params.destCountry as string || "",
+        countryCode: params.destCountryCode as string || "",
+        coordinates: {
+          lat: Number(params.destLat) || 0,
+          lon: Number(params.destLon) || 0
+        },
+        imageUrl: params.destPhoto as string || undefined,
+        festival: params.festival as string || undefined,
+        venueAddress: params.venueAddress as string || undefined,
+        concertDate: params.concertDate as string || undefined,
+        concertTime: params.concertTime as string || undefined,
+        bookingUrl: params.bookingUrl as string || undefined,
+        priceRange: params.priceRange ? JSON.parse(params.priceRange as string) : undefined,
+      });
+    }
+
+    if (params.originName) {
+      const cityOnly = (params.originName as string).split(",")[0].trim();
+      setDeparture({
+        name: cityOnly,
+        label: cityOnly,
+        fullAddress: params.originName as string,
+        country: params.originCountry as string || "",
+        countryCode: params.originCountryCode as string || "",
+        coordinates: {
+          lat: Number(params.originLat) || 0,
+          lon: Number(params.originLon) || 0
+        }
+      });
+    }
+  }, [params]);
+
   useEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerTransparent: true,
-      headerTitle: "",
-      headerTintColor: Colors.PRIMARY,
+      headerShown: false,
     });
   }, []);
 
@@ -66,50 +117,17 @@ export default function CreateTripIndex() {
     }, [])
   );
 
-  const onDayPress = (day: any) => {
-    const { dateString } = day;
-    if (!startDate || (startDate && endDate)) {
-      setStartDate(dateString);
-      setEndDate(null);
-    } else if (dayjs(dateString).isAfter(dayjs(startDate))) {
-      const rangeLength = dayjs(dateString).diff(dayjs(startDate), "day") + 1;
-      if (rangeLength > MAX_RANGE_DAYS) {
-        Alert.alert("Range Limit", `You can select up to ${MAX_RANGE_DAYS} days.`);
-        return;
-      }
-      setEndDate(dateString);
-    } else {
-      setStartDate(dateString);
-      setEndDate(null);
+  useEffect(() => {
+    const modeData = travelerModes.find(m => m.mode === travelerMode);
+    if (modeData) {
+      setTravelerCount(modeData.count);
     }
-  };
-
-  const getMarkedDates = () => {
-    const marked: any = {};
-    if (startDate) {
-      marked[startDate] = { selected: true, startingDay: true, color: Colors.PRIMARY, textColor: "white" };
-      if (endDate) {
-        let current = dayjs(startDate);
-        const end = dayjs(endDate);
-        while (current.isBefore(end) || current.isSame(end, "day")) {
-          const dateString = current.format("YYYY-MM-DD");
-          if (dateString !== startDate && dateString !== endDate) {
-            marked[dateString] = { color: Colors.PRIMARY, textColor: "white" };
-          }
-          current = current.add(1, "day");
-        }
-        marked[endDate] = { selected: true, endingDay: true, color: Colors.PRIMARY, textColor: "white" };
-      }
-    }
-    return marked;
-  };
+  }, [travelerMode]);
 
   const handleGenerateTrip = () => {
     const missing: string[] = [];
     if (!departure) missing.push("Departure");
     if (!destination) missing.push("Destination");
-    if (!startDate) missing.push("Start Date");
-    if (!endDate) missing.push("End Date");
     if (!budget) missing.push("Budget");
 
     if (missing.length > 0) {
@@ -118,165 +136,213 @@ export default function CreateTripIndex() {
       return;
     }
 
-    const departureCode = departure?.countryCode?.toLowerCase();
-    const destinationCode = destination?.countryCode?.toLowerCase();
-    const isIntl = departureCode && destinationCode ? departureCode !== destinationCode : false;
-    const totalDays = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
-    const travelerGroup = getTravelerObject(travelerCount);
-
     setTripData({
       departureInfo: departure,
       destinationInfo: destination,
-      tripType: tripType,
-      isInternational: isIntl,
-      startDate: startDate,
-      endDate: endDate,
-      totalDays: totalDays,
-      traveler: travelerGroup,
+      travelerMode,
+      totalDays,
+      traveler: getTravelerObject(travelerMode, travelerCount),
       budget: budget!.title,
+      isInternational: departure!.countryCode !== destination!.countryCode,
     });
     router.push("/create-trip/generate-trip" as any);
   };
 
+  const DELAY = 100;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.mainTitle}>Plan Your Trip</Text>
+      <StatusBar barStyle="dark-content" />
+      <MotiView
+        from={{ opacity: 0, translateY: -10 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "timing", duration: 800 }}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
+      >
+        <Text style={styles.mainTitle}>Start a New Adventure</Text>
+      </MotiView>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <TripTypeToggle selectedType={tripType} onSelectType={setTripType} />
-
-        <View style={styles.journeySection}>
-            <LocationPicker
-              placeholder="Leaving from..."
-              onLocationChange={setDeparture}
+        <MotiView
+          from={{ opacity: 0, translateY: -20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ delay: DELAY, type: "timing" }}
+          style={styles.modeContainer}
+        >
+          <View style={styles.modeWrapper}>
+            <MotiView
+              animate={{
+                translateX: (travelerModes.findIndex(m => m.mode === travelerMode) * (width - 58)) / 4,
+              }}
+              transition={{ type: "timing", duration: 300, easing: Easing.out(Easing.exp) }}
+              style={styles.modeIndicator}
             />
-            <View style={styles.spacing} />
-            <DestinationPicker
-              placeholder="Going to..."
-              onLocationSelect={setDestination}
-            />
-        </View>
+            {travelerModes.map((item) => (
+              <TouchableOpacity
+                key={item.mode}
+                style={styles.modeSegment}
+                onPress={() => setTravelerMode(item.mode)}
+                activeOpacity={1}
+              >
+                <Text style={[
+                  styles.modeText,
+                  travelerMode === item.mode && styles.modeTextActive
+                ]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </MotiView>
 
-        <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>DATES</Text>
-            <TouchableOpacity 
-                style={styles.actionBox} 
-                activeOpacity={0.8}
-                onPress={() => setCalendarVisible(true)}
-            >
-                <View style={styles.boxInner}>
-                    <Text style={[styles.boxValue, !startDate && styles.placeholderText]}>
-                        {startDate ? dayjs(startDate).format("DD MMM") : "Start"}
-                    </Text>
-                    <Ionicons name="arrow-forward-outline" size={14} color={Colors.GRAY} />
-                    <Text style={[styles.boxValue, !endDate && styles.placeholderText]}>
-                        {endDate ? dayjs(endDate).format("DD MMM") : "End"}
-                    </Text>
-                </View>
-                <Ionicons name="calendar-outline" size={20} color={Colors.SECONDARY} />
-            </TouchableOpacity>
-        </View>
-
-        <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>GUESTS</Text>
-            <View style={styles.stepperBox}>
-                <TouchableOpacity
-                    style={styles.stepperBtn}
-                    onPress={() => setTravelerCount((p) => Math.max(1, p - 1))}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="remove-outline" size={22} color={Colors.PRIMARY} />
-                </TouchableOpacity>
-
-                <View style={styles.stepperValueNode}>
-                    <Text style={styles.stepperValue}>{travelerCount}</Text>
-                    <Text style={styles.stepperSub}>{travelerCount === 1 ? "EXPLORER" : "EXPLORERS"}</Text>
-                </View>
-
-                <TouchableOpacity
-                    style={styles.stepperBtn}
-                    onPress={() => setTravelerCount((p) => Math.min(20, p + 1))}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="add-outline" size={22} color={Colors.PRIMARY} />
-                </TouchableOpacity>
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ delay: DELAY + 100, type: "timing" }}
+          style={styles.bridgeCard}
+        >
+          <View style={styles.bridgeContent}>
+            <View style={[styles.bridgeHalf, { zIndex: 2 }]}>
+              <LocationPicker
+                placeholder="Origin"
+                onLocationChange={setDeparture}
+                value={departure}
+              />
             </View>
+            <View style={[styles.bridgeHalf, { zIndex: 1 }]}>
+              {params.destName ? (
+                <View style={styles.staticDestinationWrapper}>
+                  <View style={styles.labelSection}>
+                    <Text style={styles.label}>TO</Text>
+                  </View>
+                  <View style={styles.staticContent}>
+                    <Text style={styles.staticValue} numberOfLines={1}>
+                      {destination?.name || (params.destName as string).split(",")[0].trim()}
+                    </Text>
+                    <Ionicons name="sparkles" size={14} color={Colors.SECONDARY} />
+                  </View>
+                </View>
+              ) : (
+                <DestinationPicker
+                  placeholder="Destination"
+                  onLocationSelect={setDestination}
+                  value={destination}
+                />
+              )}
+            </View>
+          </View>
+        </MotiView>
+
+        <View style={styles.statsGrid}>
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: DELAY + 200, type: "timing" }}
+            style={styles.statTile}
+          >
+            <Text style={styles.tileLabel}>DURATION</Text>
+            <Text style={styles.tileValue}>{totalDays}</Text>
+            <Text style={styles.tileUnit}>{totalDays === 1 ? "DAY" : "DAYS"}</Text>
+
+            <View style={styles.tileActions}>
+              <TouchableOpacity
+                style={[styles.tileBtn, totalDays === 1 && { opacity: 0.3 }]}
+                onPress={() => setTotalDays(p => Math.max(1, p - 1))}
+                disabled={totalDays === 1}
+              >
+                <Text style={styles.tileBtnText}>—</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tileBtn, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
+                onPress={() => setTotalDays(p => Math.min(MAX_TRIP_DAYS, p + 1))}
+                disabled={totalDays === MAX_TRIP_DAYS}
+              >
+                <Text style={styles.tileBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: DELAY + 300, type: "timing" }}
+            style={styles.statTile}
+          >
+            <Text style={styles.tileLabel}>COMPANIONS</Text>
+            <Text style={styles.tileValue}>{travelerCount}</Text>
+            <Text style={styles.tileUnit}>{travelerCount === 1 ? "PERSON" : "PEOPLE"}</Text>
+
+            <View style={styles.tileActions}>
+              <TouchableOpacity
+                style={[styles.tileBtn, travelerCount === 1 && { opacity: 0.3 }]}
+                onPress={() => setTravelerCount(p => Math.max(1, p - 1))}
+                disabled={travelerCount === 1}
+              >
+                <Text style={styles.tileBtnText}>—</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tileBtn, travelerCount === 6 && { opacity: 0.3 }]}
+                onPress={() => setTravelerCount(p => Math.min(6, p + 1))}
+                disabled={travelerCount === 6}
+              >
+                <Text style={styles.tileBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </MotiView>
         </View>
 
-        <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>BUDGET</Text>
-            <View style={styles.budgetRow}>
-                {SelectBudgetOptions.map((item) => {
-                    const isSelected = budget?.id === item.id;
-                    return (
-                        <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.9}
-                            style={[
-                                styles.budgetPill,
-                                isSelected && styles.budgetPillSelected
-                            ]}
-                            onPress={() => setBudget(item)}
-                        >
-                            <Text style={[styles.budgetPillText, isSelected && styles.budgetPillTextSelected]}>
-                                {item.title}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ delay: DELAY + 400, type: "timing" }}
+          style={styles.budgetTierCard}
+        >
+          <Text style={styles.tileLabelCenter}>INVESTMENT TIER</Text>
+          <View style={styles.budgetRow}>
+            {SelectBudgetOptions.map((item) => {
+              const isSelected = budget?.id === item.id;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => setBudget(item)}
+                  style={[styles.budgetPill, isSelected && styles.budgetPillActive]}
+                >
+                  <Text style={[styles.budgetPillText, isSelected && styles.budgetPillTextActive]}>
+                    {item.title.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </MotiView>
 
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.generateBtn} onPress={handleGenerateTrip}>
-          <Text style={styles.generateBtnText}>CREATE TRIP</Text>
+      <MotiView
+        from={{ opacity: 0, translateY: 50 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ delay: DELAY + 500, type: "timing", duration: 1000 }}
+        style={styles.footer}
+      >
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={handleGenerateTrip}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.primaryBtnText}>BEGIN EXPLORATION</Text>
         </TouchableOpacity>
-      </View>
-
-      <Modal visible={isCalendarVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Select Dates</Text>
-                    <TouchableOpacity onPress={() => setCalendarVisible(false)}>
-                        <Ionicons name="close" size={28} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                </View>
-                <Calendar
-                    minDate={dayjs().format("YYYY-MM-DD")}
-                    onDayPress={onDayPress}
-                    markedDates={getMarkedDates()}
-                    markingType="period"
-                    theme={{
-                        todayTextColor: Colors.SECONDARY,
-                        selectedDayBackgroundColor: Colors.PRIMARY,
-                        textDayHeaderFontFamily: "outfitBold",
-                        textMonthFontFamily: "outfitBold",
-                        textDayFontFamily: "outfit",
-                    }}
-                />
-                <TouchableOpacity
-                    style={styles.modalBtn}
-                    onPress={() => setCalendarVisible(false)}
-                >
-                    <Text style={styles.modalBtnText}>CONFIRM DATES</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-      </Modal>
+      </MotiView>
 
       <SafarAlert
         visible={alertVisible}
-        title="Missing Details"
+        title="INCOMPLETE"
         message={alertMessage}
         type="error"
-        confirmText="Got it"
+        confirmText="RETRY"
         onConfirm={() => setAlertVisible(false)}
         onCancel={() => setAlertVisible(false)}
       />
@@ -285,129 +351,247 @@ export default function CreateTripIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.BACKGROUND },
-  mainTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 34,
-    color: Colors.PRIMARY,
-    paddingHorizontal: width * 0.05,
-    paddingTop: height * 0.08,
-    marginBottom: 5,
+  container: { flex: 1, backgroundColor: Colors.WHITE },
+  header: {
+    paddingBottom: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
-  scrollContent: { paddingHorizontal: width * 0.05, paddingBottom: 150 },
-  journeySection: { marginTop: 25, marginBottom: 30 },
-  spacing: { height: 15 },
-  formSection: { marginBottom: 25 },
-  sectionLabel: {
+  mainTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 28,
+    color: Colors.PRIMARY,
+    lineHeight: 34,
+    textAlign: "center",
+  },
+  scrollContent: {
+    paddingHorizontal: 25,
+    paddingBottom: 150
+  },
+  modeContainer: {
+    marginBottom: 20,
+    marginTop: 5,
+  },
+  modeWrapper: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.04)",
+    borderRadius: 20,
+    height: 54,
+    padding: 4,
+    position: "relative",
+  },
+  modeIndicator: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    left: 4,
+    width: (width - 58) / 4,
+    backgroundColor: Colors.WHITE,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeSegment: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  modeText: {
     fontFamily: "outfitBold",
     fontSize: 10,
     color: Colors.MUTED_TEXT,
-    letterSpacing: 2.5,
-    marginBottom: 12,
+    letterSpacing: 1.2,
   },
-  actionBox: {
+  modeTextActive: {
+    color: Colors.PRIMARY,
+  },
+  bridgeCard: {
+    backgroundColor: Colors.WHITE,
+    borderRadius: 24,
+    padding: 2,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+    zIndex: 10,
+  },
+  bridgeContent: {
+    flexDirection: "column",
+    padding: 5,
+    zIndex: 20,
+  },
+  bridgeHalf: {
+    width: "100%",
+  },
+  staticDestinationWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "rgba(0,0,0,0.035)",
     height: 65,
     borderRadius: 22,
     paddingHorizontal: 20,
   },
-  boxInner: { flexDirection: "row", alignItems: "center", gap: 15 },
-  boxValue: { fontFamily: "outfitBold", fontSize: 18, color: Colors.PRIMARY },
-  placeholderText: { color: Colors.GRAY, fontFamily: "outfit" },
-  stepperBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.035)",
-    height: 75,
-    borderRadius: 22,
-    paddingHorizontal: 12,
-  },
-  stepperBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: Colors.WHITE,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 1,
-  },
-  stepperValueNode: { alignItems: "center" },
-  stepperValue: { fontFamily: "outfitBold", fontSize: 26, color: Colors.PRIMARY, lineHeight: 30 },
-  stepperSub: {
+  labelSection: { width: 40 },
+  label: {
     fontFamily: "outfitBold",
-    fontSize: 9,
+    fontSize: 10,
     color: Colors.SECONDARY,
     letterSpacing: 1.5,
   },
-  budgetRow: { flexDirection: "row", gap: 10 },
-  budgetPill: {
+  staticContent: {
     flex: 1,
-    height: 55,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.035)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  staticValue: {
+    fontFamily: "outfitBold",
+    fontSize: 18,
+    color: Colors.PRIMARY,
+    flex: 1,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    gap: 15,
+    marginBottom: 15,
+    zIndex: -1,
+  },
+  statTile: {
+    flex: 1,
+    backgroundColor: Colors.WHITE,
+    aspectRatio: 1,
+    borderRadius: 32,
+    padding: 18,
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  tileLabel: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: Colors.SECONDARY,
+    opacity: 0.7,
+  },
+  tileLabelCenter: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: Colors.SECONDARY,
+    opacity: 0.7,
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  tileValue: {
+    fontFamily: "playfairBold",
+    fontSize: 54,
+    color: Colors.PRIMARY,
+    lineHeight: 60,
+    marginBottom: 10,
+  },
+  tileUnit: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: Colors.MUTED_TEXT,
+    letterSpacing: 1,
+    marginTop: -8,
+  },
+  tileActions: {
+    flexDirection: "row",
+    gap: 20,
+    marginTop: 10,
+  },
+  tileBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.03)",
     alignItems: "center",
     justifyContent: "center",
   },
-  budgetPillSelected: { backgroundColor: Colors.PRIMARY },
-  budgetPillText: { fontFamily: "outfitBold", fontSize: 14, color: Colors.MUTED_TEXT },
-  budgetPillTextSelected: { color: Colors.WHITE },
+  tileBtnText: {
+    fontSize: 16,
+    fontFamily: "outfitBold",
+    color: Colors.PRIMARY,
+  },
+  budgetTierCard: {
+    backgroundColor: Colors.WHITE,
+    borderRadius: 32,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
+    zIndex: -1,
+  },
+  budgetRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  budgetPill: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  budgetPillActive: {
+    backgroundColor: Colors.PRIMARY,
+  },
+  budgetPillText: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    color: Colors.MUTED_TEXT,
+  },
+  budgetPillTextActive: {
+    color: Colors.WHITE,
+  },
   footer: {
     position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: width * 0.05,
-    paddingVertical: 30,
-    backgroundColor: "rgba(247,243,240,0.98)",
+    width: "100%",
+    padding: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.02)",
   },
-  generateBtn: {
+  primaryBtn: {
     backgroundColor: Colors.PRIMARY,
-    height: 65,
-    borderRadius: 22,
+    height: 70,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.BLACK,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: Colors.PRIMARY,
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
+    shadowRadius: 30,
+    elevation: 10,
   },
-  generateBtnText: {
+  primaryBtnText: {
     color: Colors.WHITE,
     fontFamily: "outfitBold",
     fontSize: 15,
-    letterSpacing: 3,
-  },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalContent: {
-    backgroundColor: Colors.SURFACE,
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    padding: 25,
-    paddingBottom: 50,
-  },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontFamily: "outfitBold", fontSize: 22, color: Colors.PRIMARY },
-  modalBtn: {
-    backgroundColor: Colors.PRIMARY,
-    height: 60,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 25,
-  },
-  modalBtnText: {
-    color: Colors.WHITE,
-    fontFamily: "outfitBold",
-    fontSize: 16,
-    letterSpacing: 1,
+    letterSpacing: 4,
   },
 });

@@ -20,10 +20,18 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 import { TripData } from "@/src/types/interfaces";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
+    inter: Inter_400Regular,
+    interBold: Inter_700Bold,
+    interMedium: Inter_500Medium,
     outfit: require("./../assets/fonts/Outfit-Regular.ttf"),
     outfitBold: require("./../assets/fonts/Outfit-Bold.ttf"),
     outfitMedium: require("./../assets/fonts/Outfit-Medium.ttf"),
