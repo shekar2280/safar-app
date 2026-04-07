@@ -12,6 +12,7 @@ import React, { useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import { useTrips } from "@/src/hooks/queries/useTrips";
+import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ActiveTripCard from "@/src/components/wallet/ActiveTripCard";
 import { UserTrip } from "@/src/types/interfaces";
@@ -61,15 +62,13 @@ export default function ActiveTrips() {
           </View>
         </View>
 
-        {loading && (
-          <ActivityIndicator
-            size="large"
-            color={Colors.PRIMARY}
-            style={styles.loader}
-          />
-        )}
-
-        {!loading && sortedTrips.length === 0 && (
+        {loading ? (
+          <View style={{ marginTop: 20, paddingHorizontal: width * 0.03, gap: 15 }}>
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+          </View>
+        ) : sortedTrips.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
               name="bag-checked"
@@ -88,13 +87,13 @@ export default function ActiveTrips() {
               <Text style={styles.exploreBtnText}>Browse My Portfolio</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <View style={styles.listContainer}>
+            {sortedTrips.map((trip) => (
+              <ActiveTripCard key={trip.id} trip={trip as any} />
+            ))}
+          </View>
         )}
-
-        <View style={styles.listContainer}>
-          {sortedTrips.map((trip) => (
-            <ActiveTripCard key={trip.id} trip={trip as any} />
-          ))}
-        </View>
       </ScrollView>
     </View>
   );

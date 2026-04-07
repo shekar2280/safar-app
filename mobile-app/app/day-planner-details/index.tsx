@@ -193,7 +193,7 @@ export default function DailyPlanner() {
 
     return (
       <View
-        key={item.placeName}
+        key={`journey-item-${item.originalIndex}`}
         style={[styles.itemWrapper, isCompleted && styles.completedWrapper]}
       >
         <View style={styles.timelineContainer}>
@@ -276,67 +276,62 @@ export default function DailyPlanner() {
             </View>
           )}
 
-          {!isCompleted && !isFinished && (
-            <>
-              <Text style={styles.descriptionText}>
-                {item.placeDetails}
-              </Text>
-              <View style={styles.actionContainer}>
-                <TouchableOpacity
-                  style={[styles.mainActionBtn, processingIndex === item.originalIndex && { opacity: 0.7 }]}
-                  disabled={processingIndex !== null}
-                  onPress={async () => {
-                    if (user && activeTrip) {
-                      setProcessingIndex(item.originalIndex);
-                      await markAsDone(item.placeName, user.uid, activeTrip.id, item.originalIndex);
-                      setProcessingIndex(null);
-                    }
-                  }}
-                >
-                  {processingIndex === item.originalIndex ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <Text style={styles.mainActionText}>Mark Visited</Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.iconActionPair}>
-                  <View style={styles.iconActionItem}>
-                    <Text style={styles.iconLabel}>MAP</Text>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => openNavigation(item.placeName)}
-                    >
-                      <Ionicons
-                        name="location-outline"
-                        size={20}
-                        color={isFinished ? "#94A3B8" : Colors.PRIMARY}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.iconActionItem}>
-                    <Text style={styles.iconLabel}>FOOD</Text>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => findNearbyFood(item.placeName)}
-                    >
-                      <Ionicons
-                        name="restaurant-outline"
-                        size={20}
-                        color="#64748B"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </>
+          {(item.placeDetails || (item as any).description || (item as any).details) && (
+            <Text style={[styles.descriptionText, isCompleted && { opacity: 0.7 }]}>
+              {item.placeDetails || (item as any).description || (item as any).details}
+            </Text>
           )}
 
-          {!isCompleted && isFinished && (
-            <Text style={styles.descriptionText}>
-                {item.placeDetails}
-            </Text>
+          {!isCompleted && !isFinished && (
+            <View style={styles.actionContainer}>
+              <TouchableOpacity
+                style={[styles.mainActionBtn, processingIndex === item.originalIndex && { opacity: 0.7 }]}
+                disabled={processingIndex !== null}
+                onPress={async () => {
+                  if (user && activeTrip) {
+                    setProcessingIndex(item.originalIndex);
+                    await markAsDone(item.placeName, user.uid, activeTrip.id, item.originalIndex);
+                    setProcessingIndex(null);
+                  }
+                }}
+              >
+                {processingIndex === item.originalIndex ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.mainActionText}>Mark Visited</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.iconActionPair}>
+                <View style={styles.iconActionItem}>
+                  <Text style={styles.iconLabel}>MAP</Text>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => openNavigation(item.placeName)}
+                  >
+                    <Ionicons
+                      name="location-outline"
+                      size={20}
+                      color={isFinished ? "#94A3B8" : Colors.PRIMARY}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.iconActionItem}>
+                  <Text style={styles.iconLabel}>FOOD</Text>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => findNearbyFood(item.placeName)}
+                  >
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={20}
+                      color="#64748B"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           )}
         </View>
       </View>

@@ -43,6 +43,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafarAlert from "@/src/components/ui/SafarAlert";
+import WalletSkeleton from "@/src/components/skeleton/WalletSkeleton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -356,6 +357,10 @@ export default function SpendingsInput() {
     clearAll();
     setIsFormVisible(false);
   };
+
+  if (loading && totalBudget <= 0) {
+    return <WalletSkeleton />;
+  }
 
   return (
     <View style={styles.mainWrapper}>
