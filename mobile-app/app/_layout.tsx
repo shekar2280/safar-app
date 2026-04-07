@@ -20,6 +20,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/src/lib/queryClient";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -84,6 +86,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
         <StatusBar style="dark" />
         <UserProvider>
           <CreateTripContext.Provider value={{ tripData, setTripData }}>
@@ -104,6 +107,7 @@ export default function RootLayout() {
           </ConcertTripProvider>
         </CreateTripContext.Provider>
       </UserProvider>
+      </QueryClientProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

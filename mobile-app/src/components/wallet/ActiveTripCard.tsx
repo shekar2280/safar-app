@@ -21,10 +21,12 @@ import { fallbackImages } from "@/src/constants/travel-data";
 import { ActiveTripCardProps } from "@/src/types/interfaces";
 import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 
 export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
-  const { refreshTrips } = useUser();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveVisible, setArchiveVisible] = useState(false);
@@ -103,7 +105,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
         await Promise.all(batchDeletes);
       }
 
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setIsArchiving(false);
     } catch (error) {
       console.error(error);

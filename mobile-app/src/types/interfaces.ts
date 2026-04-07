@@ -271,16 +271,12 @@ export interface UserContextValue {
       | null
       | ((prev: UserProfile | null) => UserProfile | null),
   ) => void;
-  userTrips: UserTrip[];
-  setUserTrips: (
-    trips: UserTrip[] | ((prev: UserTrip[]) => UserTrip[]),
-  ) => void;
   loading: boolean;
   transactions: unknown[];
   setTransactions: (
     transactions: unknown[] | ((prev: unknown[]) => unknown[]),
   ) => void;
-  refreshTrips: () => Promise<void>;
+  detectHomeLocation: () => Promise<void>;
 }
 
 export interface SafarAlertProps {

@@ -11,7 +11,7 @@ import {
 import React, { useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
-import { useUser } from "@/src/context/UserContext";
+import { useTrips } from "@/src/hooks/queries/useTrips";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ActiveTripCard from "@/src/components/wallet/ActiveTripCard";
 import { UserTrip } from "@/src/types/interfaces";
@@ -21,7 +21,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function ActiveTrips() {
   const insets = useSafeAreaInsets();
-  const { userTrips, loading } = useUser();
+  const { data: userTrips = [], isLoading: loading } = useTrips();
   const router = useRouter();
 
   const sortedTrips = useMemo(() => {

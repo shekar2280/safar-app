@@ -1,15 +1,16 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { ActiveTripContextValue, ActiveTripData } from "@/src/types/interfaces";
 import { apiPatch } from "@/src/lib/api";
-import { useUser } from "./UserContext";
 import { Alert } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 
 const ActiveTripContext = createContext<ActiveTripContextValue | null>(null);
 
 export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
   const [activeTrip, setActiveTrip] = useState<ActiveTripData | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  const { refreshTrips } = useUser();
+  const queryClient = useQueryClient();
 
   const clearActiveTrip = () => {
     setActiveTrip(null);
@@ -34,7 +35,7 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
         visited_indices: newVisited,
       });
       
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices: currentVisited } : prev);
       console.error("Failed to sync visited status:", error);

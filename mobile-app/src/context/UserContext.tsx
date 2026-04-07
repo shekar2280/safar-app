@@ -1,42 +1,13 @@
-import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from "react";
+import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
-import { UserContextValue, UserProfile, UserTrip } from "@/src/types/interfaces";
-import { apiGet, apiPatch, JWT_KEY, USER_KEY, updateUserProfile } from "@/src/lib/api";
+import { UserContextValue, UserProfile } from "@/src/types/interfaces";
+import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile } from "@/src/lib/api";
 import * as Location from "expo-location";
 import { Alert } from "react-native";
 
 const UserContext = createContext<UserContextValue | null>(null);
-
-function mapBackendTrip(raw: any): UserTrip {
-  const savedTrip = raw.saved_trip;
-  const imageUrls: string[] = savedTrip?.image_urls ?? [];
-  return {
-    id: String(raw.id),
-    savedTripId: raw.normalized_key,
-    userEmail: "",
-    userId: String(raw.user_id ?? ""),
-    totalDays: raw.total_days ?? 1,
-    traveler: raw.traveler,
-    isInternational: raw.is_international,
-    departureIata: raw.departure_iata,
-    destinationIata: raw.destination_iata,
-    travelerMode: raw.traveler_mode,
-    isActive: raw.is_active,
-    isFinished: raw.is_finished,
-    totalBudget: raw.total_budget || 0,
-    visitedIndices: raw.visited_indices || [],
-    archivedSpendings: raw.archived_spendings || [],
-    activatedAt: raw.activated_at,
-    completedAt: raw.completed_at,
-    updatedAt: raw.updated_at,
-    createdAt: raw.created_at,
-    tripPlan: savedTrip?.trip_plan,
-    concertData: raw.concert_data,
-    imageUrl: raw.image_url || raw.imageUrl || (imageUrls.length > 0 ? imageUrls : undefined),
-  };
-}
 
 function mapBackendUser(raw: any): UserProfile {
   return {
@@ -50,82 +21,34 @@ function mapBackendUser(raw: any): UserProfile {
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userTrips, setUserTrips] = useState<UserTrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<unknown[]>([]);
-  const [currentUid, setCurrentUid] = useState<string | null>(null);
-
-  const fetchTripsFromBackend = useCallback(async (uid: string) => {
-    const jwt = await AsyncStorage.getItem(JWT_KEY);
-    if (!jwt) return;
-    try {
-      const backendTrips = await apiGet<any[]>("/api/trips");
-      const mapped = (backendTrips ?? []).map(mapBackendTrip);
-      setUserTrips(mapped);
-      await AsyncStorage.setItem(`trips_${uid}`, JSON.stringify(mapped));
-    } catch {
-      // Backend unreachable — keep using cached data
-    }
-  }, []);
-
-  const refreshTrips = useCallback(async () => {
-    if (!currentUid) return;
-    await fetchTripsFromBackend(currentUid);
-  }, [currentUid, fetchTripsFromBackend]);
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged(async (user: User | null) => {
       if (user) {
         setLoading(true);
-        setCurrentUid(user.uid);
-        const cachedTrips = await AsyncStorage.getItem(`trips_${user.uid}`);
-        if (cachedTrips) {
-          try {
-            setUserTrips(JSON.parse(cachedTrips));
-          } catch {}
-          setLoading(false);
-        }
 
+        // Load cached profile from AsyncStorage for instant display
         const cachedUser = await AsyncStorage.getItem(USER_KEY);
         if (cachedUser) {
-          try {
-            setUserProfile(mapBackendUser(JSON.parse(cachedUser)));
-          } catch {}
+          try { setUserProfile(mapBackendUser(JSON.parse(cachedUser))); } catch {}
         }
 
         const jwt = await AsyncStorage.getItem(JWT_KEY);
-        if (!jwt) {
-          setLoading(false);
-          return;
-        }
+        if (!jwt) { setLoading(false); return; }
 
-        try {
-          const [backendUser, backendTrips] = await Promise.all([
-            apiGet<any>("/api/auth/me"),
-            apiGet<any[]>("/api/trips"),
-          ]);
-
-          const profile = mapBackendUser(backendUser);
-          setUserProfile(profile);
-          await AsyncStorage.setItem(USER_KEY, JSON.stringify(backendUser));
-
-          const mapped = (backendTrips ?? []).map(mapBackendTrip);
-          setUserTrips(mapped);
-          await AsyncStorage.setItem(`trips_${user.uid}`, JSON.stringify(mapped));
-        } catch {
-        } finally {
-          setLoading(false);
-        }
+        // TanStack Query handles all /api/trips and /api/auth/me fetching now.
+        // We only hydrate the userProfile here from cache for the first paint.
+        setLoading(false);
       } else {
-        setCurrentUid(null);
-        setUserTrips([]);
         setUserProfile(null);
         setLoading(false);
       }
     });
 
     return () => unsubscribeAuth();
-  }, [fetchTripsFromBackend]);
+  }, []);
 
   const detectHomeLocation = async () => {
     Alert.alert(
@@ -154,7 +77,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               const address = data.address || {};
               let rawCity = address.city || address.town || address.village || address.state_district || "";
               let cleanCity = rawCity.replace(/City of /gi, "").replace(/ City/gi, "").trim();
-              
+
               const homeData = {
                 name: cleanCity,
                 label: `${cleanCity}, ${address.state || ""}`,
@@ -180,12 +103,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       value={{
         userProfile,
         setUserProfile,
-        userTrips,
-        setUserTrips,
         loading,
         transactions,
         setTransactions,
-        refreshTrips,
+        detectHomeLocation,
       }}
     >
       {children}
