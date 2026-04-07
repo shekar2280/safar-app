@@ -23,6 +23,8 @@ import { useUser } from "@/src/context/UserContext";
 import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
 import NetInfo from "@react-native-community/netinfo";
 import { UserTrip } from "@/src/types/interfaces";
+import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
+import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -198,11 +200,12 @@ export default function Mytrip() {
         <HomeLocationPrompt />
 
         {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={Colors.PRIMARY}
-            style={{ marginTop: 50 }}
-          />
+          <View style={{ flex: 1 }}>
+            <HeaderSkeleton />
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+          </View>
         ) : filteredTrips?.length === 0 ? (
           searchQuery.trim() ? (
             <View style={styles.noResults}>

@@ -36,6 +36,7 @@ import { useFlightDeals } from "@/src/hooks/queries/useFlightDeals";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
+import DetailsSkeleton from "@/src/components/skeleton/DetailsSkeleton";
 
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
@@ -243,12 +244,8 @@ export default function TripDetails() {
     return [{ uri: randomFallback }];
   }, [tripDetails, imageUrl, randomFallback]);
 
-if (loadingStaticData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY} />
-      </View>
-    );
+  if (loadingStaticData) {
+    return <DetailsSkeleton />;
   }
 
   return (
