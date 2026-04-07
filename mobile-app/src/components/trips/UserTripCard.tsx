@@ -50,11 +50,11 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival)
     ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival) as string || "").toLowerCase().includes("concert") ? "" : " Concert"}`
-    : isConcertLegacy 
-      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ( (trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
+    : isConcertLegacy
+      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ((trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
       : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
         ? (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].charAt(0).toUpperCase() +
-          (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
+        (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
         : "My Trip";
 
   const randomFallback = useMemo(() => {
@@ -67,7 +67,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   const imageSources = useMemo(() => {
     let urls: string[] = [];
-    
+
     const personalImages = trip?.concertData?.image_urls;
     if (Array.isArray(personalImages)) urls.push(...personalImages);
 
@@ -79,8 +79,14 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
       urls.push(...trip.savedTrip.image_urls);
     }
 
-    const uniqueUrls = Array.from(new Set(urls)).filter(Boolean);
-    
+    const aiPlanImages = trip?.tripPlan?.imageUrl;
+    if (Array.isArray(aiPlanImages)) urls.push(...aiPlanImages);
+    else if (typeof aiPlanImages === "string" && aiPlanImages.trim()) urls.push(aiPlanImages);
+
+    const uniqueUrls = Array.from(new Set(urls))
+      .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+      .map(u => u.trim());
+
     if (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) {
       if (uniqueUrls.length > 0) return [{ uri: uniqueUrls[0] }];
       return [{ uri: concertFallback }];
@@ -93,7 +99,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   React.useEffect(() => {
     if (imageSources.length <= 1) return;
-    
+
     const interval = setInterval(() => {
       const nextIndex = (activeIndex + 1) % imageSources.length;
       flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
@@ -107,7 +113,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
     if (index !== activeIndex && index >= 0 && index < imageSources.length) {
-        setActiveIndex(index);
+      setActiveIndex(index);
     }
   };
 
@@ -154,13 +160,21 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
           scrollEventThrottle={16}
           getItemLayout={getItemLayout}
           keyExtractor={(_, index) => index.toString()}
-          renderItem={({ item }) => (
+          initialNumToRender={5}
+          windowSize={2}
+          maxToRenderPerBatch={5}
+          removeClippedSubviews={false}
+          renderItem={({ item, index }) => (
             <View style={{ width: cardWidth, height: 230 }}>
-              <Image 
-                source={item} 
-                style={StyleSheet.absoluteFill} 
+              <Image
+                source={item}
+                style={StyleSheet.absoluteFill}
                 contentFit="cover"
-                transition={500} 
+                priority="high"
+                cachePolicy="disk"
+                placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
+                transition={200}
+                recyclingKey={trip.id + index}
               />
             </View>
           )}
@@ -175,12 +189,12 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
       {imageSources.length > 1 && (
         <View style={styles.paginationContainer}>
           {imageSources.map((_, i) => (
-            <View 
-              key={i} 
+            <View
+              key={i}
               style={[
-                styles.dot, 
+                styles.dot,
                 i === activeIndex && styles.activeDot
-              ]} 
+              ]}
             />
           ))}
         </View>
@@ -196,10 +210,10 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text 
-            style={styles.title} 
-            numberOfLines={1} 
-            adjustsFontSizeToFit 
+          <Text
+            style={styles.title}
+            numberOfLines={1}
+            adjustsFontSizeToFit
             minimumFontScale={0.7}
           >
             {tripName}

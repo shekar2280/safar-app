@@ -31,6 +31,8 @@ import { UserTrip } from "@/src/types/interfaces";
 import { apiGet, apiPatch } from "@/src/lib/api";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
+import { useStaticItinerary } from "@/src/hooks/queries/useStaticItinerary";
+import { useFlightDeals } from "@/src/hooks/queries/useFlightDeals";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -45,12 +47,44 @@ export default function TripDetails() {
   const navigation = useNavigation();
   const { userProfile } = useUser();
   const { data: userTrips = [] } = useTrips();
-  const queryClient = useQueryClient();
   const { trip, imageUrl } = useLocalSearchParams();
+  const queryClient = useQueryClient();
 
-  const [tripDetails, setTripDetails] = useState<Partial<UserTrip>>({});
-  const [loadingStaticData, setLoadingStaticData] = useState(false);
-  const [flights, setFlights] = useState<any[]>([]);
+  const parsedTrip = useMemo(() => {
+    try {
+      return typeof trip === "string" ? JSON.parse(trip) : trip;
+    } catch (e) {
+      return {};
+    }
+  }, [trip]);
+
+  const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
+  const { data: flights = [] } = useFlightDeals();
+
+  const tripDetails = useMemo(() => {
+    const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
+    const base = latestFromCache || parsedTrip || {};
+
+    if (!staticData) return base;
+    return {
+      ...base,
+      tripPlan: staticData.trip_plan,
+      image_urls: (staticData.image_urls?.length > 0) ? staticData.image_urls : base.image_urls,
+    };
+  }, [parsedTrip, staticData, userTrips]);
+
+  const transportData = useMemo(
+    () => ({
+      travelerMode: tripDetails?.travelerMode,
+      departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
+      destinationIata: tripDetails?.tripPlan?.destinationIata,
+      bestTransport: tripDetails?.tripPlan?.bestTransport,
+      weatherInsight: tripDetails?.tripPlan?.weatherInsight,
+      flights: flights,
+    }),
+    [tripDetails, flights]
+  );
+
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -77,54 +111,12 @@ export default function TripDetails() {
     setActiveTripInContext(current || null);
   }, [userTrips]);
 
-  const parsedTrip = useMemo(() => {
-    try {
-      return typeof trip === "string" ? JSON.parse(trip) : trip;
-    } catch (e) {
-      return {};
-    }
-  }, [trip]);
-
   useEffect(() => {
-    setTripDetails(parsedTrip);
     navigation.setOptions({
       headerShown: false,
     });
+  }, [navigation]);
 
-    if (parsedTrip?.savedTripId && !parsedTrip?.tripPlan) {
-      fetchStaticItinerary(parsedTrip.savedTripId);
-    }
-    fetchFlightDeals();
-  }, [parsedTrip]);
-
-  const fetchStaticItinerary = async (savedTripKey: string) => {
-    setLoadingStaticData(true);
-    try {
-      const data = await apiGet<any>(`/api/trips/saved/${encodeURIComponent(savedTripKey)}`);
-      if (data) {
-        const imageUrls: string[] = data.image_urls ?? [];
-        setTripDetails((prev: any) => ({
-          ...prev,
-          tripPlan: data.trip_plan,
-          image_urls: imageUrls.length > 0 ? imageUrls : prev.image_urls,
-        }));
-      }
-    } catch {
-    } finally {
-      setLoadingStaticData(false);
-    }
-  };
-
-  const fetchFlightDeals = async () => {
-    try {
-      const res = await apiGet<any>("/api/discovery/inspiration");
-      if (res && res.destinations) {
-        setFlights(res.destinations);
-      }
-    } catch (error) {
-      console.warn("Could not fetch flight inspiration:", error);
-    }
-  };
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -166,7 +158,6 @@ export default function TripDetails() {
       setIsAnimating(true);
       await apiPatch(`/api/trips/${tripDetails.id}/activate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
-      setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
         setIsAnimating(false);
         router.push({
@@ -193,7 +184,6 @@ export default function TripDetails() {
     try {
       await apiPatch(`/api/trips/${tripDetails.id}/deactivate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
-      setTripDetails((prev) => ({ ...prev, isActive: false, isFinished: true }));
     } catch {
       setAlertConfig({
         visible: true,
@@ -213,15 +203,12 @@ export default function TripDetails() {
       : [...currentVisited, index];
 
     try {
-      setTripDetails((prev) => ({ ...prev, visitedIndices: newVisited }));
-
       await apiPatch(`/api/trips/${tripDetails.id}/visited-indices`, {
         visited_indices: newVisited,
       });
 
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch {
-      setTripDetails((prev) => ({ ...prev, visitedIndices: currentVisited }));
       setAlertConfig({
         visible: true,
         title: "Sync Failed",
@@ -256,25 +243,13 @@ export default function TripDetails() {
     return [{ uri: randomFallback }];
   }, [tripDetails, imageUrl, randomFallback]);
 
-  if (loadingStaticData) {
+if (loadingStaticData) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.PRIMARY} />
       </View>
     );
   }
-
-  const transportData = useMemo(
-    () => ({
-      travelerMode: tripDetails?.travelerMode,
-      departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
-      destinationIata: tripDetails?.tripPlan?.destinationIata,
-      bestTransport: tripDetails?.tripPlan?.bestTransport,
-      weatherInsight: tripDetails?.tripPlan?.weatherInsight,
-      flights: flights,
-    }),
-    [tripDetails?.id, (tripDetails?.tripPlan as any)?.departureIata, flights]
-  );
 
   return (
     <>
