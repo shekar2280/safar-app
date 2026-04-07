@@ -33,6 +33,9 @@ import { ActionButton } from "@/src/components/wallet/ActionButton";
 import { SpendingForm } from "@/src/components/wallet/SpendingForm";
 import { SpendingItem } from "@/src/components/wallet/SpendingItem";
 import { useUser } from "@/src/context/UserContext";
+import { useTrips } from "@/src/hooks/queries/useTrips";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { UserTrip } from "@/src/types/interfaces";
 import { apiPatch } from "@/src/lib/api";
@@ -85,7 +88,9 @@ const extractTotalFromPlain = (raw: string) => {
 
 export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
-  const { userTrips, refreshTrips } = useUser();
+  const { userProfile } = useUser();
+  const { data: userTrips = [] } = useTrips();
+  const queryClient = useQueryClient();
   const user = auth.currentUser;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -213,7 +218,7 @@ export default function SpendingsInput() {
     try {
       setLoading(true);
       await apiPatch(`/api/trips/${tripId}/budget`, { total_budget: newBudget });
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setNewBudgetInput("");
       setLoading(false);
     } catch (error) {

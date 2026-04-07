@@ -20,6 +20,7 @@ import UserTripList from "@/src/components/trips/UserTripList";
 import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
+import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
 import NetInfo from "@react-native-community/netinfo";
 import { UserTrip } from "@/src/types/interfaces";
 
@@ -27,7 +28,10 @@ const { width, height } = Dimensions.get("window");
 
 export default function Mytrip() {
   const insets = useSafeAreaInsets();
-  const { userTrips, setUserTrips, userProfile, loading } = useUser();
+  const { userProfile, loading: authLoading } = useUser();
+  const { data: userTrips = [], isLoading: tripsLoading } = useTrips();
+  const deleteTrip = useDeleteTrip();
+  const loading = authLoading || tripsLoading;
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -67,7 +71,7 @@ export default function Mytrip() {
   };
 
   const handleDelete = (deletedId: string) => {
-    setUserTrips((prev: UserTrip[]) => prev.filter((t) => t.id !== deletedId));
+    deleteTrip.mutate(deletedId);
   };
 
   const filteredTrips = useMemo(() => {

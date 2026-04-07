@@ -26,6 +26,8 @@ import {
 import { apiGet, apiPost, JWT_KEY, updateUserProfile } from "@/src/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/src/context/UserContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 
 const { width } = Dimensions.get("window");
@@ -39,7 +41,8 @@ export default function GenerateTrip() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const user = auth.currentUser;
-  const { refreshTrips, userProfile } = useUser();
+  const { userProfile } = useUser();
+  const queryClient = useQueryClient();
   const hasGenerated = useRef(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -225,7 +228,7 @@ export default function GenerateTrip() {
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
-        await refreshTrips();
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
         setLoading(false);
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {

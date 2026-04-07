@@ -30,6 +30,9 @@ import WeatherWidget from "@/src/components/trip-details/WeatherWidget";
 import { UserTrip } from "@/src/types/interfaces";
 import { apiGet, apiPatch } from "@/src/lib/api";
 import { useUser } from "@/src/context/UserContext";
+import { useTrips } from "@/src/hooks/queries/useTrips";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 
 const { width, height } = Dimensions.get("window");
@@ -40,7 +43,9 @@ export default function TripDetails() {
   const user = auth.currentUser;
   const router = useRouter();
   const navigation = useNavigation();
-  const { userTrips, refreshTrips } = useUser();
+  const { userProfile } = useUser();
+  const { data: userTrips = [] } = useTrips();
+  const queryClient = useQueryClient();
   const { trip, imageUrl } = useLocalSearchParams();
 
   const [tripDetails, setTripDetails] = useState<Partial<UserTrip>>({});
@@ -160,7 +165,7 @@ export default function TripDetails() {
     try {
       setIsAnimating(true);
       await apiPatch(`/api/trips/${tripDetails.id}/activate`, {});
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setTripDetails((prev) => ({ ...prev, isActive: true }));
       setTimeout(() => {
         setIsAnimating(false);
@@ -187,7 +192,7 @@ export default function TripDetails() {
     if (!tripDetails.id) return;
     try {
       await apiPatch(`/api/trips/${tripDetails.id}/deactivate`, {});
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setTripDetails((prev) => ({ ...prev, isActive: false, isFinished: true }));
     } catch {
       setAlertConfig({
@@ -214,7 +219,7 @@ export default function TripDetails() {
         visited_indices: newVisited,
       });
 
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch {
       setTripDetails((prev) => ({ ...prev, visitedIndices: currentVisited }));
       setAlertConfig({
