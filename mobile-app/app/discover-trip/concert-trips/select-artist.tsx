@@ -168,6 +168,15 @@ export default function ConcertTrip() {
             </TouchableOpacity>
           )}
         />
+        
+        <View style={styles.cautionContainer}>
+           <View style={styles.cautionBox}>
+             <Ionicons name="information-circle-outline" size={16} color={Colors.SECONDARY} />
+             <Text style={styles.cautionText}>
+                Always cross-verify artist schedules and official tour dates.
+             </Text>
+           </View>
+        </View>
       </View>
 
       {artist.trim().length > 2 && (
@@ -307,4 +316,26 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   continueText: { color: Colors.WHITE, fontFamily: "outfitMedium", letterSpacing: 1 },
+  cautionContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: Colors.WHITE,
+  },
+  cautionBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(234, 179, 8, 0.05)",
+    padding: 12,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(234, 179, 8, 0.1)",
+  },
+  cautionText: {
+    flex: 1,
+    fontFamily: "outfit",
+    fontSize: 11,
+    color: "#854d0e",
+    lineHeight: 16,
+  },
 });

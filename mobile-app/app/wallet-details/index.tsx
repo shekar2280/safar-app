@@ -134,6 +134,8 @@ export default function SpendingsInput() {
     return userTrips?.find((t: UserTrip) => t.id === tripId);
   }, [userTrips, tripId]);
 
+  const isFinished = currentTrip?.isFinished || false;
+
   useEffect(() => {
     if (currentTrip) {
       setTotalBudget(currentTrip.totalBudget || 0);
@@ -196,6 +198,7 @@ export default function SpendingsInput() {
   }, [tripId]);
 
   const handleSetBudget = async () => {
+    if (isFinished) return;
     if (!tripId || !user) return;
     const newBudget = parseFloat(newBudgetInput);
     if (isNaN(newBudget) || newBudget <= 0) {
@@ -392,7 +395,7 @@ export default function SpendingsInput() {
             </BlurView>
           ) : (
             <LinearGradient
-              colors={["#9A7E3D", "#000000ff"]}
+              colors={isFinished ? ["#94A3B8", "#1E293B"] : ["#9A7E3D", "#000000ff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.budgetSummary}
@@ -403,13 +406,13 @@ export default function SpendingsInput() {
                   <Text
                     style={[
                       styles.bigAmount,
-                      { color: remBudget < 0 ? "#FF4B4B" : "#FFFFFF" },
+                      { color: isFinished ? "#F1F5F9" : (remBudget < 0 ? "#FF4B4B" : "#FFFFFF") },
                     ]}
                   >
                     ₹{remBudget.toLocaleString("en-IN")}
                   </Text>
                 </View>
-                <View style={[styles.statusIndicator, { backgroundColor: remBudget < 0 ? "#FF4B4B" : "#4ADE80" }]} />
+                <View style={[styles.statusIndicator, { backgroundColor: isFinished ? "#94A3B8" : (remBudget < 0 ? "#FF4B4B" : "#4ADE80") }]} />
               </View>
 
               <View style={styles.dividerFull} />
@@ -478,7 +481,7 @@ export default function SpendingsInput() {
                </View>
             ) : (
               allSpendings.map((item) => (
-                <SpendingItem key={item.id} item={item} tripId={tripId!} />
+                <SpendingItem key={item.id} item={item} tripId={tripId!} isFinished={isFinished} />
               ))
             )}
           </View>
@@ -510,7 +513,7 @@ export default function SpendingsInput() {
         </View>
       )}
 
-      {!isFormVisible && !currentTrip?.isFinished && (
+      {!isFormVisible && !isFinished && (
         <View style={styles.fixedButtonContainer}>
           <TouchableOpacity 
             style={styles.addSpendingButtonFixed}

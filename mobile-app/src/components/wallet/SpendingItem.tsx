@@ -11,16 +11,21 @@ import SafarAlert from "@/src/components/ui/SafarAlert";
 const { width } = Dimensions.get("window");
 const SWIPE_LIMIT = -width * 0.2;
 
-export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
+export const SpendingItem = ({ item, tripId, isFinished }: SpendingItemProps) => {
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const translateX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-20, 20])
     .onUpdate((event) => {
+      if (isFinished) return;
       translateX.value = Math.max(SWIPE_LIMIT * 1.2, event.translationX);
     })
     .onEnd(() => {
+      if (isFinished) {
+        translateX.value = withSpring(0);
+        return;
+      }
       if (translateX.value < SWIPE_LIMIT / 1.5) {
         translateX.value = withSpring(SWIPE_LIMIT);
       } else {
@@ -73,14 +78,14 @@ export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
       </View>
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.content, animatedStyle]}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="card-outline" size={20} color="#666" />
+          <View style={[styles.iconCircle, isFinished && { opacity: 0.5 }]}>
+            <Ionicons name="card-outline" size={20} color={isFinished ? "#94A3B8" : "#666"} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{item.name}</Text>
+            <Text style={[styles.name, isFinished && { color: "#64748B" }]}>{item.name}</Text>
             <Text style={styles.date}>{item.date}</Text>
           </View>
-          <Text style={styles.amount}>₹{item.amount}</Text>
+          <Text style={[styles.amount, isFinished && { color: "#94A3B8" }]}>₹{item.amount}</Text>
         </Animated.View>
       </GestureDetector>
 

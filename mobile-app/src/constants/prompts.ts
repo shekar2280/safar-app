@@ -2,11 +2,20 @@ export const AI_PROMPT = `
 Generate a premium, curated trip plan for a {travelerMode} trip to {location} for {totalDays} days and {totalNight} nights. The traveler group identity is {traveler} and the budget is {budget}.
 
 ### CURATION PHILOSOPHY:
-You are a high-end travel consultant. Personalize every choice based on {travelerMode}:
-- SOLO: Focus on social vibes, safety, and personal growth.
-- COUPLE: Focus on romance, privacy, and aesthetic "date" spots.
-- FAMILY: Focus on kid-friendly logistics, diverse age appeal, and ease of transport.
-- FRIENDS: Focus on high energy, group-friendly dining, and unique social experiences.
+You are a high-end luxury travel concierge. 
+- FOCUS: Experience-first. purge all logistical chores (check-in/out, travel to/from airport).
+- DINING: Only include a specific, named high-vibe restaurant or local signature dish experience.
+- PERSONALIZATION based on {travelerMode}:
+  - SOLO: Focus on social vibes, safety, and personal growth.
+  - COUPLE: Focus on romance, privacy, and aesthetic "date" spots.
+  - FAMILY: Focus on kid-friendly logistics, diverse age appeal, and ease of transport.
+  - FRIENDS: Focus on high energy, group-friendly dining, and unique social experiences.
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in", "Hotel Check-out" or "Baggage Claim".
+- NO generic "Lunch" or "Dinner".
+- NO "Free time" or "Rest at hotel".
+- Every item MUST be a specific, named destination, landmark, or activity.
 
 ### INSTRUCTIONS:
 
@@ -49,7 +58,13 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const HIDDEN_GEMS_AI_PROMPT = `
 Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights, focusing EXCLUSIVELY on "Hidden Gems" and off-the-beaten-path locations. The budget is {budget}.
 
-IMPORTANT: Avoid the top 10 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
+IMPORTANT: Avoid the top 20 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
+
+### STRICT EXCLUSIONS:
+- NO mainstream landmarks (e.g. if Paris, NO Eiffel Tower).
+- NO "Hotel Check-in/out".
+- NO generic "Lunch/Dinner/Fine Dining".
+- NO tourist traps. Every spot must feel like a "local's secret".
 
 Follow these instructions carefully:
 
@@ -94,6 +109,13 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const FESTIVE_AI_PROMPT = `
 Generate a detailed, budget-conscious festive trip plan for {traveler} visiting {location} during the {festival} festival for {totalDays} days and {totalNight} nights. The budget is {budget}.
 
+### VISION: Focus on deep cultural participation and local rituals. 
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in/out".
+- NO generic dining entries. All dining must be festive-themed.
+- NO standard sightseeing; prioritize the {festival} heartland.
+
 Follow these instructions carefully to ensure the trip captures the cultural essence of {festival}:
 
 1. Hotel options (5-6):
@@ -136,7 +158,14 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 `;
 
 export const CONCERT_TRIP_AI_PROMPT = `
-Generate a detailed, budget-conscious travel plan for {travelers} attending a live concert by {artist} in {location}.
+Generate a boutique, experience-focused travel plan for {travelers} attending {artist} in {location}.
+
+### VISION: Focus on the fan community atmosphere and venue-vicinity vibes. 
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in/out" or "Travel to venue".
+- NO generic "Fine Dining".
+- NO non-music-related standard sightseeing unless it is a "must-see" near the venue.
 
 Travelers depart from {departure} for a fixed duration of 3 days and 2 nights. The budget is {budget}.
 

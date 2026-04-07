@@ -3,9 +3,11 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from "r
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/src/constants/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DataCredits() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const openLink = (url: string) => {
     Linking.openURL(url);
@@ -16,22 +18,25 @@ export default function DataCredits() {
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: "Data Credits",
+          headerTitle: "",
           headerTransparent: true,
           headerTintColor: Colors.PRIMARY,
         }}
       />
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSpacer} />
-        
-        <Text style={styles.description}>
-          Safar relies on several world-class data providers to bring you the best travel experiences. In accordance with their licensing terms, we attribute the following:
-        </Text>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 60 }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerInfo}>
+          <Text style={styles.mainTitle}>DATA CREDITS</Text>
+          <Text style={styles.description}>
+            Safar relies on several world-class data providers to bring you the best travel experiences. In accordance with their licensing terms, we attribute the following:
+          </Text>
+        </View>
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="airplane-outline" size={24} color={Colors.PRIMARY} />
+            <View style={styles.iconCircle}>
+                <Ionicons name="airplane-outline" size={20} color={Colors.PRIMARY} />
+            </View>
             <Text style={styles.cardTitle}>Amadeus</Text>
           </View>
           <Text style={styles.cardText}>
@@ -44,7 +49,9 @@ export default function DataCredits() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="cloud-outline" size={24} color={Colors.PRIMARY} />
+            <View style={styles.iconCircle}>
+                <Ionicons name="cloud-outline" size={20} color={Colors.PRIMARY} />
+            </View>
             <Text style={styles.cardTitle}>WeatherAPI.com</Text>
           </View>
           <Text style={styles.cardText}>
@@ -57,7 +64,9 @@ export default function DataCredits() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="map-outline" size={24} color={Colors.PRIMARY} />
+            <View style={styles.iconCircle}>
+                <Ionicons name="map-outline" size={20} color={Colors.PRIMARY} />
+            </View>
             <Text style={styles.cardTitle}>OpenTripMap</Text>
           </View>
           <Text style={styles.cardText}>
@@ -73,7 +82,9 @@ export default function DataCredits() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="image-outline" size={24} color={Colors.PRIMARY} />
+            <View style={styles.iconCircle}>
+                <Ionicons name="image-outline" size={20} color={Colors.PRIMARY} />
+            </View>
             <Text style={styles.cardTitle}>Photography</Text>
           </View>
           <Text style={styles.cardText}>
@@ -105,36 +116,52 @@ export default function DataCredits() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.BACKGROUND },
-  scrollContent: { padding: 25 },
-  headerSpacer: { height: 100 },
+  container: { flex: 1, backgroundColor: Colors.WHITE },
+  scrollContent: { padding: 25, paddingBottom: 60 },
+  headerInfo: { marginBottom: 30 },
+  mainTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 26,
+    color: Colors.PRIMARY,
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
   description: {
     fontFamily: "outfit",
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.MUTED_TEXT,
-    lineHeight: 24,
-    marginBottom: 30,
+    lineHeight: 22,
   },
   card: {
     backgroundColor: Colors.WHITE,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     marginBottom: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 15,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 15,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 18,
+    fontFamily: "playfairBold",
+    fontSize: 20,
     color: Colors.PRIMARY,
   },
   cardText: {

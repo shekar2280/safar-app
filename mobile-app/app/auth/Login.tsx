@@ -10,6 +10,7 @@ import {
   Platform,
   ToastAndroid,
 } from "react-native";
+import { Image } from "expo-image";
 import React, { useState, useEffect } from "react";
 import { Colors } from "@/src/constants/colors";
 import { useRouter } from "expo-router";
@@ -105,18 +106,20 @@ export default function Login() {
         >
           <StatusBar style="dark" />
           <View style={styles.content}>
-            <View style={styles.topSection}>
+            <View style={styles.centerHeroSection}>
+              <View style={styles.logoGlassFrame}>
+                <Image
+                  source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775573387/new_logo5_tnguhv.png" }}
+                  style={styles.logoImage}
+                  contentFit="cover"
+                />
+              </View>
               <Text style={styles.brandTitle}>Safar</Text>
               <Text style={styles.brandSubtitle}>If You Never Go,</Text>
               <Text style={styles.brandSubtitle}>You Will Never Know</Text>
             </View>
 
-            <View style={styles.bottomSection}>
-              <Text style={styles.headline}>Explore the{`\n`}Unexplored</Text>
-              <Text style={styles.description}>
-                Experience travel like never before. Personalized itineraries, local gems, and seamless planning for your next big adventure.
-              </Text>
-
+            <View style={styles.bottomButtonsSection}>
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.primaryButton}
@@ -150,11 +153,18 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, width: "100%", height: "100%" },
   gradientOverlay: {
     flex: 1,
-    justifyContent: "space-between",
     paddingHorizontal: width * 0.08,
   },
-  content: { flex: 1, justifyContent: "space-between" },
-  topSection: { alignItems: "center" },
+  content: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  centerHeroSection: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: height * 0.05,
+  },
   brandTitle: {
     fontFamily: "outfitBold",
     fontSize: width * 0.12,
@@ -163,28 +173,34 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
+    marginTop: 5,
   },
   brandSubtitle: {
     fontFamily: "outfit",
     fontSize: width * 0.045,
     color: Colors.SECONDARY,
-    marginTop: -height * 0.01,
+    marginTop: 0,
     letterSpacing: 1,
   },
-  bottomSection: { width: "100%" },
-  headline: {
-    fontFamily: "outfitBold",
-    fontSize: width * 0.11,
-    color: Colors.WHITE,
-    lineHeight: width * 0.12,
-    marginBottom: height * 0.015,
+  logoGlassFrame: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 2.5,
+    borderColor: Colors.GOLD,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+    overflow: "hidden",
   },
-  description: {
-    fontFamily: "outfit",
-    fontSize: width * 0.042,
-    color: "rgba(255, 255, 255, 0.8)",
-    lineHeight: width * 0.06,
-    marginBottom: height * 0.04,
+  logoImage: {
+    width: 190,
+    height: 190,
+  },
+  bottomButtonsSection: {
+    width: "100%",
+    paddingBottom: 20,
   },
   buttonContainer: { gap: height * 0.02 },
   primaryButton: {

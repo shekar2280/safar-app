@@ -182,7 +182,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 const styles = StyleSheet.create({
   cardContainer: {
     marginBottom: 12,
-    borderRadius: 30,
+    borderRadius: 20,
     backgroundColor: "white",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.3,
     borderColor: Colors.WHITE,
   },
-  card: { height: 160, borderRadius: 30, overflow: "hidden", backgroundColor: "#F0F0F0" },
+  card: { height: 160, borderRadius: 20, overflow: "hidden", backgroundColor: "#F0F0F0" },
   bannerImage: { ...StyleSheet.absoluteFillObject },
   topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, alignItems: 'center' },
   liveBadge: {

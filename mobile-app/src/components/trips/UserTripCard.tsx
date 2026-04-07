@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  FlatList,
+  LayoutChangeEvent,
 } from "react-native";
 import moment from "moment";
 import { Colors } from "@/src/constants/colors";
@@ -14,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { concertImages, fallbackImages } from "@/src/constants/travel-data";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { UserTripCardProps } from "@/src/types/interfaces";
 import { apiDelete } from "@/src/lib/api";
 
@@ -22,6 +25,14 @@ const { width } = Dimensions.get("window");
 export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   const router = useRouter();
   const [deleteVisible, setDeleteVisible] = React.useState(false);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [cardWidth, setCardWidth] = React.useState(width - 40);
+  const flatListRef = React.useRef<FlatList>(null);
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width } = e.nativeEvent.layout;
+    if (width > 0) setCardWidth(width);
+  };
 
   const tripData =
     trip?.concertData ||
@@ -37,8 +48,8 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     return keywords.some(k => searchStr.includes(k));
   }, [trip]);
 
-  const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival)
-    ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival) as string).toLowerCase().includes("concert") ? "" : " Concert"}`
+  const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival)
+    ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival) as string || "").toLowerCase().includes("concert") ? "" : " Concert"}`
     : isConcertLegacy 
       ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ( (trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
       : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
@@ -54,23 +65,57 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     return concertImages[Math.floor(Math.random() * concertImages.length)];
   }, [trip?.id]);
 
-  const finalSource = useMemo(() => {
+  const imageSources = useMemo(() => {
+    let urls: string[] = [];
+    
     const personalImages = trip?.concertData?.image_urls;
-    if (personalImages && Array.isArray(personalImages) && personalImages.length > 0) {
-      return { uri: personalImages[0] };
-    }
+    if (Array.isArray(personalImages)) urls.push(...personalImages);
 
     const legacyImg = (trip as any)?.imageUrl || (trip as any)?.image_urls;
-    if (Array.isArray(legacyImg) && legacyImg.length > 0) return { uri: legacyImg[0] };
-    if (typeof legacyImg === "string" && legacyImg.trim().length > 0) return { uri: legacyImg };
+    if (Array.isArray(legacyImg)) urls.push(...legacyImg);
+    else if (typeof legacyImg === "string" && legacyImg.trim()) urls.push(legacyImg);
 
-    if (trip?.savedTrip?.image_urls && trip.savedTrip.image_urls.length > 0) {
-      return { uri: trip.savedTrip.image_urls[0] };
+    if (Array.isArray(trip?.savedTrip?.image_urls)) {
+      urls.push(...trip.savedTrip.image_urls);
     }
 
-    if (trip?.concertData || isConcertLegacy) return { uri: concertFallback };
-    return { uri: randomFallback };
+    const uniqueUrls = Array.from(new Set(urls)).filter(Boolean);
+    
+    if (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) {
+      if (uniqueUrls.length > 0) return [{ uri: uniqueUrls[0] }];
+      return [{ uri: concertFallback }];
+    }
+
+    if (uniqueUrls.length > 0) return uniqueUrls.map(u => ({ uri: u }));
+
+    return [{ uri: randomFallback }];
   }, [trip, randomFallback, concertFallback, isConcertLegacy]);
+
+  React.useEffect(() => {
+    if (imageSources.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % imageSources.length;
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setActiveIndex(nextIndex);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [activeIndex, imageSources.length]);
+
+  const onScroll = (event: any) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
+    if (index !== activeIndex && index >= 0 && index < imageSources.length) {
+        setActiveIndex(index);
+    }
+  };
+
+  const getItemLayout = (_: any, index: number) => ({
+    length: cardWidth,
+    offset: cardWidth * index,
+    index,
+  });
 
   const handleDeleteFinal = async () => {
     try {
@@ -84,23 +129,67 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   return (
     <TouchableOpacity
       style={styles.card}
+      onLayout={onLayout}
       onPress={() =>
         router.push({
           pathname: "/trip-details",
           params: {
             trip: JSON.stringify(trip),
-            imageUrl: finalSource.uri,
+            imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
           },
         } as any)
       }
     >
-      <Image source={finalSource} style={styles.bannerImage} transition={400} />
-      <View style={styles.overlay} />
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
+        <FlatList
+          ref={flatListRef}
+          data={imageSources}
+          horizontal
+          pagingEnabled
+          decelerationRate="fast"
+          snapToInterval={cardWidth}
+          snapToAlignment="center"
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          getItemLayout={getItemLayout}
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={{ width: cardWidth, height: 230 }}>
+              <Image 
+                source={item} 
+                style={StyleSheet.absoluteFill} 
+                contentFit="cover"
+                transition={500} 
+              />
+            </View>
+          )}
+        />
+      </View>
+
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.85)"]}
+        style={styles.bottomGradient}
+      />
+
+      {imageSources.length > 1 && (
+        <View style={styles.paginationContainer}>
+          {imageSources.map((_, i) => (
+            <View 
+              key={i} 
+              style={[
+                styles.dot, 
+                i === activeIndex && styles.activeDot
+              ]} 
+            />
+          ))}
+        </View>
+      )}
 
       {(trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) && (
         <View style={styles.badgeContainer}>
           <View style={styles.eventBadge}>
-            <Text style={styles.badgeText}>LIVE EVENT</Text>
+            <Text style={styles.badgeText}>CONCERT</Text>
           </View>
         </View>
       )}
@@ -149,18 +238,21 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 const styles = StyleSheet.create({
   card: {
     minHeight: 230,
-    borderRadius: Radius.lg,
+    borderRadius: 20,
     marginBottom: Spacing.lg,
     overflow: "hidden",
-    backgroundColor: Colors.SURFACE,
+    backgroundColor: Colors.WHITE,
     borderWidth: 1,
-    borderColor: Colors.BORDER,
-    ...Shadow.card,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   bannerImage: { ...StyleSheet.absoluteFillObject },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.32)",
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "100%",
+    opacity: 0.8,
   },
   content: {
     flex: 1,
@@ -208,5 +300,27 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.BLACK,
     letterSpacing: 2,
+  },
+  paginationContainer: {
+    position: 'absolute',
+    top: 15,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    zIndex: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  activeDot: {
+    backgroundColor: 'white',
+    width: 14,
   },
 });

@@ -110,7 +110,7 @@ export default function Mytrip() {
     <View style={{ flex: 1, backgroundColor: Colors.WHITE }}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
-        style={{ paddingTop: insets.top + 10 }}
+        style={{ paddingTop: insets.top + 5 }}
         contentContainerStyle={{
           paddingHorizontal: width * 0.03,
           paddingTop: 0,
@@ -119,7 +119,6 @@ export default function Mytrip() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* <GlobalLocationHeader /> */}
         <View style={styles.header}>
           {isSearching ? (
             <View style={styles.searchBarWrapper}>

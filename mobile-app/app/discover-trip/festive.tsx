@@ -30,6 +30,9 @@ export default function FestiveTrips() {
         destCountryCode: item.countryCode,
         destPhoto: typeof item.image === "string" ? item.image : undefined,
         festival: item.festival,
+        auspiciousDay: item.auspiciousDay,
+        insight: item.insight,
+        tripCategory: "FESTIVE",
       },
     });
   };
@@ -56,13 +59,14 @@ export default function FestiveTrips() {
             onPress={() => handleSelect(item)}
             style={styles.cardContainer}
           >
-            <DiscoverCard 
+            <DiscoverCard
               option={{
                 ...item,
                 title: item.name,
                 desc: item.festival,
-              } as any} 
-              cardHeight={height * 0.22} 
+              } as any}
+              cardHeight={height * 0.20}
+              hideTag={true}
             />
           </TouchableOpacity>
         )}
@@ -81,7 +85,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 15,
     gap: 15,
   },
@@ -106,11 +110,11 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 40,
   },
   cardContainer: {
-    marginVertical: 12,
+    marginVertical: 10,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

@@ -238,6 +238,8 @@ export interface ActiveTripData {
   visitedIndices?: number[];
   tripPlan?: TripPlan;
   imageUrl?: string | string[];
+  isActive?: boolean;
+  isFinished?: boolean;
 }
 
 export interface ActiveTripContextValue {
@@ -326,17 +328,24 @@ export interface NominatimResult {
 export interface TravelOption {
   id: number;
   title: string;
+  name?: string;
   desc?: string;
   festival?: string;
   Highlights?: string;
+  Experience?: string;
   icon?: string;
   image?: string | any;
+  tripCategory?: string;
+  auspiciousDay?: string;
+  recommendedMonth?: string;
+  insight?: string;
 }
 
 export interface DiscoverCardProps {
   option: TravelOption;
   selectedOption?: TravelOption | null;
   cardHeight?: number;
+  hideTag?: boolean;
 }
 
 export interface TrendingTripsCardProps {
@@ -358,6 +367,8 @@ export interface TrendingLocationData {
   label: string;
   fullAddress: string;
   coordinates: { lat: number | string; lon: number | string };
+  insight?: string;
+  recommendedMonth?: string;
 }
 
 export interface ActionButtonProps {
@@ -392,6 +403,7 @@ export interface SpendingItemProps {
     date: any;
   };
   tripId: string;
+  isFinished?: boolean;
 }
 
 export interface DestinationPickerProps {

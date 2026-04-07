@@ -55,6 +55,7 @@ export default function DailyPlanner() {
   const [userLocation, setUserLocation] = useState<GeoCoords | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
+  const isFinished = activeTrip?.isFinished || false;
 
   const [manualLocation, setManualLocation] = useState<GeoCoords | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -199,8 +200,8 @@ export default function DailyPlanner() {
           <View
             style={[
               styles.timelineDot,
-              isFirst && styles.activeDot,
-              isCompleted && styles.doneDot,
+              isFirst && (isFinished ? styles.archivedDot : styles.activeDot),
+              isCompleted && (isFinished ? styles.archivedDot : styles.doneDot),
             ]}
           >
             {isCompleted && <Feather name="check" size={10} color="white" />}
@@ -209,7 +210,7 @@ export default function DailyPlanner() {
             <View 
               style={[
                 styles.timelineLine, 
-                isCompleted ? styles.doneLine : styles.plannedLine,
+                isCompleted ? (isFinished ? styles.archivedLine : styles.doneLine) : styles.plannedLine,
                 isFirst && { marginTop: 4 }
               ]} 
             />
@@ -224,33 +225,33 @@ export default function DailyPlanner() {
               </Text>
               {!isCompleted && (
                 <View style={styles.metaRow}>
-                  <Text style={styles.distanceText}>
+                  <Text style={[styles.distanceText, isFinished && { color: "#94A3B8" }]}>
                     {item.distance?.toFixed(1) || "0.0"} km away from your location
                   </Text>
                   <View style={styles.timingContainer}>
                     <Text style={styles.timingText}>
                       Best time to visit: {" "}
-                      <Text style={styles.timeText}>
+                      <Text style={[styles.timeText, isFinished && { color: "#64748B" }]}>
                         {item.timeSlot || "Anytime"}
                       </Text>
                     </Text>
                   </View>
                   {item.vibe && (
-                    <View style={styles.vibeBadge}>
-                      <Text style={styles.vibeText}>{item.vibe.toUpperCase()}</Text>
+                    <View style={[styles.vibeBadge, isFinished && { backgroundColor: "#F1F5F9" }]}>
+                      <Text style={[styles.vibeText, isFinished && { color: "#94A3B8" }]}>{item.vibe.toUpperCase()}</Text>
                     </View>
                   )}
                 </View>
               )}
             </View>
-            {isFirst && (
+            {isFirst && !isFinished && (
               <View style={styles.nowBadge}>
                 <Text style={styles.nowText}>NEXT UP</Text>
               </View>
             )}
           </View>
 
-          {isCompleted && (
+          {isCompleted && !isFinished && (
             <View style={[styles.actionContainer, { marginTop: 5 }]}>
               <TouchableOpacity
                 style={styles.undoBtn}
@@ -275,7 +276,7 @@ export default function DailyPlanner() {
             </View>
           )}
 
-          {!isCompleted && (
+          {!isCompleted && !isFinished && (
             <>
               <Text style={styles.descriptionText}>
                 {item.placeDetails}
@@ -309,7 +310,7 @@ export default function DailyPlanner() {
                       <Ionicons
                         name="location-outline"
                         size={20}
-                        color={Colors.PRIMARY}
+                        color={isFinished ? "#94A3B8" : Colors.PRIMARY}
                       />
                     </TouchableOpacity>
                   </View>
@@ -330,6 +331,12 @@ export default function DailyPlanner() {
                 </View>
               </View>
             </>
+          )}
+
+          {!isCompleted && isFinished && (
+            <Text style={styles.descriptionText}>
+                {item.placeDetails}
+            </Text>
           )}
         </View>
       </View>
@@ -373,24 +380,34 @@ export default function DailyPlanner() {
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.locationStatus}
-            onPress={() => setIsManualMode(true)}
+            style={[styles.locationStatus, isFinished && styles.archivedLocationBar]}
+            onPress={() => !isFinished && setIsManualMode(true)}
+            disabled={isFinished}
           >
-            <Ionicons name="navigate" size={16} color={Colors.PRIMARY} />
+            <Ionicons name="navigate" size={16} color={isFinished ? "#94A3B8" : Colors.PRIMARY} />
             <Text style={styles.locationStatusText}>
-              {manualLocation ? "Manual Location Active" : "Using Live GPS"} •{" "}
-              {effectiveLocation ? "Distances Updated" : "Searching..."}
+              {isFinished ? "Journey History: Offline Mode" : (manualLocation ? "Manual Location Active" : "Using Live GPS")} •{" "}
+              {isFinished ? "Coordinates Finalized" : (effectiveLocation ? "Distances Updated" : "Searching...")}
             </Text>
-            <Text style={styles.editText}>Change</Text>
+            {!isFinished && <Text style={styles.editText}>Change</Text>}
           </TouchableOpacity>
         )}
 
         <View style={styles.scrollContentContainer}>
           <View style={styles.mainHeader}>
-            <Text style={styles.welcomeText}>Daily Itinerary</Text>
-            <Text style={styles.tripNameText}>
-              {activeTrip?.tripPlan?.tripName}
-            </Text>
+            <View style={styles.headerTitleRow}>
+              <View>
+                <Text style={styles.welcomeText}>Daily Itinerary</Text>
+                <Text style={[styles.tripNameText, isFinished && { color: "#64748B" }]}>
+                  {activeTrip?.tripPlan?.tripName}
+                </Text>
+              </View>
+              {isFinished && (
+                <View style={styles.archivedBadge}>
+                  <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                </View>
+              )}
+            </View>
           </View>
 
           <View style={styles.pathLabelRow}>
@@ -542,6 +559,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 7,
   },
+  archivedDot: {
+    backgroundColor: "#CBD5E1",
+    borderColor: "#CBD5E1",
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 7,
+  },
   timelineLine: {
     width: 2,
     flex: 1,
@@ -559,6 +586,7 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   doneLine: { backgroundColor: Colors.GREEN, width: 2 },
+  archivedLine: { backgroundColor: "#CBD5E1", width: 2 },
   contentBody: { flex: 1, paddingBottom: 40, marginLeft: 10, paddingRight: 20 },
   headerRow: {
     flexDirection: "row",
@@ -672,5 +700,29 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 12,
     color: Colors.PRIMARY,
+  },
+  archivedLocationBar: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#F1F5F9",
+    borderWidth: 1,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  archivedBadge: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  archivedBadgeText: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: "#94A3B8",
+    letterSpacing: 1,
   },
 });
