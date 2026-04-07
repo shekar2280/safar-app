@@ -14,6 +14,7 @@ export enum BudgetTier {
 export enum TripCategory {
   TRENDING = "TRENDING",
   HIDDEN = "HIDDEN",
+  HIDDEN_GEMS = "HIDDEN_GEMS",
   FESTIVE = "FESTIVE",
   CONCERT = "CONCERT",
   GENERAL = "GENERAL",

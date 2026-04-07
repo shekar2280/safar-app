@@ -39,6 +39,7 @@ class TokenData(BaseModel):
 
 class UserUpdate(BaseModel):
     home_location: Optional[Any] = None
+    full_name: Optional[str] = None
 
 class SavedTripOut(BaseModel):
     id: str
@@ -130,6 +131,8 @@ class TrendingPlace(BaseModel):
     desc: Optional[str] = None
     image: Optional[str] = None
     famous_landmark: Optional[str] = None
+    insight: Optional[str] = None
+    recommended_month: Optional[str] = None
 
 
 class TrendingPlacesResponse(BaseModel):

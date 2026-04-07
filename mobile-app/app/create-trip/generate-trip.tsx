@@ -17,7 +17,12 @@ import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import * as Haptics from "expo-haptics";
 import { CITY_TO_IATA } from "@/src/constants/iata";
-import { AI_PROMPT } from "@/src/constants/prompts";
+import { 
+  AI_PROMPT, 
+  HIDDEN_GEMS_AI_PROMPT, 
+  FESTIVE_AI_PROMPT, 
+  CONCERT_TRIP_AI_PROMPT 
+} from "@/src/constants/prompts";
 import { apiGet, apiPost, JWT_KEY, updateUserProfile } from "@/src/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/src/context/UserContext";
@@ -100,11 +105,12 @@ export default function GenerateTrip() {
         try {
           cached = await apiGet(`/api/trips/saved/${encodeURIComponent(normalizedKey)}`);
         } catch {
+          // No cache found
         }
 
         if (cached) {
           itineraryData = cached.trip_plan;
-          finalImageUrl = cached.image_url || "";
+          finalImageUrl = cached.image_urls || cached.image_url || [];
           destinationIata = cached.destination_iata || "N/A";
         } else {
           const days = parseInt(tripData.totalDays!.toString());
@@ -112,16 +118,40 @@ export default function GenerateTrip() {
           const perSlot = days;
           const totalRecs = days * 2;
 
-          const FINAL_ITINERARY_PROMPT = AI_PROMPT
+          let basePrompt = AI_PROMPT;
+          const category = tripData.tripCategory;
+
+          if (category === "HIDDEN_GEMS") {
+            basePrompt = HIDDEN_GEMS_AI_PROMPT;
+          } else if (category === "FESTIVE") {
+            basePrompt = FESTIVE_AI_PROMPT;
+          } else if (category === "CONCERT" || (tripData as any).festival) {
+            basePrompt = CONCERT_TRIP_AI_PROMPT;
+          }
+
+          let FINAL_ITINERARY_PROMPT = basePrompt
             .replace(/{location}/g, tripData.destinationInfo?.name || "")
             .replace(/{totalDays}/g, tripData.totalDays!.toString())
             .replace(/{totalNight}/g, (days - 1).toString())
             .replace(/{traveler}/g, tripData.traveler?.title || "")
+            .replace(/{travelers}/g, tripData.traveler?.title || "") 
             .replace(/{budget}/g, tripData.budget || "")
             .replace(/{totalPlaces}/g, totalPlaces.toString())
             .replace(/{perSlot}/g, perSlot.toString())
             .replace(/{totalRecs}/g, totalRecs.toString())
-            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO");
+            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO")
+            .replace(/{departure}/g, tripData.departureInfo?.name || "current location")
+            .replace(/{venueName}/g, tripData.destinationInfo?.name || "");
+
+          if ((tripData as any).festival) {
+            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{festival}/g, (tripData as any).festival);
+          }
+          
+          if (concertContext?.concertData?.artist) {
+            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, concertContext.concertData.artist);
+          } else if ((tripData as any).festival) {
+            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, (tripData as any).festival);
+          }
 
           const response = await fetch(API_BASE_URL, {
             method: "POST",
@@ -129,7 +159,7 @@ export default function GenerateTrip() {
             body: JSON.stringify({
               itineraryPrompt: FINAL_ITINERARY_PROMPT,
               locationName: tripData.destinationInfo?.name,
-              tripCategory: "GENERAL",
+              tripCategory: category || "GENERAL",
               latitude: tripData.destinationInfo?.coordinates?.lat,
               longitude: tripData.destinationInfo?.coordinates?.lon,
             }),
@@ -152,27 +182,29 @@ export default function GenerateTrip() {
 
         const { icon: _icon, ...cleanTraveler } = (tripData.traveler as any) || {};
 
-        const isConcert = !!tripData.destinationInfo?.festival;
-
-        const festivalName = tripData.destinationInfo?.festival;
+        const isConcert = tripData.tripCategory === "CONCERT" || !!(tripData.destinationInfo as any)?.festival;
+        const festivalName = (tripData.destinationInfo as any)?.festival;
         const artistFallback = festivalName ? festivalName.replace(" Concert", "") : "";
-        const finalArtist = concertContext?.concertData?.artist || artistFallback;
+        const finalArtist = (tripData.destinationInfo as any)?.artist || concertContext?.concertData?.artist || artistFallback;
 
         const concertPayload = isConcert ? {
           artist: finalArtist,
-          title: festivalName,
-          venueName: tripData.destinationInfo?.name,
+          title: festivalName || `${finalArtist} Concert`,
+          venueName: (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name,
           venueAddress: (tripData.destinationInfo as any)?.venueAddress,
-          concertDate: tripData.destinationInfo?.concertDate,
+          concertDate: (tripData as any).concertDate || (tripData.destinationInfo as any)?.concertDate,
           concertTime: (tripData.destinationInfo as any)?.concertTime,
           bookingUrl: (tripData.destinationInfo as any)?.bookingUrl,
           priceRange: (tripData.destinationInfo as any)?.priceRange,
-          image_urls: tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : []
+          image_urls: concertContext?.concertData?.artistImageUrl 
+            ? [concertContext.concertData.artistImageUrl] 
+            : (tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : [])
         } : null;
 
         await apiPost("/api/trips", {
           normalized_key: normalizedKey,
           trip_plan: itineraryData,
+          image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
           destination_iata: destinationIata,
           total_days: tripData.totalDays,
           traveler: cleanTraveler,
@@ -193,8 +225,8 @@ export default function GenerateTrip() {
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
-        setLoading(false);
         await refreshTrips();
+        setLoading(false);
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {
         attempts++;

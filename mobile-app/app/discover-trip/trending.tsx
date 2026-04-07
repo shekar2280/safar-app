@@ -16,6 +16,7 @@ import { Colors } from "@/src/constants/colors";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import { Ionicons } from "@expo/vector-icons";
 import { apiPost } from "@/src/lib/api";
+import { useUser } from "@/src/context/UserContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,6 +26,8 @@ export default function TrendingTrips() {
   const [loading, setLoading] = useState(true);
   const [places, setPlaces] = useState<any[]>([]);
   const [currentCity, setCurrentCity] = useState("Your Location");
+  
+  const { userProfile } = useUser();
 
   useEffect(() => {
     fetchTrending();
@@ -33,20 +36,33 @@ export default function TrendingTrips() {
   const fetchTrending = async () => {
     try {
       setLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLoading(false);
-        return;
+      
+      let city = "Mumbai";
+      let country = "India";
+      
+      if (userProfile?.homeLocation) {
+        city = userProfile.homeLocation.name || "Mumbai";
+        country = userProfile.homeLocation.country || "India";
+      } else {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === "granted") {
+            const location = await Location.getCurrentPositionAsync({});
+            const reverse = await Location.reverseGeocodeAsync({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            });
+
+            if (reverse?.[0]) {
+              city = reverse[0].city || reverse[0].region || "Mumbai";
+              country = reverse[0].country || "India";
+            }
+          }
+        } catch (locationError) {
+          console.warn("Location fetch failed, using default:", locationError);
+        }
       }
 
-      const location = await Location.getCurrentPositionAsync({});
-      const reverse = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      const city = reverse?.[0]?.city || reverse?.[0]?.region || "Mumbai";
-      const country = reverse?.[0]?.country || "India";
       setCurrentCity(city);
 
       const prompt = `Suggest a mix of 12 trending travel destinations (6 domestic within ${country} and 6 popular international spots) for someone currently in ${country}. 
@@ -77,6 +93,10 @@ export default function TrendingTrips() {
       params: {
         destName: item.name,
         destCountry: item.country,
+        destPhoto: item.image,
+        insight: item.insight,
+        recommendedMonth: item.recommended_month || item.recommendedMonth,
+        tripCategory: "TRENDING",
       },
     });
   };
@@ -109,13 +129,10 @@ export default function TrendingTrips() {
               onPress={() => handleSelect(item)}
               style={styles.cardContainer}
             >
-              <DiscoverCard 
-                option={{
-                  ...item,
-                  title: item.name,
-                  desc: item.desc,
-                } as any} 
-                cardHeight={height * 0.22} 
+              <DiscoverCard
+                option={item}
+                cardHeight={height * 0.20}
+                hideTag={true}
               />
             </TouchableOpacity>
           )}
@@ -135,7 +152,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 15,
     gap: 15,
   },
@@ -172,11 +189,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 40,
   },
   cardContainer: {
-    marginVertical: 12,
+    marginVertical: 10,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

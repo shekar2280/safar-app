@@ -25,7 +25,7 @@ export default function Discover() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <View style={styles.headerContent}>
           <Text style={styles.subtitle}>EXPLORE NEW HORIZONS</Text>
           <View style={styles.titleRow}>
@@ -74,9 +74,10 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: width * 0.01,
     paddingBottom: 15,
+    minHeight: 80,
+    justifyContent: "flex-end",
   },
   headerContent: {
-    marginTop: 20,
     paddingHorizontal: 15,
   },
   subtitle: {

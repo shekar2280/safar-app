@@ -11,10 +11,14 @@ const palette = {
   white: "#FFFFFF",
   black: "#1C1C1C",
   gray: "#9CA3AF",
-  lightGray: "#E5E7EB",
+  lightGray: "#f1f2f4ff",
+  surfaceLight: "#F1F5F9",
   red: "#EF4444",
   gold: "#D4AF37",
-  darkSurface:"#121212",
+  goldLight: "#F5E1A4",
+  goldMuted: "rgba(212, 175, 55, 0.4)",
+  darkSurface: "#121212",
+  darkSurfaceAlt: "#1E1E1E",
   tabInactive: "rgba(31,41,51,0.6)",
   green: "#34a326ff",
 } as const;
@@ -22,6 +26,7 @@ const palette = {
 export const Colors = {
   BACKGROUND: palette.background,
   SURFACE: palette.surface,
+  SURFACE_LIGHT: palette.surfaceLight,
   PRIMARY: palette.primary,
   SECONDARY: palette.secondary,
   ACCENT: palette.accent,
@@ -37,7 +42,10 @@ export const Colors = {
   RED: palette.red,
   TAB_INACTIVE: palette.tabInactive,
   GOLD: palette.gold,
+  GOLD_LIGHT: palette.goldLight,
+  GOLD_MUTED: palette.goldMuted,
   DARK_SURFACE: palette.darkSurface,
+  DARK_SURFACE_ALT: palette.darkSurfaceAlt,
   GREEN: palette.green
 } as const;
 

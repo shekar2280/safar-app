@@ -53,7 +53,7 @@ export default function ActiveTrips() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Text style={styles.subtitle}>MY JOURNEY HISTORY</Text>
           <View style={styles.titleRow}>
             <Text style={styles.title}>Active Trips</Text>
@@ -111,8 +111,10 @@ const styles = StyleSheet.create({
     paddingBottom: 160,
   },
   header: {
-    paddingHorizontal: width * 0.03,
+    paddingHorizontal: width * 0.05,
     paddingBottom: 20,
+    minHeight: 80,
+    justifyContent: "flex-end",
   },
   subtitle: {
     fontFamily: "outfitMedium",

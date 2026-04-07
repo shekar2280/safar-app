@@ -109,7 +109,7 @@ export default function DestinationPicker({
     const finalName = cityAliases[cleanName.toLowerCase()] || cleanName;
 
     const locationInfo: DestinationData = {
-      name: item.display_name,
+      name: finalName,
       shortName: finalName,
       country: countryName,
       countryCode,

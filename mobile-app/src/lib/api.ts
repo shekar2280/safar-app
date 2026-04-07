@@ -104,6 +104,6 @@ export async function apiDelete(endpoint: string): Promise<void> {
   }
 }
 
-export async function updateUserProfile(data: { home_location?: any }): Promise<void> {
-  await apiPatch("/api/auth/me", data);
+export async function updateUserProfile(data: { home_location?: any; full_name?: string }): Promise<any> {
+  return await apiPatch("/api/auth/me", data);
 }

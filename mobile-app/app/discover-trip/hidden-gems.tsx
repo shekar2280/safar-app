@@ -28,7 +28,10 @@ export default function HiddenGems() {
         destName: item.title,
         destCountry: item.country,
         destCountryCode: item.countryCode,
-        destPhoto: item.image,
+        auspiciousDay: item.auspiciousDay,
+        recommendedMonth: item.recommendedMonth,
+        insight: item.insight,
+        tripCategory: "HIDDEN_GEMS",
       },
     });
   };
@@ -55,13 +58,10 @@ export default function HiddenGems() {
             onPress={() => handleSelect(item)}
             style={styles.cardContainer}
           >
-            <DiscoverCard 
-              option={{
-                ...item,
-                title: item.name,
-                desc: item.desc
-              } as any} 
-              cardHeight={height * 0.22} 
+            <DiscoverCard
+              option={{ ...item, title: item.name } as any}
+              cardHeight={height * 0.20}
+              hideTag={true}
             />
           </TouchableOpacity>
         )}
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 15,
     gap: 15,
   },
@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 40,
   },
   cardContainer: {
-    marginVertical: 12,
+    marginVertical: 10,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

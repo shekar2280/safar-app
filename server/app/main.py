@@ -171,6 +171,8 @@ async def update_me(
 ):
     if body.home_location is not None:
         current_user.home_location = body.home_location
+    if body.full_name is not None:
+        current_user.full_name = body.full_name
     
     current_user.updated_at = datetime.datetime.utcnow()
     db.commit()
@@ -371,7 +373,15 @@ async def get_trending_places(
         
         country_name = body.country or "India"
         final_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
-        Return the result as a raw JSON array of objects with these keys: "name", "title", "country", "desc", "famous_landmark" (a specific famous place in that destination for image searching). 
+        Return the result as a raw JSON array of objects with these keys: 
+        - "name": City/Destination name
+        - "title": Full display name (e.g. "Tokyo, Japan")
+        - "country": Country name
+        - "desc": Short 1-sentence catchy description
+        - "famous_landmark": A specific famous place in that destination
+        - "pexels_query": A highly optimized keyword-rich search query for a STUNNING landscape photo of this place (e.g., "Cinematic sunset photography [Landmark] [Name]")
+        - "insight": A 2-sentence "Discovery Insight" explaining WHY this place is trending or what makes it culturally/visually unique right now.
+        - "recommended_month": Best month(s) to visit this specific place.
         No markdown, no extra text."""
 
         response = client.models.generate_content(
@@ -404,15 +414,19 @@ async def get_trending_places(
         enriched_places = []
         for i, dest in enumerate(destinations[:12]): # Ensure max 12
             landmark = dest.get("famous_landmark") or dest.get("name")
-            search_query = f"{landmark} {dest.get('name')}"
-            image_url = await get_pexels_image(search_query)
+            
+            # Combine AI-suggested query with quality keywords for cinematic results
+            pexels_search = dest.get("pexels_query") or f"Cinematic landscape photography {landmark} {dest.get('name')}"
+            image_url = await get_pexels_image(pexels_search)
             
             enriched_places.append({
                 "name": dest.get("name"),
                 "title": dest.get("title") or dest.get("name"),
                 "country": dest.get("country"),
                 "desc": dest.get("desc"),
-                "famous_landmark": dest.get("famous_landmark"),
+                "famous_landmark": landmark,
+                "insight": dest.get("insight"),
+                "recommended_month": dest.get("recommended_month"),
                 "image": image_url
             })
 

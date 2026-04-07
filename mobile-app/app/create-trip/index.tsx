@@ -25,17 +25,10 @@ import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMod
 
 const { width, height } = Dimensions.get("window");
 
-const travelerModes = [
-  { mode: TravelerMode.Solo, label: "SOLO", count: 1 },
-  { mode: TravelerMode.Couple, label: "COUPLE", count: 2 },
-  { mode: TravelerMode.Family, label: "FAMILY", count: 3 },
-  { mode: TravelerMode.Friends, label: "FRIENDS", count: 5 },
-];
-
 const getTravelerObject = (mode: TravelerMode, count: number): TravelerGroup => {
-  if (mode === TravelerMode.Solo) return { id: 1, title: "Just Me", desc: "A solo traveler on a personal journey", people: "1" };
-  if (mode === TravelerMode.Couple) return { id: 2, title: "Couple", desc: "Two people traveling together", people: "2" };
-  if (mode === TravelerMode.Family) return { id: 3, title: "Family", desc: "A family trip with parents and kids", people: `${count}` };
+  if (mode === TravelerMode.Solo) return { id: 1, title: "Solo", desc: "A solo traveler", people: "1" };
+  if (mode === TravelerMode.Couple) return { id: 2, title: "Couple", desc: "Two people", people: "2" };
+  if (mode === TravelerMode.Family) return { id: 3, title: "Family", desc: "A family trip", people: `${count}` };
   return { id: 4, title: "Friends", desc: "A fun trip with friends", people: `${count}` };
 };
 
@@ -118,11 +111,12 @@ export default function CreateTripIndex() {
   );
 
   useEffect(() => {
-    const modeData = travelerModes.find(m => m.mode === travelerMode);
-    if (modeData) {
-      setTravelerCount(modeData.count);
-    }
-  }, [travelerMode]);
+    // Determine traveler mode based on count since the top slider is gone
+    if (travelerCount === 1) setTravelerMode(TravelerMode.Solo);
+    else if (travelerCount === 2) setTravelerMode(TravelerMode.Couple);
+    else if (travelerCount >= 3 && travelerCount <= 4) setTravelerMode(TravelerMode.Family);
+    else setTravelerMode(TravelerMode.Friends);
+  }, [travelerCount]);
 
   const handleGenerateTrip = () => {
     const missing: string[] = [];
@@ -144,6 +138,7 @@ export default function CreateTripIndex() {
       traveler: getTravelerObject(travelerMode, travelerCount),
       budget: budget!.title,
       isInternational: departure!.countryCode !== destination!.countryCode,
+      tripCategory: (params.tripCategory as any) || "GENERAL",
     });
     router.push("/create-trip/generate-trip" as any);
   };
@@ -167,37 +162,54 @@ export default function CreateTripIndex() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <MotiView
-          from={{ opacity: 0, translateY: -20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ delay: DELAY, type: "timing" }}
-          style={styles.modeContainer}
-        >
-          <View style={styles.modeWrapper}>
-            <MotiView
-              animate={{
-                translateX: (travelerModes.findIndex(m => m.mode === travelerMode) * (width - 58)) / 4,
-              }}
-              transition={{ type: "timing", duration: 300, easing: Easing.out(Easing.exp) }}
-              style={styles.modeIndicator}
-            />
-            {travelerModes.map((item) => (
-              <TouchableOpacity
-                key={item.mode}
-                style={styles.modeSegment}
-                onPress={() => setTravelerMode(item.mode)}
-                activeOpacity={1}
-              >
-                <Text style={[
-                  styles.modeText,
-                  travelerMode === item.mode && styles.modeTextActive
-                ]}>
-                  {item.label}
+        {params.insight ? (
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "timing", duration: 800 }}
+            style={styles.insightHero}
+          >
+            <View style={styles.insightHeader}>
+              <View style={styles.insightIconCircle}>
+                <Ionicons name="bulb" size={20} color={Colors.GOLD} />
+              </View>
+              <Text style={styles.insightHeaderTitle}>
+                {params.festival
+                  ? `WHY IS ${params.festival.toString().toUpperCase()} CELEBRATED?`
+                  : `WHY ${(
+                      destination?.name ||
+                      (params.destName as string)?.split(",")[0] ||
+                      "THIS PLACE"
+                    ).toUpperCase()}?`}
+              </Text>
+            </View>
+            <Text style={styles.insightText}>
+              {params.insight as string}
+            </Text>
+
+            {(params.auspiciousDay || params.recommendedMonth) && (
+              <View style={styles.insightTimingRow}>
+                <View style={styles.insightTimingBadge}>
+                  <Ionicons
+                    name="calendar"
+                    size={14}
+                    color={Colors.GOLD}
+                  />
+                  <Text style={styles.insightTimingLabel}>
+                    {params.auspiciousDay
+                      ? "MAIN CELEBRATION"
+                      : "BEST TIME TO VISIT"}
+                  </Text>
+                </View>
+                <Text style={styles.insightTimingValue}>
+                  {params.auspiciousDay || params.recommendedMonth}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </MotiView>
+              </View>
+            )}
+          </MotiView>
+        ) : (
+          <View style={{ height: 10 }} />
+        )}
 
         <MotiView
           from={{ opacity: 0, translateY: 20 }}
@@ -236,6 +248,7 @@ export default function CreateTripIndex() {
             </View>
           </View>
         </MotiView>
+
 
         <View style={styles.statsGrid}>
           <MotiView
@@ -367,49 +380,89 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   scrollContent: {
-    paddingHorizontal: 25,
+    paddingHorizontal: 15,
     paddingBottom: 150
-  },
-  modeContainer: {
-    marginBottom: 20,
-    marginTop: 5,
-  },
-  modeWrapper: {
-    flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.04)",
-    borderRadius: 20,
-    height: 54,
-    padding: 4,
-    position: "relative",
-  },
-  modeIndicator: {
-    position: "absolute",
-    top: 4,
-    bottom: 4,
-    left: 4,
-    width: (width - 58) / 4,
-    backgroundColor: Colors.WHITE,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  modeSegment: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
-  },
-  modeText: {
-    fontFamily: "outfitBold",
-    fontSize: 10,
-    color: Colors.MUTED_TEXT,
-    letterSpacing: 1.2,
   },
   modeTextActive: {
     color: Colors.PRIMARY,
+  },
+  insightHero: {
+    backgroundColor: "#FFFAF0",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+    borderLeftWidth: 5,
+    borderLeftColor: Colors.GOLD,
+    shadowColor: Colors.GOLD,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 15,
+    elevation: 2,
+  },
+  insightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+  insightIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.WHITE,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  insightHeaderTitle: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: Colors.GOLD,
+    letterSpacing: 2,
+  },
+  insightText: {
+    fontFamily: "playfair",
+    fontSize: 16,
+    color: Colors.PRIMARY,
+    lineHeight: 26,
+    fontStyle: "italic",
+    opacity: 0.95,
+  },
+  insightTimingRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(254, 243, 199, 0.5)",
+    gap: 12,
+  },
+  insightTimingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(254, 243, 199, 0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  insightTimingLabel: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    color: Colors.GOLD,
+    letterSpacing: 0.5,
+  },
+  insightTimingValue: {
+    fontFamily: "outfitBold",
+    fontSize: 13,
+    color: Colors.PRIMARY,
+    opacity: 0.8,
+    flex: 1,
+    textAlign: "right",
   },
   bridgeCard: {
     backgroundColor: Colors.WHITE,
@@ -593,5 +646,40 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 15,
     letterSpacing: 4,
+  },
+  festiveInsightCard: {
+    backgroundColor: "#FFFCF5",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: "row",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+    alignItems: "center",
+  },
+  festiveInsightIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFBEB",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  festiveInsightTitle: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    color: Colors.GOLD,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  festiveInsightText: {
+    fontFamily: "outfit",
+    fontSize: 13,
+    color: Colors.PRIMARY,
+    lineHeight: 18,
+    opacity: 0.9,
   },
 });
