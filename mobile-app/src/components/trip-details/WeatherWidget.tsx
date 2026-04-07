@@ -1,43 +1,19 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Image, ImageBackground, Dimensions } from "react-native";
 import { Colors } from "@/src/constants/colors";
-import { apiGet } from "@/src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { WEATHER_CONFIG } from "@/src/constants/travel-data";
+import { useWeather } from "@/src/hooks/queries/useWeather";
 
 const { width } = Dimensions.get("window");
 
 interface WeatherWidgetProps {
   cityName: string;
-  startDate?: string;
-  endDate?: string;
 }
 
-export default function WeatherWidget({ cityName, startDate, endDate }: WeatherWidgetProps) {
-  const [weather, setWeather] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (cityName) {
-      fetchWeather();
-    }
-  }, [cityName]);
-
-  const fetchWeather = async () => {
-    try {
-      let url = `/api/discovery/weather?city=${encodeURIComponent(cityName)}`;
-      if (startDate) url += `&start_date=${startDate}`;
-      if (endDate) url += `&end_date=${endDate}`;
-
-      const data = await apiGet<any>(url);
-      setWeather(data);
-    } catch (error) {
-      console.error("Failed to fetch weather:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
+  const { data: weather, isLoading: loading } = useWeather(cityName);
 
   const weatherCategory = useMemo(() => {
     if (!weather?.current?.weather?.[0]) return "SUNNY";

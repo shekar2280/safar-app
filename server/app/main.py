@@ -277,14 +277,47 @@ async def get_weather(
     city: str,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
 ):
     """
-    Fetch weather info for a city, optionally for a specific date range.
+    Fetch weather info for a city, with a shared 24-hour database cache.
     """
+    city_key = city.lower().strip()
+    
+    # 1. Check DB Cache
+    now = datetime.datetime.utcnow()
+    one_day_ago = now - datetime.timedelta(hours=24)
+    
+    cached = db.query(models.WeatherCache).filter(
+        models.WeatherCache.city == city_key,
+        models.WeatherCache.updated_at >= one_day_ago
+    ).first()
+    
+    if cached:
+        api_logger.info("WEATHER CACHE HIT", extra={"city": city_key})
+        return cached.weather_data
+
+    # 2. Cache Miss - Fetch from API
+    api_logger.info("WEATHER CACHE MISS", extra={"city": city_key})
     current = await weather_service.get_current_weather(city)
-    # If start_date is provided, try to get specific forecast
     forecast = await weather_service.get_forecast_weather(city)
-    return {"current": current, "forecast": forecast}
+    
+    weather_payload = {"current": current, "forecast": forecast}
+    
+    # 3. Update or Create Cache Entry
+    existing = db.query(models.WeatherCache).filter(models.WeatherCache.city == city_key).first()
+    if existing:
+        existing.weather_data = weather_payload
+        existing.updated_at = now
+    else:
+        new_cache = models.WeatherCache(
+            city=city_key,
+            weather_data=weather_payload
+        )
+        db.add(new_cache)
+    
+    db.commit()
+    return weather_payload
 
 
 @app.get("/api/discovery/places", response_model=schemas.PlacesResponse)

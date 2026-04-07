@@ -89,3 +89,15 @@ class TrendingCache(Base):
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class WeatherCache(Base):
+    """Shared weather cache by city, refreshed every 24 hours to stay within API limits."""
+    __tablename__ = "weather_cache"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=_uuid, index=True)
+    city = Column(String, unique=True, index=True, nullable=False)
+    weather_data = Column(JSON, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
