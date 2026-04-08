@@ -77,7 +77,47 @@ async def startup():
 
 
 def get_gemini_client():
-    return genai.Client(api_key=os.getenv("GOOGLE_GENERATIVE_AI_API_KEY"))
+    api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
+    if not api_key:
+        api_logger.error("GOOGLE_GENERATIVE_AI_API_KEY is missing")
+        raise ValueError("AI API key missing")
+    return genai.Client(api_key=api_key)
+
+
+async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash"):
+    """
+    Calls Gemini with a retry strategy for the specified model.
+    Using gemini-2.5-flash as requested.
+    """
+    client = get_gemini_client()
+    
+    attempts = 0
+    max_attempts = 3
+    
+    while attempts < max_attempts:
+        try:
+            response = client.models.generate_content(
+                model=primary_model,
+                contents=prompt,
+            )
+            return response.text
+        except Exception as e:
+            error_str = str(e).upper()
+            # If it's a 503 or demand spike, we retry
+            if "503" in error_str or "UNAVAILABLE" in error_str or "EXHAUSTED" in error_str:
+                attempts += 1
+                if attempts < max_attempts:
+                    wait_time = attempts * 3
+                    api_logger.warning(f"Gemini {primary_model} busy. Retrying in {wait_time}s...", extra={"attempt": attempts})
+                    import asyncio
+                    await asyncio.sleep(wait_time)
+                    continue
+            
+            # Fatal error
+            api_logger.error(f"Error with model {primary_model}: {str(e)}")
+            break
+                
+    raise HTTPException(status_code=503, detail="The AI Service (2.5-flash) is currently overloaded. Please try again in a moment.")
 
 
 async def get_current_user(
@@ -196,13 +236,8 @@ async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
 
         final_prompt = body.itineraryPrompt + poi_context
 
-        client = get_gemini_client()
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=final_prompt,
-        )
-        itinerary_text = response.text
-
+        itinerary_text = await call_gemini_with_resilience(final_prompt)
+        
         print("\n" + "="*50)
         print("📄 RAW RESPONSE FROM GEMINI:")
         print(itinerary_text[:1000] + "..." if len(itinerary_text) > 1000 else itinerary_text)
@@ -402,10 +437,9 @@ async def get_trending_places(
         
         # 2. Fetch from Gemini
         api_logger.info("FETCHING NEW TRENDING PLACES (12 ITEMS)", extra={"country": country_key})
-        client = get_gemini_client()
         
         country_name = body.country or "India"
-        final_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
+        trending_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
         Return the result as a raw JSON array of objects with these keys: 
         - "name": City/Destination name
         - "title": Full display name (e.g. "Tokyo, Japan")
@@ -417,12 +451,8 @@ async def get_trending_places(
         - "recommended_month": Best month(s) to visit this specific place.
         No markdown, no extra text."""
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=final_prompt,
-        )
+        raw_text = await call_gemini_with_resilience(trending_prompt)
         
-        raw_text = response.text
         api_logger.info("GEMINI RESPONSE RECEIVED", extra={"raw_text_preview": raw_text[:200]})
 
         # Extract JSON list using regex
