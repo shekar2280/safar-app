@@ -154,7 +154,10 @@ export default function ConcertTrip() {
               onPress={() => onSelectArtist(item.title)}
             >
               <View style={styles.card}>
-                <Image source={item.image} style={styles.cardImage} />
+                <Image 
+                  source={typeof item.image === "string" ? { uri: item.image } : item.image} 
+                  style={styles.cardImage} 
+                />
                 <View style={styles.imageOverlay} />
                 <Text
                   style={[

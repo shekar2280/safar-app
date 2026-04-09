@@ -379,13 +379,10 @@ export interface ActiveTripCardProps {
 export interface SpendingFormProps {
   spendingName: string;
   amountInput: string;
-  image: string | null;
-  extractedText: string;
-  isProcessing: boolean;
+  isSaving: boolean;
   setSpendingName: (name: string) => void;
   setAmountInput: (amount: string) => void;
   hideForm: () => void;
-  pickImage: (source: "camera" | "gallery") => () => void;
   clearAll: () => void;
   recordSpending: () => void;
 }

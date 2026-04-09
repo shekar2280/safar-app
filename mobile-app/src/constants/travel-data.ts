@@ -102,85 +102,155 @@ export const SelectBudgetOptions: BudgetOption[] = [
 ];
 
 export const singerOptions = [
+  // --- Global Icons ---
   {
     id: 1,
     title: "Taylor Swift",
-    image: require("../../assets/images/concert-trips/taylor-swift.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717768/taylor-swift_n4yz5f.jpg",
   },
   {
     id: 2,
-    title: "Weeknd",
-    image: require("../../assets/images/concert-trips/weeknd.jpg"),
+    title: "The Weeknd",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717769/weeknd_dn53lg.jpg",
   },
   {
     id: 3,
     title: "Coldplay",
-    image: require("../../assets/images/concert-trips/coldplay.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717756/coldplay_lggbzl.jpg",
   },
   {
     id: 4,
-    title: "Sabrina Carpentar",
-    image: require("../../assets/images/concert-trips/sabrina.jpg"),
+    title: "BTS",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717754/bts_av2br0.jpg",
   },
   {
     id: 5,
-    title: "Post Malone",
-    image: require("../../assets/images/concert-trips/post-malone.jpg"),
+    title: "Billie Eilish",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717754/billie_oua6zw.jpg",
   },
   {
     id: 6,
     title: "Dua Lipa",
-    image: require("../../assets/images/concert-trips/dua.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717757/dua_iqhgoj.jpg",
   },
   {
     id: 7,
-    title: "Ariana Grande",
-    image: require("../../assets/images/concert-trips/ariana-grande.jpg"),
+    title: "Olivia Rodrigo",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717763/olivia_olwhfk.webp",
   },
   {
     id: 8,
-    title: "Bruno Mars",
-    image: require("../../assets/images/concert-trips/bruno-mars.jpeg"),
+    title: "Post Malone",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717769/post-malone_kuau3e.jpg",
   },
   {
     id: 9,
     title: "Ed Sheeran",
-    image: require("../../assets/images/concert-trips/ed-sheeran.webp"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717758/ed-sheeran_hcoiag.webp",
   },
   {
     id: 10,
-    title: "Linkin Park",
-    image: require("../../assets/images/concert-trips/linkin-park.jpeg"),
+    title: "Travis Scott",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717768/travis_j1psjr.webp",
   },
   {
     id: 11,
-    title: "Shakira",
-    image: require("../../assets/images/concert-trips/shakira.jpeg"),
+    title: "Sabrina Carpenter",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717764/sabrina_hlyp1p.jpg",
   },
+
+  // --- Indian / Desi Gems ---
   {
     id: 12,
-    title: "Miley Cyrus",
-    image: require("../../assets/images/concert-trips/miley.jpg"),
+    title: "Diljit Dosanjh",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717755/diljit_y43y86.jpg",
   },
   {
     id: 13,
-    title: "Justin Bieber",
-    image: require("../../assets/images/concert-trips/justin-bieber.jpeg"),
+    title: "AP Dhillon",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717754/ap_jk7sz3.jpg",
   },
   {
     id: 14,
-    title: "Maroon 5",
-    image: require("../../assets/images/concert-trips/maroon-5.jpeg"),
+    title: "Prateek Kuhad",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717762/prateek_yz2xh6.jpg",
   },
   {
     id: 15,
-    title: "Katy Perry",
-    image: require("../../assets/images/concert-trips/katy-perry.jpeg"),
+    title: "Anuv Jain",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717753/anuv_phbjt1.jpg",
   },
   {
     id: 16,
+    title: "King",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717759/king_tsoraa.jpg",
+  },
+  {
+    id: 17,
+    title: "Shreya Ghoshal",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717766/shreya_anegxp.jpg",
+  },
+
+  // --- Pop & Legends ---
+  {
+    id: 18,
+    title: "Ariana Grande",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717758/ariana-grande_tebcue.jpg",
+  },
+  {
+    id: 19,
+    title: "Bruno Mars",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717755/bruno-mars_lkzyfo.jpg",
+  },
+  {
+    id: 20,
+    title: "Linkin Park",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717760/linkin-park_mymazr.jpg",
+  },
+  {
+    id: 21,
+    title: "Justin Bieber",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717758/justin-bieber_hv2epg.jpg",
+  },
+  {
+    id: 22,
+    title: "Maroon 5",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717767/maroon-5_kndgjk.jpg",
+  },
+  {
+    id: 23,
+    title: "Shakira",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717768/shakira_q3upyw.jpg",
+  },
+  {
+    id: 24,
+    title: "Miley Cyrus",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717767/miley_lxddeg.jpg",
+  },
+  {
+    id: 25,
+    title: "Imagine Dragons",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717756/imagine_cga81b.jpg",
+  },
+  {
+    id: 26,
+    title: "Lana Del Rey",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717759/lana_jwnktu.jpg",
+  },
+  {
+    id: 27,
+    title: "Kendrick Lamar",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717771/kendrick-lamar_jxxm2v.jpg",
+  },
+  {
+    id: 28,
+    title: "Katy Perry",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717759/katy-perry_vhjyqx.jpg",
+  },
+  {
+    id: 29,
     title: "Lorde",
-    image: require("../../assets/images/concert-trips/lorde.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717760/lorde_ujaxay.jpg",
   },
 ];
 
@@ -519,7 +589,7 @@ export const FestiveTripIdeas = [
     Highlights: "Ganga Aarti, thousands of diyas & spiritual rituals",
     insight: "Diwali in Varanasi commemorates Lord Rama's triumphant return. The ghats are illuminated with millions of earthen lamps to guide him home, creating a breathtaking celestial reflection on the Ganges.",
     auspiciousDay: "Nov 1",
-    image: require("../../assets/images/festive-trips/diwali.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718275/diwali_trtgol.jpg",
   },
   {
     id: 2,
@@ -531,7 +601,7 @@ export const FestiveTripIdeas = [
     Highlights: "Spiritual pilgrimage and Kaaba rituals",
     insight: "Hajj is a mandatory spiritual journey that symbolizes universal equality. It represents a profound submission to the divine, bringing together millions of seekers from every corner of the globe.",
     auspiciousDay: "Varies (May/June)",
-    image: require("../../assets/images/festive-trips/mecca.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718278/mecca_tamv55.jpg",
   },
   {
     id: 3,
@@ -543,7 +613,7 @@ export const FestiveTripIdeas = [
     Highlights: "Holy Sepulchre, Western Wall & religious convergence",
     insight: "Jerusalem hosts a profound convergence of Easter and Passover celebrations. It marks the sacred heart of multiple global faiths, where ancient traditions and shared history meet.",
     auspiciousDay: "Varies (March/April)",
-    image: require("../../assets/images/festive-trips/jerusalem.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718277/jerusalem_oihxca.jpg",
   },
   {
     id: 4,
@@ -555,7 +625,7 @@ export const FestiveTripIdeas = [
     Highlights: "Golden Temple illuminations & kirtans",
     insight: "Gurpurab celebrates the birth of Guru Nanak. On this day, the Golden Temple is transformed into a sanctuary of selfless service, peace, and radiant divine light.",
     auspiciousDay: "Nov 25",
-    image: require("../../assets/images/festive-trips/amritsar.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718275/amritsar_cyp5dk.jpg",
   },
   {
     id: 5,
@@ -567,7 +637,7 @@ export const FestiveTripIdeas = [
     Highlights: "Boudhanath prayers, butter lamps & Buddhist energy",
     insight: "Buddha Jayanti honors the birth, enlightenment, and nirvana of Lord Buddha. The majestic Stupas of Swayambhunath and Boudhanath are filled with prayers and the soft glow of butter lamps.",
     auspiciousDay: "May 1",
-    image: require("../../assets/images/festive-trips/kathmandu.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718277/kathmandu_yiguhm.jpg",
   },
   {
     id: 6,
@@ -579,7 +649,7 @@ export const FestiveTripIdeas = [
     Highlights: "Copacabana fireworks & beachside masses",
     insight: "Rio's New Year is a global spectacle of renewal and joy. Millions of white-clad celebrants gather on Copacabana beach to offer flowers to the sea under a sky of magnificent fireworks.",
     auspiciousDay: "Dec 25",
-    image: require("../../assets/images/festive-trips/rio.jpeg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718285/rio_sa46hq.jpg",
   },
   {
     id: 7,
@@ -591,7 +661,7 @@ export const FestiveTripIdeas = [
     Highlights: "Cultural fair and spiritual rituals at the lake",
     insight: "Kartik Purnima marks the creation of Pushkar Lake by Lord Brahma. It is a sacred day of spiritual cleansing and vibrant cultural celebration in the heart of the Rajasthan desert.",
     auspiciousDay: "Nov 24",
-    image: require("../../assets/images/festive-trips/pushkar.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718281/pushkar_abaonb.jpg",
   },
   {
     id: 8,
@@ -603,7 +673,7 @@ export const FestiveTripIdeas = [
     Highlights: "Fun water fights and Buddhist temple blessings",
     insight: "Songkran is the traditional Thai New Year. It is a joyful celebration of renewal where water is used to wash away the old and usher in fresh blessings for the coming year.",
     auspiciousDay: "April 13-15",
-    image: require("../../assets/images/festive-trips/songkran.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718290/songkran_poox1w.jpg",
   },
   {
     id: 9,
@@ -615,7 +685,7 @@ export const FestiveTripIdeas = [
     Highlights: "Torchlight processions and healing masses",
     insight: "The Feast of the Assumption is a major day of Catholic pilgrimage. It honors the Virgin Mary and centers around the sacred grotto where miraculous healings and spiritual strength are sought.",
     auspiciousDay: "Aug 15",
-    image: require("../../assets/images/festive-trips/assumption-day.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718274/assumption-day_icpka2.jpg",
   },
   {
     id: 10,
@@ -627,7 +697,7 @@ export const FestiveTripIdeas = [
     Highlights: "Unique silence rituals and Ogoh-Ogoh parades",
     insight: "Nyepi is Bali's unique Day of Silence. It is a day dedicated to meditation and self-reflection, when the entire island comes to a standstill to cleanse the spirit and restore natural balance.",
     auspiciousDay: "March",
-    image: require("../../assets/images/festive-trips/nyepi.jpg"),
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718285/nyepi_dczj6j.jpg",
   },
   {
     id: 11,
@@ -639,7 +709,7 @@ export const FestiveTripIdeas = [
     Highlights: "Ofrendas, calaveras and soulful remembrance",
     insight: "The Day of the Dead is a beautiful and soulful remembrance. Families use vibrant ofrendas and marigold paths to guide the spirits of their loved ones back for a night of shared celebration.",
     auspiciousDay: "Nov 2",
-    image: "https://images.pexels.com/photos/3321484/pexels-photo-3321484.jpeg",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718300/mexico_q7r2g0.jpg",
   },
   {
     id: 12,
@@ -651,7 +721,7 @@ export const FestiveTripIdeas = [
     Highlights: "Sakura blooms and traditional tea rituals",
     insight: "Hanami is the ancient Japanese tradition of cherry blossom viewing. It celebrates the fleeting beauty of life and the arrival of spring under the breathtaking canopy of Sakura trees.",
     auspiciousDay: "April",
-    image: "https://images.pexels.com/photos/1440476/pexels-photo-1440476.jpeg",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718311/kyoto_ps7smo.jpg",
   },
   {
     id: 13,
@@ -663,7 +733,7 @@ export const FestiveTripIdeas = [
     Highlights: "Bavarian culture, beer tents and parades",
     insight: "Oktoberfest is the world's largest celebration of Bavarian culture. It is a joyful festival that highlights shared community spirit, traditional heritage, and world-renowned hospitality.",
     auspiciousDay: "Sept / Oct",
-    image: "https://images.pexels.com/photos/1574217/pexels-photo-1574217.jpeg",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718286/munich_zrej65.jpg",
   },
   {
     id: 14,
@@ -675,7 +745,7 @@ export const FestiveTripIdeas = [
     Highlights: "Masquerade masks and mysterious elegance",
     insight: "The Venice Carnival is an explosion of mysterious elegance and artistic flair. Iconic masquerade masks allow participants to escape into a temporary world of historical fantasy and beauty.",
     auspiciousDay: "February",
-    image: "https://images.pexels.com/photos/6782038/pexels-photo-6782038.jpeg",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718303/venice_nfivvn.jpg",
   },
   {
     id: 15,
@@ -687,7 +757,7 @@ export const FestiveTripIdeas = [
     Highlights: "Intense devotion and processional floats",
     insight: "Semana Santa is an intense and moving display of devotion. Magnificent processional floats move through historic streets, showcasing centuries of tradition and masterful artistry.",
     auspiciousDay: "April",
-    image: "https://images.pexels.com/photos/13598504/pexels-photo-13598504.jpeg",
+    image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775718309/seville_ppeklx.jpg",
   },
 ];
 

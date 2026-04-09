@@ -8,7 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -28,6 +29,8 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveVisible, setArchiveVisible] = useState(false);
 
@@ -115,14 +118,14 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   };
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
       <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner} disabled={isArchiving}>
         <Image source={tripImageSource} style={styles.bannerImage} transition={500} />
 
         <View style={styles.topRow}>
-          <BlurView intensity={75} tint="dark" style={styles.liveBadge}>
-            <View style={[styles.statusDot, trip.isFinished && { backgroundColor: "#94A3B8" }]} />
-            <Text style={styles.liveText}>
+          <BlurView intensity={75} tint={isDark ? "dark" : "light"} style={[styles.liveBadge, { borderColor: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.1)" }]}>
+            <View style={[styles.statusDot, trip.isFinished && { backgroundColor: colors.GRAY }]} />
+            <Text style={[styles.liveText, { color: isDark ? colors.WHITE : colors.TEXT }]}>
               {isArchiving ? "ARCHIVING..." : trip.isFinished ? "COMPLETED" : "ON JOURNEY"}
             </Text>
           </BlurView>

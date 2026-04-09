@@ -10,7 +10,8 @@ import {
 import Autocomplete from "react-native-autocomplete-input";
 const AutocompleteInput = Autocomplete as any;
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/types/interfaces";
 
 export default function DestinationPicker({
@@ -18,6 +19,8 @@ export default function DestinationPicker({
   placeholder = "Search destination...",
   value,
 }: DestinationPickerProps & { value?: DestinationData | null }) {
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [selected, setSelected] = useState<DestinationData | null>(value || null);
@@ -148,28 +151,28 @@ export default function DestinationPicker({
         inputContainerStyle={{ borderWidth: 0 }}
         listStyle={{ borderWidth: 0 }}
         renderTextInput={(props: any) => (
-          <View style={styles.inputCapsule}>
+          <View style={[styles.inputCapsule, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }]}>
             <View style={styles.labelSection}>
-              <Text style={styles.label}>TO</Text>
+              <Text style={[styles.label, { color: colors.GOLD }]}>TO</Text>
             </View>
             <TextInput
               {...props}
-              style={styles.inputStyle}
-              placeholderTextColor={Colors.GRAY}
-              selectionColor={Colors.SECONDARY}
+              style={[styles.inputStyle, { color: colors.TEXT }]}
+              placeholderTextColor={colors.MUTED_TEXT}
+              selectionColor={colors.GOLD}
             />
             <View style={styles.actionSection}>
               {loading ? (
-                <ActivityIndicator size="small" color={Colors.SECONDARY} />
+                <ActivityIndicator size="small" color={colors.GOLD} />
               ) : query.length > 0 ? (
                 <TouchableOpacity onPress={clearInput}>
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={[styles.clearText, { color: colors.MUTED_TEXT }]}>Clear</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
           </View>
         )}
-        listContainerStyle={styles.suggestionList}
+        listContainerStyle={[styles.suggestionList, { backgroundColor: colors.SURFACE }]}
         flatListProps={{
           scrollEnabled: false,
           nestedScrollEnabled: true,
@@ -179,11 +182,11 @@ export default function DestinationPicker({
             return (
               <TouchableOpacity
                 onPress={() => handleSelect(item)}
-                style={styles.suggestionItem}
+                style={[styles.suggestionItem, { backgroundColor: colors.SURFACE }]}
               >
                 <View style={styles.textWrap}>
-                  <Text style={styles.mainText} numberOfLines={1}>{mainName.trim()}</Text>
-                  <Text style={styles.subText} numberOfLines={1}>{rest.join(",").trim()}</Text>
+                  <Text style={[styles.mainText, { color: colors.TEXT }]} numberOfLines={1}>{mainName.trim()}</Text>
+                  <Text style={[styles.subText, { color: colors.MUTED_TEXT }]} numberOfLines={1}>{rest.join(",").trim()}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -200,7 +203,6 @@ const styles = StyleSheet.create({
   inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.035)",
     height: 65,
     borderRadius: 22,
     paddingHorizontal: 20,
@@ -209,14 +211,12 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
   },
   inputStyle: {
     flex: 1,
     fontFamily: "outfitBold",
     fontSize: 18,
-    color: Colors.PRIMARY,
     padding: 0,
     height: "100%",
     borderWidth: 0,

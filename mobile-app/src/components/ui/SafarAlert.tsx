@@ -2,7 +2,8 @@ import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { SafarAlertProps } from "@/src/types/interfaces";
@@ -19,16 +20,18 @@ export default function SafarAlert({
   onConfirm,
   onCancel,
 }: SafarAlertProps) {
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const isDestructive = type === "confirm";
   const iconName = type === "error" ? "alert-circle" : type === "confirm" ? "trash" : "information-circle";
-  const iconColor = type === "error" || type === "confirm" ? Colors.RED : Colors.SECONDARY;
+  const iconColor = type === "error" || type === "confirm" ? colors.RED : colors.SECONDARY;
 
   return (
     <Modal transparent visible={visible} animationType="none">
       <View style={styles.overlay}>
         <AnimatePresence>
           {visible && (
-            <BlurView intensity={25} style={StyleSheet.absoluteFill} tint="dark">
+            <BlurView intensity={25} style={StyleSheet.absoluteFill} tint={isDark ? "dark" : "light"}>
               <TouchableOpacity
                 activeOpacity={1}
                 style={styles.centeredView}
@@ -39,7 +42,7 @@ export default function SafarAlert({
                   animate={{ opacity: 1, scale: 1, translateY: 0 }}
                   exit={{ opacity: 0, scale: 0.9, translateY: 10 }}
                   transition={{ type: "timing", duration: 250 }}
-                  style={styles.alertCard}
+                  style={[styles.alertCard, { backgroundColor: colors.SURFACE }]}
                 >
                   <View style={styles.iconWrapper}>
                     <View style={[styles.iconCircle, { backgroundColor: `${iconColor}20` }]}>
@@ -48,18 +51,18 @@ export default function SafarAlert({
                   </View>
 
                   <View style={styles.textContainer}>
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.message}>{message}</Text>
+                    <Text style={[styles.title, { color: colors.TEXT }]}>{title}</Text>
+                    <Text style={[styles.message, { color: colors.MUTED_TEXT }]}>{message}</Text>
                   </View>
 
                   <View style={styles.buttonContainer}>
                     {isDestructive && (
                       <TouchableOpacity
-                        style={styles.cancelBtn}
+                        style={[styles.cancelBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
                         onPress={onCancel}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.cancelText}>{cancelText}</Text>
+                        <Text style={[styles.cancelText, { color: colors.MUTED_TEXT }]}>{cancelText}</Text>
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
@@ -67,7 +70,7 @@ export default function SafarAlert({
                       onPress={onConfirm}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.confirmText}>{confirmText}</Text>
+                      <Text style={[styles.confirmText, { color: colors.WHITE }]}>{confirmText}</Text>
                     </TouchableOpacity>
                   </View>
                 </MotiView>

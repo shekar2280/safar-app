@@ -10,7 +10,8 @@ import {
 import React, { useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { UserContext } from "@/src/context/UserContext";
 import { MAX_TRIP_DAYS } from "@/src/constants/limits";
@@ -22,6 +23,7 @@ import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types/interfaces";
+import Button from "@/src/components/common/Button";
 
 const { width, height } = Dimensions.get("window");
 
@@ -55,6 +57,8 @@ export default function CreateTripIndex() {
   const [alertMessage, setAlertMessage] = useState("");
 
   const processedParamsRef = useRef<string>("");
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const paramsKey = JSON.stringify(params);
@@ -146,15 +150,15 @@ export default function CreateTripIndex() {
   const DELAY = 100;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <MotiView
         from={{ opacity: 0, translateY: -10 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: "timing", duration: 800 }}
         style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
-        <Text style={styles.mainTitle}>Start a New Adventure</Text>
+        <Text style={[styles.mainTitle, { color: colors.TEXT }]}>Start a New Adventure</Text>
       </MotiView>
 
       <ScrollView
@@ -167,41 +171,41 @@ export default function CreateTripIndex() {
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "timing", duration: 800 }}
-            style={styles.insightHero}
+            style={[styles.insightHero, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,191,0,0.03)", borderColor: colors.GOLD, shadowColor: colors.GOLD }]}
           >
             <View style={styles.insightHeader}>
-              <View style={styles.insightIconCircle}>
-                <Ionicons name="bulb" size={20} color={Colors.GOLD} />
+              <View style={[styles.insightIconCircle, { borderColor: colors.GOLD, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,191,0,0.05)" }]}>
+                <Ionicons name="bulb" size={20} color={colors.GOLD} />
               </View>
-              <Text style={styles.insightHeaderTitle}>
+              <Text style={[styles.insightHeaderTitle, { color: colors.GOLD }]}>
                 {params.festival
                   ? `WHY IS ${params.festival.toString().toUpperCase()} CELEBRATED?`
                   : `WHY ${(
-                      destination?.name ||
-                      (params.destName as string)?.split(",")[0] ||
-                      "THIS PLACE"
-                    ).toUpperCase()}?`}
+                    destination?.name ||
+                    (params.destName as string)?.split(",")[0] ||
+                    "THIS PLACE"
+                  ).toUpperCase()}?`}
               </Text>
             </View>
-            <Text style={styles.insightText}>
+            <Text style={[styles.insightText, { color: colors.TEXT }]}>
               {params.insight as string}
             </Text>
 
             {(params.auspiciousDay || params.recommendedMonth) && (
-              <View style={styles.insightTimingRow}>
-                <View style={styles.insightTimingBadge}>
+              <View style={[styles.insightTimingRow, { borderTopColor: colors.BORDER }]}>
+                <View style={[styles.insightTimingBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
                   <Ionicons
                     name="calendar"
                     size={14}
-                    color={Colors.GOLD}
+                    color={colors.GOLD}
                   />
-                  <Text style={styles.insightTimingLabel}>
+                  <Text style={[styles.insightTimingLabel, { color: colors.MUTED_TEXT }]}>
                     {params.auspiciousDay
                       ? "MAIN CELEBRATION"
                       : "BEST TIME TO VISIT"}
                   </Text>
                 </View>
-                <Text style={styles.insightTimingValue}>
+                <Text style={[styles.insightTimingValue, { color: colors.TEXT }]}>
                   {params.auspiciousDay || params.recommendedMonth}
                 </Text>
               </View>
@@ -215,7 +219,7 @@ export default function CreateTripIndex() {
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ delay: DELAY + 100, type: "timing" }}
-          style={styles.bridgeCard}
+          style={[styles.bridgeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
         >
           <View style={styles.bridgeContent}>
             <View style={[styles.bridgeHalf, { zIndex: 2 }]}>
@@ -227,15 +231,15 @@ export default function CreateTripIndex() {
             </View>
             <View style={[styles.bridgeHalf, { zIndex: 1 }]}>
               {params.destName ? (
-                <View style={styles.staticDestinationWrapper}>
+                <View style={[styles.staticDestinationWrapper, { backgroundColor: colors.SURFACE_LIGHT }]}>
                   <View style={styles.labelSection}>
-                    <Text style={styles.label}>TO</Text>
+                    <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>TO</Text>
                   </View>
                   <View style={styles.staticContent}>
-                    <Text style={styles.staticValue} numberOfLines={1}>
+                    <Text style={[styles.staticValue, { color: colors.TEXT }]} numberOfLines={1}>
                       {destination?.name || (params.destName as string).split(",")[0].trim()}
                     </Text>
-                    <Ionicons name="sparkles" size={14} color={Colors.SECONDARY} />
+                    <Ionicons name="sparkles" size={14} color={colors.GOLD} />
                   </View>
                 </View>
               ) : (
@@ -257,24 +261,24 @@ export default function CreateTripIndex() {
             transition={{ delay: DELAY + 200, type: "timing" }}
             style={styles.statTile}
           >
-            <Text style={styles.tileLabel}>DURATION</Text>
-            <Text style={styles.tileValue}>{totalDays}</Text>
-            <Text style={styles.tileUnit}>{totalDays === 1 ? "DAY" : "DAYS"}</Text>
+            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>DURATION</Text>
+            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{totalDays}</Text>
+            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{totalDays === 1 ? "DAY" : "DAYS"}</Text>
 
             <View style={styles.tileActions}>
               <TouchableOpacity
-                style={[styles.tileBtn, totalDays === 1 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, totalDays === 1 && { opacity: 0.3 }]}
                 onPress={() => setTotalDays(p => Math.max(1, p - 1))}
                 disabled={totalDays === 1}
               >
-                <Text style={styles.tileBtnText}>—</Text>
+                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>—</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tileBtn, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
                 onPress={() => setTotalDays(p => Math.min(MAX_TRIP_DAYS, p + 1))}
                 disabled={totalDays === MAX_TRIP_DAYS}
               >
-                <Text style={styles.tileBtnText}>+</Text>
+                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>+</Text>
               </TouchableOpacity>
             </View>
           </MotiView>
@@ -285,24 +289,24 @@ export default function CreateTripIndex() {
             transition={{ delay: DELAY + 300, type: "timing" }}
             style={styles.statTile}
           >
-            <Text style={styles.tileLabel}>COMPANIONS</Text>
-            <Text style={styles.tileValue}>{travelerCount}</Text>
-            <Text style={styles.tileUnit}>{travelerCount === 1 ? "PERSON" : "PEOPLE"}</Text>
+            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>COMPANIONS</Text>
+            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{travelerCount}</Text>
+            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{travelerCount === 1 ? "PERSON" : "PEOPLE"}</Text>
 
             <View style={styles.tileActions}>
               <TouchableOpacity
-                style={[styles.tileBtn, travelerCount === 1 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, travelerCount === 1 && { opacity: 0.3 }]}
                 onPress={() => setTravelerCount(p => Math.max(1, p - 1))}
                 disabled={travelerCount === 1}
               >
-                <Text style={styles.tileBtnText}>—</Text>
+                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>—</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tileBtn, travelerCount === 6 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, travelerCount === 6 && { opacity: 0.3 }]}
                 onPress={() => setTravelerCount(p => Math.min(6, p + 1))}
                 disabled={travelerCount === 6}
               >
-                <Text style={styles.tileBtnText}>+</Text>
+                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>+</Text>
               </TouchableOpacity>
             </View>
           </MotiView>
@@ -312,9 +316,9 @@ export default function CreateTripIndex() {
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ delay: DELAY + 400, type: "timing" }}
-          style={styles.budgetTierCard}
+          style={[styles.budgetTierCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
         >
-          <Text style={styles.tileLabelCenter}>INVESTMENT TIER</Text>
+          <Text style={[styles.tileLabelCenter, { color: colors.MUTED_TEXT }]}>INVESTMENT TIER</Text>
           <View style={styles.budgetRow}>
             {SelectBudgetOptions.map((item) => {
               const isSelected = budget?.id === item.id;
@@ -322,9 +326,13 @@ export default function CreateTripIndex() {
                 <TouchableOpacity
                   key={item.id}
                   onPress={() => setBudget(item)}
-                  style={[styles.budgetPill, isSelected && styles.budgetPillActive]}
+                  style={[styles.budgetPill, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, isSelected && { backgroundColor: colors.PRIMARY }]}
                 >
-                  <Text style={[styles.budgetPillText, isSelected && styles.budgetPillTextActive]}>
+                  <Text style={[
+                      styles.budgetPillText, 
+                      { color: colors.MUTED_TEXT }, 
+                      isSelected && { color: isDark ? colors.BLACK : colors.WHITE }
+                    ]}>
                     {item.title.toUpperCase()}
                   </Text>
                 </TouchableOpacity>
@@ -339,15 +347,15 @@ export default function CreateTripIndex() {
         from={{ opacity: 0, translateY: 50 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ delay: DELAY + 500, type: "timing", duration: 1000 }}
-        style={styles.footer}
+        style={[styles.footer, { backgroundColor: isDark ? "rgba(10, 10, 10, 0.95)" : "rgba(255, 255, 255, 0.95)", borderTopColor: colors.BORDER, shadowColor: colors.PRIMARY }]}
       >
-        <TouchableOpacity
-          style={styles.primaryBtn}
+        <Button
+          title="BEGIN EXPLORATION"
           onPress={handleGenerateTrip}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.primaryBtnText}>BEGIN EXPLORATION</Text>
-        </TouchableOpacity>
+          size="medium"
+          style={{ width: '100%' }}
+          textStyle={{ letterSpacing: 2 }}
+        />
       </MotiView>
 
       <SafarAlert
@@ -364,7 +372,7 @@ export default function CreateTripIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.WHITE },
+  container: { flex: 1 },
   header: {
     paddingBottom: 25,
     flexDirection: "row",
@@ -375,7 +383,6 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontFamily: "playfairBold",
     fontSize: 28,
-    color: Colors.PRIMARY,
     lineHeight: 34,
     textAlign: "center",
   },
@@ -383,19 +390,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 150
   },
-  modeTextActive: {
-    color: Colors.PRIMARY,
-  },
   insightHero: {
-    backgroundColor: "#FFFAF0",
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#FEF3C7",
     borderLeftWidth: 5,
-    borderLeftColor: Colors.GOLD,
-    shadowColor: Colors.GOLD,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
     shadowRadius: 15,
@@ -411,22 +411,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.WHITE,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#FEF3C7",
   },
   insightHeaderTitle: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.GOLD,
     letterSpacing: 2,
   },
   insightText: {
     fontFamily: "playfair",
     fontSize: 16,
-    color: Colors.PRIMARY,
     lineHeight: 26,
     fontStyle: "italic",
     opacity: 0.95,
@@ -438,14 +434,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "rgba(254, 243, 199, 0.5)",
     gap: 12,
   },
   insightTimingBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(254, 243, 199, 0.4)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -453,25 +447,19 @@ const styles = StyleSheet.create({
   insightTimingLabel: {
     fontFamily: "outfitBold",
     fontSize: 9,
-    color: Colors.GOLD,
     letterSpacing: 0.5,
   },
   insightTimingValue: {
     fontFamily: "outfitBold",
     fontSize: 13,
-    color: Colors.PRIMARY,
-    opacity: 0.8,
     flex: 1,
     textAlign: "right",
   },
   bridgeCard: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 24,
     padding: 2,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
@@ -489,7 +477,6 @@ const styles = StyleSheet.create({
   staticDestinationWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.035)",
     height: 65,
     borderRadius: 22,
     paddingHorizontal: 20,
@@ -498,7 +485,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
   },
   staticContent: {
@@ -510,7 +496,6 @@ const styles = StyleSheet.create({
   staticValue: {
     fontFamily: "outfitBold",
     fontSize: 18,
-    color: Colors.PRIMARY,
     flex: 1,
   },
   statsGrid: {
@@ -521,14 +506,12 @@ const styles = StyleSheet.create({
   },
   statTile: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
     aspectRatio: 1,
     borderRadius: 32,
     padding: 18,
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -539,14 +522,12 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 9,
     letterSpacing: 2,
-    color: Colors.SECONDARY,
     opacity: 0.7,
   },
   tileLabelCenter: {
     fontFamily: "outfitBold",
     fontSize: 9,
     letterSpacing: 2,
-    color: Colors.SECONDARY,
     opacity: 0.7,
     textAlign: "center",
     marginBottom: 15,
@@ -554,14 +535,12 @@ const styles = StyleSheet.create({
   tileValue: {
     fontFamily: "playfairBold",
     fontSize: 54,
-    color: Colors.PRIMARY,
     lineHeight: 60,
     marginBottom: 10,
   },
   tileUnit: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.MUTED_TEXT,
     letterSpacing: 1,
     marginTop: -8,
   },
@@ -574,21 +553,17 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.03)",
     alignItems: "center",
     justifyContent: "center",
   },
   tileBtnText: {
     fontSize: 16,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
   },
   budgetTierCard: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 32,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -606,80 +581,32 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.03)",
-  },
-  budgetPillActive: {
-    backgroundColor: Colors.PRIMARY,
   },
   budgetPillText: {
     fontFamily: "outfitBold",
     fontSize: 10,
     letterSpacing: 1,
-    color: Colors.MUTED_TEXT,
-  },
-  budgetPillTextActive: {
-    color: Colors.WHITE,
   },
   footer: {
     position: "absolute",
     bottom: 0,
     width: "100%",
     padding: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.02)",
   },
   primaryBtn: {
-    backgroundColor: Colors.PRIMARY,
     height: 70,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.PRIMARY,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.15,
     shadowRadius: 30,
     elevation: 10,
   },
   primaryBtnText: {
-    color: Colors.WHITE,
     fontFamily: "outfitBold",
     fontSize: 15,
     letterSpacing: 4,
-  },
-  festiveInsightCard: {
-    backgroundColor: "#FFFCF5",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    flexDirection: "row",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#FEF3C7",
-    alignItems: "center",
-  },
-  festiveInsightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFBEB",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#FEF3C7",
-  },
-  festiveInsightTitle: {
-    fontFamily: "outfitBold",
-    fontSize: 10,
-    color: Colors.GOLD,
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  festiveInsightText: {
-    fontFamily: "outfit",
-    fontSize: 13,
-    color: Colors.PRIMARY,
-    lineHeight: 18,
-    opacity: 0.9,
   },
 });

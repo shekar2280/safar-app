@@ -2,13 +2,14 @@ import React from "react";
 import { Tabs, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Colors } from "@/src/constants/colors";
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
-  Easing, 
-  runOnJS 
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  runOnJS
 } from "react-native-reanimated";
 
 const iconSize = 25;
@@ -17,6 +18,8 @@ const createIconSize = 35;
 export default function TabLayout() {
   const router = useRouter();
   const rotation = useSharedValue(0);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -40,8 +43,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarInactiveTintColor: "#777",
-        tabBarActiveTintColor: Colors.GOLD,
+        tabBarInactiveTintColor: "rgba(255,255,255,0.4)",
+        tabBarActiveTintColor: colors.GOLD,
         tabBarStyle: {
           position: "absolute",
           bottom: 30,
@@ -50,17 +53,17 @@ export default function TabLayout() {
           height: 65,
           margin: 10,
           borderRadius: 44,
-          backgroundColor: Colors.DARK_SURFACE,
+          backgroundColor: "#111111",
           borderTopWidth: 0,
           borderWidth: 1,
-          borderColor: "#222",
+          borderColor: "#222222",
           paddingBottom: 22,
           paddingTop: 5,
           paddingLeft: 5,
           paddingRight: 5,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.4,
+          shadowOpacity: 0.5,
           shadowRadius: 15,
           elevation: 10,
         },
@@ -101,8 +104,12 @@ export default function TabLayout() {
               onPress={handlePress}
               style={styles.createButtonContainer}
             >
-              <Animated.View style={[styles.createIconWrapper, animatedStyle]}>
-                <Ionicons name="navigate" size={createIconSize} color={Colors.BLACK} />
+              <Animated.View style={[
+                styles.createIconWrapper,
+                { backgroundColor: colors.SECONDARY },
+                animatedStyle
+              ]}>
+                <Ionicons name="navigate" size={createIconSize} color="#000000" />
               </Animated.View>
             </TouchableOpacity>
           ),

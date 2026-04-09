@@ -1,6 +1,7 @@
 import React from "react";
 import { Skeleton } from "moti/skeleton";
-import { Colors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 
 interface SkeletonBaseProps {
   width?: string | number;
@@ -15,14 +16,17 @@ export default function SkeletonBase({
   radius = 8, 
   show = true 
 }: SkeletonBaseProps) {
+  const colors = useThemeColors();
+  const { theme } = useTheme();
+
   return (
     <Skeleton
       show={show}
       width={width as any}
       height={height as any}
       radius={radius}
-      colorMode="light"
-      backgroundColor={Colors.SURFACE_LIGHT || "#F3F4F6"}
+      colorMode={theme as "light" | "dark"}
+      backgroundColor={colors.SURFACE_LIGHT}
       transition={{
         type: "timing",
         duration: 1500,

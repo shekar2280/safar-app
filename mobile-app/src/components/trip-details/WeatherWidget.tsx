@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Image, ImageBackground, Dimensions } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { WEATHER_CONFIG } from "@/src/constants/travel-data";
@@ -14,6 +15,8 @@ interface WeatherWidgetProps {
 
 export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const { data: weather, isLoading: loading } = useWeather(cityName);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const weatherCategory = useMemo(() => {
     if (!weather?.current?.weather?.[0]) return "SUNNY";
@@ -31,7 +34,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+        <ActivityIndicator size="small" color={colors.PRIMARY} />
       </View>
     );
   }
@@ -57,7 +60,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>LOCAL WEATHER</Text>
+        <Text style={[styles.title, { color: colors.MUTED_TEXT }]}>LOCAL WEATHER</Text>
       </View>
 
       <ImageBackground
@@ -65,7 +68,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
         style={styles.cardBg}
         imageStyle={{ borderRadius: 20 }}
       >
-        <View style={styles.glassOverlay}>
+        <View style={[styles.glassOverlay, { backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.35)" }]}>
           <View style={styles.topRow}>
             <MotiView
               from={{ translateX: -20, opacity: 0 }}
@@ -143,7 +146,7 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   title: {
-    fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4
+    fontFamily: "interMedium", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4
   },
   cardBg: {
     width: "100%",
@@ -168,13 +171,13 @@ const styles = StyleSheet.create({
   temp: {
     fontFamily: "outfitMedium",
     fontSize: 56,
-    color: Colors.WHITE,
+    color: "#FFF",
     lineHeight: 62,
   },
   conditionText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: Colors.WHITE,
+    color: "#FFF",
     letterSpacing: 1.5,
     opacity: 0.9,
   },
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: "outfitMedium",
     fontSize: 12,
-    color: Colors.WHITE,
+    color: "#FFF",
   },
   forecastContainer: {
     flexDirection: "row",
@@ -223,6 +226,6 @@ const styles = StyleSheet.create({
   forecastTemp: {
     fontFamily: "outfitBold",
     fontSize: 16,
-    color: Colors.WHITE,
+    color: "#FFF",
   },
 });

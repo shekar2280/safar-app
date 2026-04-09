@@ -14,7 +14,8 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { Ionicons, Feather } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { getDistance } from "@/src/utils/geoUtils";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { auth } from "@/src/lib/firebase";
@@ -22,6 +23,7 @@ import { Image } from "expo-image";
 import { fallbackImages } from "@/src/constants/travel-data";
 import LocationPicker from "@/src/components/trip/LocationPicker";
 import { PlaceItem, LocalExperience, LocationData } from "@/src/types/interfaces";
+import Button from "@/src/components/common/Button";
 
 const { width, height } = Dimensions.get("window");
 
@@ -51,6 +53,8 @@ export default function DailyPlanner() {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
   const { activeTrip, markAsDone } = useActiveTrip();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const [userLocation, setUserLocation] = useState<GeoCoords | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,19 +204,22 @@ export default function DailyPlanner() {
           <View
             style={[
               styles.timelineDot,
+              { backgroundColor: colors.BACKGROUND, borderColor: colors.BORDER },
               isFirst && (isFinished ? styles.archivedDot : styles.activeDot),
               isCompleted && (isFinished ? styles.archivedDot : styles.doneDot),
             ]}
           >
-            {isCompleted && <Feather name="check" size={10} color="white" />}
+            {isCompleted && <Feather name="check" size={10} color={isDark ? colors.BLACK : colors.WHITE} />}
           </View>
           {!isLast && (
-            <View 
+            <View
               style={[
-                styles.timelineLine, 
-                isCompleted ? (isFinished ? styles.archivedLine : styles.doneLine) : styles.plannedLine,
+                styles.timelineLine,
+                isCompleted
+                  ? (isFinished ? { backgroundColor: colors.GRAY } : { backgroundColor: colors.GREEN })
+                  : [styles.plannedLine, { borderColor: isDark ? "rgba(255,255,255,0.4)" : colors.BORDER }],
                 isFirst && { marginTop: 4 }
-              ]} 
+              ]}
             />
           )}
         </View>
@@ -220,42 +227,41 @@ export default function DailyPlanner() {
         <View style={styles.contentBody}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.placeTitle, isCompleted && styles.doneText]}>
+              <Text style={[styles.placeTitle, { color: colors.TEXT }, isCompleted && styles.doneText]}>
                 {item.placeName}
               </Text>
               {!isCompleted && (
                 <View style={styles.metaRow}>
-                  <Text style={[styles.distanceText, isFinished && { color: "#94A3B8" }]}>
+                  <Text style={[styles.distanceText, { color: colors.GREEN }, isFinished && { color: colors.GRAY }]}>
                     {item.distance?.toFixed(1) || "0.0"} km away from your location
                   </Text>
                   <View style={styles.timingContainer}>
-                    <Text style={styles.timingText}>
+                    <Text style={[styles.timingText, { color: colors.MUTED_TEXT }]}>
                       Best time to visit: {" "}
-                      <Text style={[styles.timeText, isFinished && { color: "#64748B" }]}>
+                      <Text style={[styles.timeText, { color: colors.GOLD }, isFinished && { color: colors.MUTED_TEXT }]}>
                         {item.timeSlot || "Anytime"}
                       </Text>
                     </Text>
                   </View>
                   {item.vibe && (
-                    <View style={[styles.vibeBadge, isFinished && { backgroundColor: "#F1F5F9" }]}>
-                      <Text style={[styles.vibeText, isFinished && { color: "#94A3B8" }]}>{item.vibe.toUpperCase()}</Text>
+                    <View style={[styles.vibeBadge, { backgroundColor: isDark ? "rgba(212,175,55,0.1)" : "rgba(235, 186, 73, 0.1)" }, isFinished && { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
+                      <Text style={[styles.vibeText, { color: colors.GOLD }, isFinished && { color: colors.MUTED_TEXT }]}>{item.vibe.toUpperCase()}</Text>
                     </View>
                   )}
                 </View>
               )}
             </View>
             {isFirst && !isFinished && (
-              <View style={styles.nowBadge}>
-                <Text style={styles.nowText}>NEXT UP</Text>
+              <View style={[styles.nowBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "#F1F5F9" }]}>
+                <Text style={[styles.nowText, { color: isDark ? colors.TEXT : "#475569" }]}>NEXT UP</Text>
               </View>
             )}
           </View>
 
           {isCompleted && !isFinished && (
             <View style={[styles.actionContainer, { marginTop: 5 }]}>
-              <TouchableOpacity
-                style={styles.undoBtn}
-                disabled={processingIndex !== null}
+              <Button
+                title="Undo Visit"
                 onPress={async () => {
                   if (user && activeTrip) {
                     setProcessingIndex(item.originalIndex);
@@ -263,30 +269,25 @@ export default function DailyPlanner() {
                     setProcessingIndex(null);
                   }
                 }}
-              >
-                {processingIndex === item.originalIndex ? (
-                  <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                ) : (
-                  <>
-                    <Ionicons name="refresh-outline" size={16} color={Colors.PRIMARY} />
-                    <Text style={styles.undoBtnText}>Undo Visit</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                loading={processingIndex === item.originalIndex}
+                icon="refresh-outline"
+                size="small"
+                type="secondary"
+                style={{ alignSelf: "flex-start" }}
+              />
             </View>
           )}
 
           {(item.placeDetails || (item as any).description || (item as any).details) && (
-            <Text style={[styles.descriptionText, isCompleted && { opacity: 0.7 }]}>
+            <Text style={[styles.descriptionText, { color: colors.TEXT }, isCompleted && { opacity: 0.7 }]}>
               {item.placeDetails || (item as any).description || (item as any).details}
             </Text>
           )}
 
           {!isCompleted && !isFinished && (
             <View style={styles.actionContainer}>
-              <TouchableOpacity
-                style={[styles.mainActionBtn, processingIndex === item.originalIndex && { opacity: 0.7 }]}
-                disabled={processingIndex !== null}
+              <Button
+                title="Mark Visited"
                 onPress={async () => {
                   if (user && activeTrip) {
                     setProcessingIndex(item.originalIndex);
@@ -294,39 +295,35 @@ export default function DailyPlanner() {
                     setProcessingIndex(null);
                   }
                 }}
-              >
-                {processingIndex === item.originalIndex ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.mainActionText}>Mark Visited</Text>
-                )}
-              </TouchableOpacity>
+                loading={processingIndex === item.originalIndex}
+                style={{ flex: 1, paddingVertical: 12 }}
+              />
 
               <View style={styles.iconActionPair}>
                 <View style={styles.iconActionItem}>
-                  <Text style={styles.iconLabel}>MAP</Text>
+                  <Text style={[styles.iconLabel, { color: colors.GRAY }]}>MAP</Text>
                   <TouchableOpacity
-                    style={styles.iconBtn}
+                    style={[styles.iconBtn, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
                     onPress={() => openNavigation(item.placeName)}
                   >
                     <Ionicons
                       name="location-outline"
                       size={20}
-                      color={isFinished ? "#94A3B8" : Colors.PRIMARY}
+                      color={isFinished ? colors.GRAY : colors.PRIMARY}
                     />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.iconActionItem}>
-                  <Text style={styles.iconLabel}>FOOD</Text>
+                  <Text style={[styles.iconLabel, { color: colors.GRAY }]}>FOOD</Text>
                   <TouchableOpacity
-                    style={styles.iconBtn}
+                    style={[styles.iconBtn, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
                     onPress={() => findNearbyFood(item.placeName)}
                   >
                     <Ionicons
                       name="restaurant-outline"
                       size={20}
-                      color="#64748B"
+                      color={colors.MUTED_TEXT}
                     />
                   </TouchableOpacity>
                 </View>
@@ -340,18 +337,18 @@ export default function DailyPlanner() {
 
   if (loading && sections.active.length === 0) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+      <View style={[styles.center, { backgroundColor: colors.BACKGROUND }]}>
+        <ActivityIndicator size="small" color={colors.PRIMARY} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: "#FFF" }}
+        style={{ backgroundColor: colors.BACKGROUND }}
       >
         <Image
           source={displayImage}
@@ -361,7 +358,7 @@ export default function DailyPlanner() {
         />
 
         {isManualMode ? (
-          <View style={styles.pickerContainer}>
+          <View style={[styles.pickerContainer, { backgroundColor: colors.SURFACE }]}>
             <LocationPicker
               placeholder="Current Location"
               onLocationChange={handleLocationChange}
@@ -370,44 +367,44 @@ export default function DailyPlanner() {
               onPress={() => setIsManualMode(false)}
               style={styles.cancelLink}
             >
-              <Text style={styles.cancelLinkText}>Cancel</Text>
+              <Text style={[styles.cancelLinkText, { color: colors.RED }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.locationStatus, isFinished && styles.archivedLocationBar]}
+            style={[styles.locationStatus, { backgroundColor: colors.SURFACE }, isFinished && styles.archivedLocationBar]}
             onPress={() => !isFinished && setIsManualMode(true)}
             disabled={isFinished}
           >
-            <Ionicons name="navigate" size={16} color={isFinished ? "#94A3B8" : Colors.PRIMARY} />
-            <Text style={styles.locationStatusText}>
+            <Ionicons name="navigate" size={16} color={isFinished ? colors.GRAY : colors.PRIMARY} />
+            <Text style={[styles.locationStatusText, { color: colors.MUTED_TEXT }]}>
               {isFinished ? "Journey History: Offline Mode" : (manualLocation ? "Manual Location Active" : "Using Live GPS")} •{" "}
               {isFinished ? "Coordinates Finalized" : (effectiveLocation ? "Distances Updated" : "Searching...")}
             </Text>
-            {!isFinished && <Text style={styles.editText}>Change</Text>}
+            {!isFinished && <Text style={[styles.editText, { color: colors.PRIMARY }]}>Change</Text>}
           </TouchableOpacity>
         )}
 
-        <View style={styles.scrollContentContainer}>
+        <View style={[styles.scrollContentContainer, { backgroundColor: colors.BACKGROUND }]}>
           <View style={styles.mainHeader}>
             <View style={styles.headerTitleRow}>
               <View>
-                <Text style={styles.welcomeText}>Daily Itinerary</Text>
-                <Text style={[styles.tripNameText, isFinished && { color: "#64748B" }]}>
+                <Text style={[styles.welcomeText, { color: colors.MUTED_TEXT }]}>Daily Itinerary</Text>
+                <Text style={[styles.tripNameText, { color: colors.PRIMARY }, isFinished && { color: colors.MUTED_TEXT }]}>
                   {activeTrip?.tripPlan?.tripName}
                 </Text>
               </View>
               {isFinished && (
-                <View style={styles.archivedBadge}>
-                  <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                <View style={[styles.archivedBadge, { backgroundColor: isDark ? "#1A1A1A" : "#F1F5F9", borderColor: colors.BORDER }]}>
+                  <Text style={[styles.archivedBadgeText, { color: colors.MUTED_TEXT }]}>ARCHIVED</Text>
                 </View>
               )}
             </View>
           </View>
 
           <View style={styles.pathLabelRow}>
-            <Text style={styles.sectionLabel}>PLANNED ROUTE</Text>
-            <View style={styles.divider} />
+            <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>PLANNED ROUTE</Text>
+            <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
           </View>
 
           {sections.active.length > 0 ? (
@@ -426,8 +423,8 @@ export default function DailyPlanner() {
           {sections.completed.length > 0 && (
             <>
               <View style={[styles.pathLabelRow, { marginTop: 40 }]}>
-                <Text style={styles.sectionLabel}>COMPLETED SIGHTS</Text>
-                <View style={styles.divider} />
+                <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>COMPLETED SIGHTS</Text>
+                <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
               </View>
               {sections.completed.map((item, index) =>
                 renderItem(item, index, true),
@@ -447,7 +444,7 @@ const styles = StyleSheet.create({
   headerImage: { width: "100%", height: height * 0.4 },
   scrollContentContainer: {
     paddingHorizontal: 0,
-    backgroundColor: "#FFF",
+    backgroundColor: "transparent", // Will be overridden
     minHeight: height,
     marginTop: -5,
     borderTopLeftRadius: 30,
@@ -457,7 +454,6 @@ const styles = StyleSheet.create({
   locationStatus: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
@@ -471,12 +467,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "outfit",
     fontSize: 12,
-    color: "#475569",
   },
-  editText: { fontFamily: "outfitBold", fontSize: 12, color: Colors.PRIMARY },
+  editText: { fontFamily: "outfitBold", fontSize: 12 },
   pickerContainer: {
     padding: 15,
-    backgroundColor: "#FFFFFF",
     marginHorizontal: 20,
     borderRadius: 20,
     marginTop: -25,
@@ -493,7 +487,6 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: "#94A3B8",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
@@ -505,7 +498,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: "outfitBold",
     fontSize: 11,
-    color: "#94A3B8",
     letterSpacing: 2,
     marginRight: 12,
   },
@@ -516,7 +508,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 20,
   },
-  divider: { flex: 1, height: 1, backgroundColor: "#F1F5F9" },
+  divider: { flex: 1, height: 1 },
   itemWrapper: { flexDirection: "row" },
   completedWrapper: { opacity: 0.5 },
   timelineContainer: { width: 32, alignItems: "center" },
@@ -573,23 +565,22 @@ const styles = StyleSheet.create({
     left: "50%",
     marginLeft: -1,
   },
-  plannedLine: { 
+  plannedLine: {
     backgroundColor: "transparent",
     borderStyle: "dashed",
     borderWidth: 1,
-    borderColor: "#CBD5E1",
     borderRadius: 1,
   },
-  doneLine: { backgroundColor: Colors.GREEN, width: 2 },
-  archivedLine: { backgroundColor: "#CBD5E1", width: 2 },
+  doneLine: { width: 2 },
+  archivedLine: { width: 2 },
   contentBody: { flex: 1, paddingBottom: 40, marginLeft: 10, paddingRight: 20 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  placeTitle: { fontFamily: "playfairBold", fontSize: 20, color: "#1E293B" },
-  doneText: { textDecorationLine: "line-through", color: Colors.MUTED_TEXT },
+  placeTitle: { fontFamily: "playfairBold", fontSize: 20 },
+  doneText: { textDecorationLine: "line-through" },
   distanceText: {
     fontFamily: "outfitMedium",
     fontSize: 12,
@@ -599,7 +590,6 @@ const styles = StyleSheet.create({
   timingText: {
     fontFamily: "outfitMedium",
     fontSize: 12,
-    color: "#64748B",
   },
   timeText: {
     fontFamily: "outfitBold",
@@ -629,13 +619,12 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontFamily: "outfit",
     fontSize: 14,
-    color: "#64748B",
     lineHeight: 22,
     marginTop: 10,
   },
-  actionContainer: { 
-    flexDirection: "row", 
-    marginTop: 15, 
+  actionContainer: {
+    flexDirection: "row",
+    marginTop: 15,
     gap: 12,
     alignItems: "flex-end",
   },
@@ -650,13 +639,12 @@ const styles = StyleSheet.create({
   iconLabel: {
     fontFamily: "outfitBold",
     fontSize: 8,
-    color: "#94A3B8",
     letterSpacing: 0.5,
   },
   mainActionBtn: {
     flex: 1,
     height: 48,
-    backgroundColor: "#0F172A",
+    backgroundColor: "#000000", // Will be overridden
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -665,20 +653,17 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 48,
     height: 48,
-    backgroundColor: "#F8FAFC",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
   },
   nowBadge: {
-    backgroundColor: "#F1F5F9",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  nowText: { fontFamily: "outfitBold", fontSize: 9, color: "#475569" },
+  nowText: { fontFamily: "outfitBold", fontSize: 9 },
   emptyView: { alignItems: "center", padding: 40 },
   emptyText: { fontFamily: "outfitMedium", color: "#94A3B8", marginTop: 10 },
   undoBtn: {

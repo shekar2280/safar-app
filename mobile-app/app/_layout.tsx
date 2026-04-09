@@ -14,6 +14,7 @@ import { TripProvider } from "@/src/context/CommonTripContext";
 import { UserProvider } from "@/src/context/UserContext";
 import { ActiveTripProvider } from "@/src/context/ActiveTripContext";
 import { LocationProvider } from "@/src/context/LocationContext";
+import { ThemeProvider, useTheme } from "@/src/context/ThemeContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -84,30 +85,44 @@ export default function RootLayout() {
   if (!fontsLoaded || !assetsLoaded) return null;
 
   return (
+    <ThemeProvider>
+      <ThemeAwareApp
+        isSignedIn={isSignedIn}
+        tripData={tripData}
+        setTripData={setTripData}
+      />
+    </ThemeProvider>
+  );
+}
+
+function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
+  const { theme } = useTheme();
+
+  return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <QueryClientProvider client={queryClient}>
-        <StatusBar style="dark" />
-        <UserProvider>
-          <CreateTripContext.Provider value={{ tripData, setTripData }}>
-          <ConcertTripProvider>
-            <TripProvider>
-              <ActiveTripProvider>
-                <LocationProvider>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    {!isSignedIn ? (
-                      <Stack.Screen name="auth" />
-                    ) : (
-                      <Stack.Screen name="(tabs)" />
-                    )}
-                  </Stack>
-                </LocationProvider>
-              </ActiveTripProvider>
-            </TripProvider>
-          </ConcertTripProvider>
-        </CreateTripContext.Provider>
-      </UserProvider>
-      </QueryClientProvider>
+          <StatusBar style={theme === "dark" ? "light" : "dark"} />
+          <UserProvider>
+            <CreateTripContext.Provider value={{ tripData, setTripData }}>
+              <ConcertTripProvider>
+                <TripProvider>
+                  <ActiveTripProvider>
+                    <LocationProvider>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        {!isSignedIn ? (
+                          <Stack.Screen name="auth" />
+                        ) : (
+                          <Stack.Screen name="(tabs)" />
+                        )}
+                      </Stack>
+                    </LocationProvider>
+                  </ActiveTripProvider>
+                </TripProvider>
+              </ConcertTripProvider>
+            </CreateTripContext.Provider>
+          </UserProvider>
+        </QueryClientProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

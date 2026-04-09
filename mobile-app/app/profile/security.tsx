@@ -2,18 +2,18 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   TextInput,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Button from "@/src/components/common/Button";
 import { useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { getAuth, updatePassword } from "firebase/auth";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 
@@ -21,6 +21,8 @@ export default function Security() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const auth = getAuth();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -71,14 +73,15 @@ export default function Security() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
       <Stack.Screen
         options={{
           headerShown: true,
           headerTitle: "SECURITY SETTINGS",
-          headerTitleStyle: { fontFamily: "playfairBold", fontSize: 18, color: Colors.PRIMARY },
+          headerTitleStyle: { fontFamily: "playfairBold", fontSize: 18, color: colors.TEXT },
           headerTransparent: true,
-          headerTintColor: Colors.PRIMARY,
+          headerTintColor: colors.TEXT,
+          headerStyle: { backgroundColor: "transparent" },
         }}
       />
       
@@ -88,49 +91,48 @@ export default function Security() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerInfo}>
-            <Text style={styles.sectionTitle}>Change Password</Text>
-            <Text style={styles.sectionDesc}>Ensure your account is protected by using a strong, unique password.</Text>
+            <Text style={[styles.sectionTitle, { color: colors.TEXT }]}>Change Password</Text>
+            <Text style={[styles.sectionDesc, { color: colors.MUTED_TEXT }]}>Ensure your account is protected by using a strong, unique password.</Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.SURFACE }]}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>NEW PASSWORD</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>NEW PASSWORD</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)", borderColor: colors.BORDER }]}>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.TEXT} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.TEXT }]}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Enter new password"
-                  placeholderTextColor={Colors.GRAY}
+                  placeholderTextColor={colors.GRAY}
                   secureTextEntry
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>CONFIRM PASSWORD</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)", borderColor: colors.BORDER }]}>
+                <Ionicons name="checkmark-circle-outline" size={20} color={colors.TEXT} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.TEXT }]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Confirm your password"
-                  placeholderTextColor={Colors.GRAY}
+                  placeholderTextColor={colors.GRAY}
                   secureTextEntry
                 />
               </View>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleUpdatePassword} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={Colors.WHITE} />
-            ) : (
-              <Text style={styles.saveBtnText}>UPDATE PASSWORD</Text>
-            )}
-          </TouchableOpacity>
+          <Button
+            title="UPDATE PASSWORD"
+            onPress={handleUpdatePassword}
+            loading={loading}
+            style={{ marginTop: 10 }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -147,23 +149,20 @@ export default function Security() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.WHITE },
-  scrollContent: { padding: 25, paddingBottom: 50 },
+  container: { flex: 1 },
+  scrollContent: { paddingVertical: 25, paddingHorizontal: 10, paddingBottom: 50 },
   headerInfo: { marginBottom: 30 },
   sectionTitle: {
     fontFamily: "playfairBold",
     fontSize: 24,
-    color: Colors.PRIMARY,
     marginBottom: 8,
   },
   sectionDesc: {
     fontFamily: "outfit",
     fontSize: 14,
-    color: Colors.MUTED_TEXT,
     lineHeight: 20,
   },
   card: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 24,
     padding: 24,
     marginBottom: 30,
@@ -177,7 +176,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
     marginBottom: 8,
     marginLeft: 4,
@@ -185,11 +183,9 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.025)",
     borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: Colors.BORDER,
   },
   inputIcon: { marginRight: 12 },
   input: {
@@ -197,23 +193,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontFamily: "outfitMedium",
     fontSize: 16,
-    color: Colors.PRIMARY,
-  },
-  saveBtn: {
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: 18,
-    paddingVertical: 18,
-    alignItems: "center",
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  saveBtnText: {
-    fontFamily: "outfitBold",
-    fontSize: 14,
-    color: Colors.WHITE,
-    letterSpacing: 2,
   },
 });

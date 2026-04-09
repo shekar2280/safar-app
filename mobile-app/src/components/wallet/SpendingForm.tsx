@@ -8,23 +8,24 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ActionButton } from "./ActionButton";
-import { Colors } from "@/src/constants/colors";
+import Button from "../common/Button";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import { SpendingFormProps } from "@/src/types/interfaces";
+import { useTheme } from "@/src/context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 export const SpendingForm = ({
   spendingName,
   amountInput,
+  isSaving,
   setSpendingName,
   setAmountInput,
   hideForm,
   clearAll,
   recordSpending,
-  isProcessing,
 }: SpendingFormProps) => {
-  const isRecordDisabled = isProcessing || !spendingName.trim() || isNaN(parseFloat(amountInput));
+  const isRecordDisabled = isSaving || !spendingName.trim() || isNaN(parseFloat(amountInput));
 
   return (
     <View style={styles.formCard}>
@@ -34,31 +35,31 @@ export const SpendingForm = ({
           <Text style={styles.subtitle}>Fill in the details below</Text>
         </View>
         <TouchableOpacity onPress={hideForm} style={styles.closeIconButton}>
-          <Ionicons name="close" size={24} color={Colors.GRAY} />
+          <Ionicons name="close" size={24} color={Colors.GOLD} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputSection}>
         <View style={styles.inputWrapper}>
-          <Ionicons name="pencil-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+          <Ionicons name="pencil-outline" size={20} color={Colors.GOLD} style={styles.inputIcon} />
           <TextInput
             placeholder="What did you spend on?"
             value={spendingName}
             onChangeText={setSpendingName}
             style={styles.textInput}
-            placeholderTextColor={Colors.GRAY}
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
           />
         </View>
 
         <View style={styles.inputWrapper}>
-          <Ionicons name="cash-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+          <Ionicons name="cash-outline" size={20} color={Colors.GOLD} style={styles.inputIcon} />
           <TextInput
             placeholder="0.00"
             value={amountInput}
             onChangeText={(text) => setAmountInput(text.replace(/[^0-9.]/g, ""))}
             keyboardType="numeric"
             style={styles.textInput}
-            placeholderTextColor={Colors.GRAY}
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
           />
           <Text style={styles.currencySuffix}>INR</Text>
         </View>
@@ -69,20 +70,18 @@ export const SpendingForm = ({
           style={styles.clearButton} 
           onPress={clearAll}
         >
-          <Ionicons name="refresh-outline" size={20} color={Colors.RED} />
+          <Ionicons name="refresh-outline" size={20} color={Colors.GOLD} />
           <Text style={styles.clearText}>Clear</Text>
         </TouchableOpacity>
 
-        <ActionButton
-          title={
-            <View style={styles.recordContent}>
-              <Ionicons name="checkmark-circle" size={22} color={Colors.WHITE} />
-              <Text style={styles.recordText}>Save</Text>
-            </View>
-          }
+        <Button
+          title="SAVE"
+          icon="checkmark-circle"
           onPress={recordSpending}
           disabled={isRecordDisabled}
-          styleOverride={styles.recordButton}
+          loading={isSaving}
+          type="primary"
+          style={styles.recordButton}
         />
       </View>
     </View>
@@ -91,72 +90,73 @@ export const SpendingForm = ({
 
 const styles = StyleSheet.create({
   formCard: {
-    backgroundColor: Colors.WHITE,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     width: width * 0.9,
+    backgroundColor: Colors.BLACK,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 30,
+    elevation: 20,
+    borderWidth: 1.5,
+    borderColor: "rgba(212, 175, 55, 0.2)",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 20,
+    marginBottom: 25,
   },
   title: {
-    fontSize: 20,
-    fontFamily: "outfitBold",
-    color: Colors.BLACK,
+    fontSize: 24,
+    fontFamily: "playfairBold",
+    color: Colors.WHITE,
   },
   subtitle: {
-    fontSize: 14,
-    fontFamily: "outfit",
-    color: Colors.GRAY,
+    fontSize: 13,
+    fontFamily: "outfitMedium",
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 2,
+    letterSpacing: 0.5,
   },
   closeIconButton: {
-    padding: 4,
-    backgroundColor: "#F5F5F5",
+    padding: 8,
     borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   inputSection: {
-    gap: 12,
+    gap: 15,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9F9F9",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    height: 60,
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   inputIcon: {
     marginRight: 12,
   },
   textInput: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: "outfitMedium",
-    color: Colors.BLACK,
+    fontSize: 17,
+    fontFamily: "outfitBold",
+    color: Colors.WHITE,
   },
   currencySuffix: {
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
-    fontSize: 12,
+    fontSize: 14,
+    color: Colors.WHITE,
   },
   footerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 24,
+    marginTop: 30,
   },
   clearButton: {
     flex: 1,
@@ -164,29 +164,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.RED,
+    height: 60,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   clearText: {
-    color: Colors.RED,
     fontFamily: "outfitBold",
-    fontSize: 16,
+    fontSize: 15,
+    color: Colors.WHITE,
   },
   recordButton: {
     flex: 2,
-    height: 56,
-    borderRadius: 16,
-  },
-  recordContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  recordText: {
-    color: Colors.WHITE,
-    fontFamily: "outfitBold",
-    fontSize: 16,
+    height: 60,
+    borderRadius: 20,
   },
 });

@@ -6,16 +6,14 @@ import { Spacing } from "@/src/constants/theme";
 const { width } = Dimensions.get("window");
 
 export default function TripCardSkeleton() {
-  const cardWidth = width - 40;
+  const cardWidth = width - 20;
 
   return (
     <View style={[styles.container, { width: cardWidth }]}>
-      {/* Hero Image Area */}
       <SkeletonBase height={230} radius={20} />
       
-      {/* Floating Info Overlay Simulation */}
       <View style={styles.contentOverlay}>
-        <SkeletonBase width="60%" height={24} radius={6} />
+        <SkeletonBase width="80%" height={24} radius={6} />
         <View style={{ height: 8 }} />
         <SkeletonBase width="40%" height={16} radius={4} />
       </View>
