@@ -11,9 +11,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useEffect, useMemo, useState } from "react";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
-import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -23,13 +20,9 @@ import {
   query,
   where,
   addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
 } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
-import { Colors } from "@/src/constants/colors";
-import { ActionButton } from "@/src/components/wallet/ActionButton";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import { SpendingForm } from "@/src/components/wallet/SpendingForm";
 import { SpendingItem } from "@/src/components/wallet/SpendingItem";
 import { useUser } from "@/src/context/UserContext";
@@ -44,48 +37,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import WalletSkeleton from "@/src/components/skeleton/WalletSkeleton";
+import { useTheme } from "@/src/context/ThemeContext";
+import Button from "@/src/components/common/Button";
 
 const { width, height } = Dimensions.get("window");
-
-const ocrApiKey = Constants.expoConfig?.extra?.OCRSPACE_API_KEY;
-
-const extractTotalFromPlain = (raw: string) => {
-  const lines = raw.split("\n").map((line) => line.trim());
-  const keys = [
-    "TOTAL",
-    "GRAND TOTAL",
-    "AMOUNT DUE",
-    "TOTAL PAYABLE",
-    "TOTAL AMOUNT",
-  ];
-
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const upperLine = lines[i].toUpperCase();
-    const isHit = keys.some((k) => upperLine === k || upperLine.includes(k));
-
-    if (isHit) {
-      for (let j = i; j < lines.length && j <= i + 5; j++) {
-        const lineText = lines[j];
-
-        if (
-          lineText.includes("/") ||
-          (lineText.includes("-") && lineText.match(/\d{2,4}/))
-        ) {
-          continue;
-        }
-        const priceMatch = lineText.match(
-          /(?:\$|₹|Rs)?\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2}))/
-        );
-
-        if (priceMatch) {
-          const cleanedValue = priceMatch[1].replace(/,/g, "");
-          return parseFloat(cleanedValue).toFixed(2);
-        }
-      }
-    }
-  }
-  return null;
-};
 
 export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
@@ -95,7 +50,9 @@ export default function SpendingsInput() {
   const user = auth.currentUser;
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
+
   const [loading, setLoading] = useState(false);
   const [activeSpendings, setActiveSpendings] = useState<any[]>([]);
   const [spendingName, setSpendingName] = useState("");
@@ -105,10 +62,7 @@ export default function SpendingsInput() {
 
   const [totalBudget, setTotalBudget] = useState(0);
   const [newBudgetInput, setNewBudgetInput] = useState("");
-
-  const [image, setImage] = useState<string | null>(null);
-  const [extractedText, setExtractedText] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [hasSeenSwipeTip, setHasSeenSwipeTip] = useState(true);
 
   const [alertConfig, setAlertConfig] = useState<{
@@ -125,14 +79,16 @@ export default function SpendingsInput() {
 
   useEffect(() => {
     const checkSwipeTip = async () => {
-      const seen = await AsyncStorage.getItem("seenSwipeTip");
+      if (!tripId) return;
+      const seen = await AsyncStorage.getItem(`seenSwipeTip_${tripId}`);
       setHasSeenSwipeTip(!!seen);
     };
     checkSwipeTip();
-  }, []);
+  }, [tripId]);
 
   const dismissSwipeTip = async () => {
-    await AsyncStorage.setItem("seenSwipeTip", "true");
+    if (!tripId) return;
+    await AsyncStorage.setItem(`seenSwipeTip_${tripId}`, "true");
     setHasSeenSwipeTip(true);
   };
 
@@ -148,18 +104,18 @@ export default function SpendingsInput() {
     }
   }, [currentTrip]);
 
-   const allSpendings = useMemo(() => {
+  const allSpendings = useMemo(() => {
     const archived = (currentTrip?.archivedSpendings || []).map(s => ({
       ...s,
-      date: new Date(s.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' + 
-            new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+      date: new Date(s.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' +
+        new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
     }));
     const combined = [...activeSpendings, ...archived];
-    
+
     return combined.sort((a, b) => {
-        return sortOrder === "desc"
-          ? b.timestamp - a.timestamp
-          : a.timestamp - b.timestamp;
+      return sortOrder === "desc"
+        ? b.timestamp - a.timestamp
+        : a.timestamp - b.timestamp;
     });
   }, [activeSpendings, currentTrip?.archivedSpendings, sortOrder]);
 
@@ -191,8 +147,8 @@ export default function SpendingsInput() {
             id: doc.id,
             ...data,
             timestamp: dateObject.getTime(),
-            date: dateObject.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' + 
-                  dateObject.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+            date: dateObject.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' +
+              dateObject.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
             isArchived: false,
           };
         });
@@ -233,95 +189,13 @@ export default function SpendingsInput() {
       });
     }
   };
-
-  const pickImage = (type: "camera" | "gallery") => async () => {
-    const result =
-      type === "gallery"
-        ? await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            base64: true,
-          })
-        : await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            base64: true,
-          });
-
-    if (!result.canceled && result.assets[0]) {
-      processImageAndPerformOCR(result.assets[0]);
-    }
-  };
-
-  const processImageAndPerformOCR = async (asset: any) => {
-    setIsProcessing(true);
-    setExtractedText("Scanning receipt...");
-
-    try {
-      const manip = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 1200 } }],
-        { format: ImageManipulator.SaveFormat.JPEG, compress: 0.8 }
-      );
-      setImage(manip.uri);
-
-      if (!ocrApiKey) {
-        setExtractedText("OCR API Key missing.");
-        setIsProcessing(false);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", {
-        uri: manip.uri,
-        name: "receipt.jpg",
-        type: "image/jpeg",
-      } as any);
-      formData.append("apikey", ocrApiKey);
-      formData.append("language", "eng");
-      formData.append("OCREngine", "2");
-
-      const res = await fetch("https://api.ocr.space/parse/image", {
-        method: "POST",
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (json.OCRExitCode === 1) {
-        const fullText = json?.ParsedResults?.[0]?.ParsedText || "";
-        const total = extractTotalFromPlain(fullText);
-        if (total) {
-          setAmountInput(total.toString());
-          setAlertConfig({
-            visible: true,
-            title: "Scan Successful",
-            message: `We've processed your receipt. A total of ₹${total} has been identified and pre-filled for you.`,
-            type: "info",
-          });
-        } else {
-          setAlertConfig({
-             visible: true,
-             title: "Total Not Found",
-             message: "We couldn't clearly identify the final amount on this receipt. Please verify and enter the total manually.",
-             type: "error",
-          });
-        }
-      } else {
-        console.error("OCR API ERROR MESSAGE:", json.ErrorMessage);
-      }
-    } catch (err) {
-      console.error("NETWORK ERROR:", err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const recordSpending = async () => {
     if (!tripId || !user) return;
     const amount = parseFloat(amountInput);
     if (!spendingName.trim() || isNaN(amount))
       return Alert.alert("Error", "Fill all details.");
     try {
+      setIsSaving(true);
       const ref = collection(
         db,
         "UserTrips",
@@ -336,21 +210,19 @@ export default function SpendingsInput() {
         name: spendingName.trim(),
         amount,
         date: serverTimestamp(),
-        imageUri: image,
       });
       clearAll();
+      setIsSaving(false);
       setIsFormVisible(false);
     } catch (error) {
       console.error(error);
+      setIsSaving(false);
     }
   };
 
   const clearAll = () => {
-    setImage(null);
-    setExtractedText("");
     setSpendingName("");
     setAmountInput("");
-    setIsProcessing(false);
   };
 
   const hideForm = () => {
@@ -363,8 +235,8 @@ export default function SpendingsInput() {
   }
 
   return (
-    <View style={styles.mainWrapper}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.mainWrapper, { backgroundColor: colors.BACKGROUND }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.contentContainer, { paddingTop: Math.max(insets.top + 20, height * 0.05) }]}
@@ -372,20 +244,20 @@ export default function SpendingsInput() {
       >
         {totalBudget <= 0 && (
           <View style={styles.header}>
-            <Text style={styles.subtitle}>EXPENSE TRACKER • {currentTrip?.tripPlan?.tripName?.toUpperCase()}</Text>
+            <Text style={[styles.subtitle, { color: colors.MUTED_TEXT }]}>EXPENSE TRACKER • {currentTrip?.tripPlan?.tripName?.toUpperCase()}</Text>
             <View style={styles.titleRow}>
-              <Text style={styles.title}>Trip Wallet</Text>
-              <View style={styles.goldDot} />
+              <Text style={[styles.title, { color: colors.TEXT }]}>Trip Wallet</Text>
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
             </View>
           </View>
         )}
 
         <View style={{ gap: 20 }}>
           {totalBudget <= 0 ? (
-            <BlurView intensity={80} tint="light" style={styles.setupContainer}>
-              <MaterialCommunityIcons name="wallet-plus-outline" size={40} color={Colors.PRIMARY} />
-              <Text style={styles.setupHeader}>Initialize Budget</Text>
-              <Text style={styles.setupDesc}>Set a total budget for this journey to start tracking your savings.</Text>
+            <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={[styles.setupContainer, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(241, 245, 249, 0.5)", borderColor: colors.BORDER }]}>
+              <MaterialCommunityIcons name="wallet-plus-outline" size={40} color={colors.PRIMARY} />
+              <Text style={[styles.setupHeader, { color: colors.TEXT }]}>Initialize Budget</Text>
+              <Text style={[styles.setupDesc, { color: colors.MUTED_TEXT }]}>Set a total budget for this journey to start tracking your savings.</Text>
               <TextInput
                 placeholder="Enter Amount (₹)"
                 value={newBudgetInput}
@@ -393,19 +265,20 @@ export default function SpendingsInput() {
                   setNewBudgetInput(text.replace(/[^0-9.]/g, ""))
                 }
                 keyboardType="numeric"
-                style={styles.input}
-                placeholderTextColor="#94A3B8"
+                style={[styles.input, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER, color: colors.PRIMARY }]}
+                placeholderTextColor={colors.GRAY}
               />
-              <ActionButton
-                title="Secure Budget"
+              <Button
+                title="SET BUDGET"
                 onPress={handleSetBudget}
                 disabled={!newBudgetInput.trim() || loading}
-                styleOverride={styles.setTotalButton}
+                loading={loading}
+                style={styles.setTotalButton}
               />
             </BlurView>
           ) : (
             <LinearGradient
-              colors={isFinished ? ["#94A3B8", "#1E293B"] : ["#9A7E3D", "#000000ff"]}
+              colors={isFinished ? ["#94A3B8", "#1E293B"] : ["#000000ff", "#9A7E3D"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.budgetSummary}
@@ -447,7 +320,7 @@ export default function SpendingsInput() {
 
           <View style={styles.historySection}>
             <View style={styles.historyHeaderRow}>
-              <Text style={styles.historyHeader}>
+              <Text style={[styles.historyHeader, { color: colors.TEXT }]}>
                 Transaction Logs
               </Text>
               <TouchableOpacity
@@ -463,32 +336,32 @@ export default function SpendingsInput() {
                       : "swap-vertical"
                   }
                   size={16}
-                  color={Colors.PRIMARY}
+                  color={colors.BLACK}
                 />
-                <Text style={styles.sortText}>
+                <Text style={[styles.sortText, { color: colors.BLACK }]}>
                   {sortOrder === "desc" ? "LATEST" : "OLDEST"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {allSpendings.length > 0 && !hasSeenSwipeTip && (
-              <View style={styles.swipeTipBox}>
-                <Ionicons name="information-circle" size={24} color={Colors.PRIMARY} />
+              <View style={[styles.swipeTipBox, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(235, 245, 255, 0.9)", borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(14, 165, 233, 0.2)" }]}>
+                <Ionicons name="information-circle" size={24} color={colors.PRIMARY} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.swipeTipText}>
+                  <Text style={[styles.swipeTipText, { color: colors.TEXT }]}>
                     Tip: Drag a log to the left to delete a transaction.
                   </Text>
                 </View>
-                <TouchableOpacity onPress={dismissSwipeTip} style={styles.swipeTipBtn}>
-                  <Text style={styles.swipeTipBtnText}>OK, GOT IT</Text>
+                <TouchableOpacity onPress={dismissSwipeTip} style={[styles.swipeTipBtn, { backgroundColor: colors.PRIMARY }]}>
+                  <Text style={[styles.swipeTipBtnText, { color: colors.WHITE }]}>OK, GOT IT</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {allSpendings.length === 0 ? (
-               <View style={styles.emptyHistory}>
-                 <Text style={styles.emptyHistoryText}>No transactions recorded yet.</Text>
-               </View>
+              <View style={styles.emptyHistory}>
+                <Text style={[styles.emptyHistoryText, { color: colors.MUTED_TEXT }]}>No transactions recorded yet.</Text>
+              </View>
             ) : (
               allSpendings.map((item) => (
                 <SpendingItem key={item.id} item={item} tripId={tripId!} isFinished={isFinished} />
@@ -509,13 +382,10 @@ export default function SpendingsInput() {
             <SpendingForm
               spendingName={spendingName}
               amountInput={amountInput}
-              image={image}
-              extractedText={extractedText}
-              isProcessing={isProcessing}
+              isSaving={isSaving}
               setSpendingName={setSpendingName}
               setAmountInput={setAmountInput}
               hideForm={hideForm}
-              pickImage={pickImage}
               clearAll={clearAll}
               recordSpending={recordSpending}
             />
@@ -525,19 +395,19 @@ export default function SpendingsInput() {
 
       {!isFormVisible && !isFinished && (
         <View style={styles.fixedButtonContainer}>
-          <TouchableOpacity 
-            style={styles.addSpendingButtonFixed}
+          <Button
+            title="RECORD EXPENSE"
             onPress={() => setIsFormVisible(true)}
-          >
-            <Ionicons name="add" size={28} color="white" />
-            <Text style={styles.addBtnText}>RECORD EXPENSE</Text>
-          </TouchableOpacity>
+            icon="add"
+            type="primary"
+            style={[styles.addSpendingButtonFixed, { paddingVertical: 0 }]}
+          />
         </View>
       )}
 
       {loading && (
-        <View style={styles.globalLoader}>
-           <ActivityIndicator size="large" color={Colors.PRIMARY} />
+        <View style={[styles.globalLoader, { backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)" }]}>
+          <ActivityIndicator size="large" color={colors.PRIMARY} />
         </View>
       )}
 
@@ -557,7 +427,7 @@ const styles = StyleSheet.create({
   mainWrapper: { flex: 1, backgroundColor: "#FDFDFD" },
   container: { flex: 1 },
   contentContainer: {
-    paddingHorizontal: width * 0.02,
+    paddingHorizontal: 10,
     paddingBottom: height * 0.2,
   },
   header: {
@@ -585,7 +455,6 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: Colors.SECONDARY,
     marginLeft: 2,
     marginBottom: 8,
   },
@@ -598,11 +467,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  setupHeader: { 
-    fontSize: 22, 
-    fontFamily: "playfairBold", 
+  setupHeader: {
+    fontSize: 22,
+    fontFamily: "playfairBold",
     color: Colors.PRIMARY,
-    marginTop: 15 
+    marginTop: 15
   },
   setupDesc: {
     fontFamily: "outfit",
@@ -615,16 +484,13 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    backgroundColor: "#FFF",
     paddingVertical: 18,
     paddingHorizontal: 20,
     borderRadius: 16,
     fontFamily: "outfitBold",
     fontSize: 18,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
     marginBottom: 20,
-    color: Colors.PRIMARY,
     textAlign: "center",
   },
   budgetSummary: {
@@ -643,15 +509,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   balanceInfo: { flex: 1 },
-  label: { 
-    color: Colors.GOLD, 
-    fontSize: 12, 
-    fontFamily: "outfitBold", 
-    letterSpacing: 2 
+  label: {
+    color: Colors.GOLD,
+    fontSize: 12,
+    fontFamily: "outfitBold",
+    letterSpacing: 2
   },
-  bigAmount: { 
-    fontSize: 38, 
-    fontFamily: "outfitBold", 
+  bigAmount: {
+    fontSize: 38,
+    fontFamily: "outfitBold",
     marginTop: 8,
     color: "#FFFFFF",
   },
@@ -675,21 +541,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statItem: { flex: 1, alignItems: "flex-start" },
-  statLabel: { 
-    color: Colors.GOLD, 
-    fontSize: 9, 
-    fontFamily: "outfitBold", 
-    letterSpacing: 1.5 
+  statLabel: {
+    color: Colors.GOLD,
+    fontSize: 9,
+    fontFamily: "outfitBold",
+    letterSpacing: 1.5
   },
-  statValue: { 
-    color: Colors.WHITE, 
-    fontSize: 18, 
-    fontFamily: "outfitBold", 
-    marginTop: 6 
+  statValue: {
+    color: Colors.WHITE,
+    fontSize: 18,
+    fontFamily: "outfitBold",
+    marginTop: 6
   },
-  statDivider: { 
-    width: 1, 
-    height: 25, 
+  statDivider: {
+    width: 1,
+    height: 25,
     backgroundColor: "rgba(255,255,255,0.1)",
     marginHorizontal: 15,
   },
@@ -704,7 +570,7 @@ const styles = StyleSheet.create({
   sortButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: Colors.GOLD,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -719,11 +585,11 @@ const styles = StyleSheet.create({
   fixedButtonContainer: {
     position: "absolute",
     bottom: 40,
-    left: 20,
-    right: 20,
+    left: 10,
+    right: 10,
   },
   addSpendingButtonFixed: {
-    backgroundColor: Colors.PRIMARY,
+    backgroundColor: Colors.GOLD,
     flexDirection: "row",
     height: 64,
     borderRadius: 32,
@@ -741,33 +607,28 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15, 23, 42, 0.6)" },
   floatingFormCard: { width: width * 0.9 },
   emptyHistory: { paddingVertical: 40, alignItems: "center" },
-  emptyHistoryText: { fontFamily: "outfit", color: "#94A3B8", fontSize: 14 },
-  globalLoader: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,255,255,0.7)", justifyContent: "center", alignItems: "center", zIndex: 2000 },
+  emptyHistoryText: { fontFamily: "outfit", fontSize: 14 },
+  globalLoader: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", zIndex: 2000 },
   swipeTipBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(235, 245, 255, 0.9)",
     padding: 12,
     borderRadius: 12,
     marginBottom: 15,
     gap: 12,
     borderWidth: 1,
-    borderColor: "rgba(14, 165, 233, 0.2)",
   },
   swipeTipText: {
     fontFamily: "outfitMedium",
     fontSize: 13,
-    color: "#0F172A",
     lineHeight: 18,
   },
   swipeTipBtn: {
-    backgroundColor: Colors.PRIMARY,
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 8,
   },
   swipeTipBtnText: {
-    color: "#FFF",
     fontFamily: "outfitBold",
     fontSize: 11,
   },

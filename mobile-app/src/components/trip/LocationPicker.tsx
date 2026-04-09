@@ -13,7 +13,8 @@ import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocation } from "@/src/context/LocationContext";
 
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { LocationData, LocationPickerProps } from "@/src/types/interfaces";
 
 const { width } = Dimensions.get("window");
@@ -24,8 +25,9 @@ export default function LocationPicker({
   value,
 }: LocationPickerProps & { value?: LocationData | null }) {
   const { updateLocation } = useLocation();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
-  
   const [loading, setLoading] = useState(false);
   const [displayValue, setDisplayValue] = useState(value?.name || "");
 
@@ -79,7 +81,6 @@ export default function LocationPicker({
   };
 
 
-
   const clearInput = () => {
     setDisplayValue("");
     onLocationChange(null);
@@ -87,30 +88,30 @@ export default function LocationPicker({
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.inputCapsule}>
+      <View style={[styles.inputCapsule, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }]}>
         <View style={styles.labelSection}>
-          <Text style={styles.label}>FROM</Text>
+          <Text style={[styles.label, { color: colors.GOLD }]}>FROM</Text>
         </View>
         <TextInput
-          style={styles.inputStyle}
+          style={[styles.inputStyle, { color: colors.TEXT }]}
           value={displayValue}
           editable={false}
           placeholder={loading ? "Locating..." : placeholder}
-          placeholderTextColor={Colors.GRAY}
+          placeholderTextColor={colors.MUTED_TEXT}
         />
         <View style={styles.actionSection}>
           {loading ? (
-            <ActivityIndicator size="small" color={Colors.SECONDARY} />
+            <ActivityIndicator size="small" color={colors.GOLD} />
           ) : (
             <View style={styles.btnRow}>
               {displayValue.length > 0 && (
                 <TouchableOpacity onPress={clearInput} style={styles.iconBtn}>
-                  <Ionicons name="close-circle" size={18} color={Colors.GRAY} />
+                  <Ionicons name="close-circle" size={18} color={colors.MUTED_TEXT} />
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity onPress={detectCurrentLocation} style={styles.iconBtn}>
-                <Ionicons name="locate" size={20} color={Colors.SECONDARY} />
+                <Ionicons name="locate" size={20} color={colors.GOLD} />
               </TouchableOpacity>
             </View>
           )}
@@ -125,7 +126,6 @@ const styles = StyleSheet.create({
   inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.035)",
     height: 65,
     borderRadius: 22,
     paddingHorizontal: 20,
@@ -134,14 +134,12 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
   },
   inputStyle: {
     flex: 1,
     fontFamily: "outfitBold",
     fontSize: 17,
-    color: Colors.PRIMARY,
     padding: 0,
     height: "100%",
   },

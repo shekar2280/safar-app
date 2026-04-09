@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { FestiveTripIdeas } from "@/src/constants/travel-data";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,8 @@ const { width, height } = Dimensions.get("window");
 export default function FestiveTrips() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const handleSelect = (item: any) => {
     router.push({
@@ -38,15 +41,15 @@ export default function FestiveTrips() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={Colors.PRIMARY} />
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC" }]}>
+          <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.subtitle}>CULTURAL CELEBRATIONS</Text>
-          <Text style={styles.title}>Festive Getaways</Text>
+          <Text style={[styles.subtitle, { color: colors.GOLD }]}>CULTURAL CELEBRATIONS</Text>
+          <Text style={[styles.title, { color: colors.TEXT }]}>Festive Getaways</Text>
         </View>
       </View>
 
@@ -80,7 +83,6 @@ export default function FestiveTrips() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
   },
   header: {
     flexDirection: "row",
@@ -93,20 +95,17 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
   subtitle: {
     fontFamily: "outfitMedium",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 2.5,
   },
   title: {
     fontFamily: "playfairBold",
     fontSize: 28,
-    color: Colors.PRIMARY,
     marginTop: -2,
   },
   listContent: {

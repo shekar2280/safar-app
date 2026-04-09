@@ -8,7 +8,8 @@ import {
 } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +30,7 @@ import { useUser } from "@/src/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
+import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +47,8 @@ export default function GenerateTrip() {
   const queryClient = useQueryClient();
   const hasGenerated = useRef(false);
   const [retryCount, setRetryCount] = useState(0);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const isTripReady =
@@ -252,8 +256,8 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       {loading && (
         <View style={styles.loadingWrapper}>
           <LottieView
@@ -262,25 +266,28 @@ export default function GenerateTrip() {
             loop
             style={styles.lottie}
           />
-          <Text style={styles.loadingText}>{getLoadingMessage().toUpperCase()}</Text>
-          <Text style={styles.loadingSub}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
+          <Text style={[styles.loadingText, { color: colors.TEXT }]}>{getLoadingMessage().toUpperCase()}</Text>
+          <Text style={[styles.loadingSub, { color: colors.MUTED_TEXT }]}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
         </View>
       )}
 
       {error && (
         <View style={styles.errorWrapper}>
-          <Text style={styles.errorTitle}>INTERRUPTION</Text>
-          <Text style={styles.errorText}>{error.toUpperCase()}</Text>
+          <Text style={[styles.errorTitle, { color: colors.TEXT }]}>INTERRUPTION</Text>
+          <Text style={[styles.errorText, { color: colors.TEXT }]}>{error.toUpperCase()}</Text>
           <View style={styles.buttonStack}>
-            <TouchableOpacity onPress={generateAiTrip} style={styles.primaryButton}>
-              <Text style={styles.buttonText}>RETRY GENERATION</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            <Button
+              title="RETRY GENERATION"
+              onPress={generateAiTrip}
+              type="primary"
+              size="medium"
+            />
+            <Button
+              title="RETURN TO HOME"
               onPress={() => router.replace("/(tabs)/mytrip" as any)}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>RETURN TO HOME</Text>
-            </TouchableOpacity>
+              type="secondary"
+              size="medium"
+            />
           </View>
         </View>
       )}
@@ -291,7 +298,6 @@ export default function GenerateTrip() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -307,7 +313,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
     letterSpacing: 4,
     textAlign: "center",
     marginTop: 20,
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
   loadingSub: {
     fontSize: 9,
     fontFamily: "outfitBold",
-    color: Colors.MUTED_TEXT,
+    color: "#94A3B8",
     letterSpacing: 2,
     marginTop: 8,
   },
@@ -327,7 +332,6 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 12,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
     letterSpacing: 5,
     marginBottom: 20,
     opacity: 0.5,
@@ -335,7 +339,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: "outfitBold",
     fontSize: 14,
-    color: Colors.PRIMARY,
     textAlign: "center",
     lineHeight: 22,
     letterSpacing: 1,
@@ -346,19 +349,17 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   primaryButton: {
-    backgroundColor: Colors.PRIMARY,
     height: 65,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.PRIMARY,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 6,
   },
   buttonText: {
-    color: Colors.WHITE,
     fontFamily: "outfitBold",
     fontSize: 13,
     letterSpacing: 2,
@@ -367,12 +368,10 @@ const styles = StyleSheet.create({
     height: 65,
     borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryButtonText: {
-    color: Colors.MUTED_TEXT,
     fontFamily: "outfitBold",
     fontSize: 13,
     letterSpacing: 2,

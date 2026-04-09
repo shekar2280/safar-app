@@ -9,9 +9,10 @@ import {
   LayoutChangeEvent,
 } from "react-native";
 import moment from "moment";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/src/context/ThemeContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { concertImages, fallbackImages } from "@/src/constants/travel-data";
@@ -24,6 +25,8 @@ const { width } = Dimensions.get("window");
 
 export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [cardWidth, setCardWidth] = React.useState(width - 40);
@@ -134,7 +137,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}
       onLayout={onLayout}
       onPress={() =>
         router.push({
@@ -202,8 +205,8 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
       {(trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) && (
         <View style={styles.badgeContainer}>
-          <View style={styles.eventBadge}>
-            <Text style={styles.badgeText}>CONCERT</Text>
+          <View style={[styles.eventBadge, { backgroundColor: colors.SECONDARY }]}>
+            <Text style={[styles.badgeText, { color: isDark ? colors.BLACK : colors.WHITE }]}>CONCERT</Text>
           </View>
         </View>
       )}
@@ -328,13 +331,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   activeDot: {
     backgroundColor: 'white',
-    width: 14,
+    width: 6,
   },
 });

@@ -32,3 +32,5 @@ ios/
 # Python cache
 __pycache__/
 *.pyc
+
+.vercel

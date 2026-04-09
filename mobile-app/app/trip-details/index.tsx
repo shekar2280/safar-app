@@ -13,7 +13,8 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import dayjs from "dayjs";
 import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
@@ -26,6 +27,7 @@ import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
 import AIDisclaimer from "@/src/components/common/AIDisclaimer";
+import Button from "@/src/components/common/Button";
 import WeatherWidget from "@/src/components/trip-details/WeatherWidget";
 import { UserTrip } from "@/src/types/interfaces";
 import { apiGet, apiPatch } from "@/src/lib/api";
@@ -50,6 +52,8 @@ export default function TripDetails() {
   const { data: userTrips = [] } = useTrips();
   const { trip, imageUrl } = useLocalSearchParams();
   const queryClient = useQueryClient();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const parsedTrip = useMemo(() => {
     try {
@@ -76,7 +80,7 @@ export default function TripDetails() {
 
   const transportData = useMemo(
     () => ({
-      travelerMode: tripDetails?.travelerMode,
+      tripType: tripDetails?.travelerMode || "travel",
       departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
       destinationIata: tripDetails?.tripPlan?.destinationIata,
       bestTransport: tripDetails?.tripPlan?.bestTransport,
@@ -250,18 +254,18 @@ export default function TripDetails() {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: Colors.WHITE }}
+        style={{ backgroundColor: colors.BACKGROUND }}
       >
         <View style={styles.slideshowContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={[styles.customBackBtn, { top: insets.top + 16 }]}
+            style={[styles.customBackBtn, { top: insets.top + 16, backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(255, 255, 255, 0.8)" }]}
           >
-            <Ionicons name="chevron-back" size={24} color={Colors.PRIMARY} />
+            <Ionicons name="chevron-back" size={24} color={colors.TEXT} />
           </TouchableOpacity>
 
           <ScrollView
@@ -297,51 +301,48 @@ export default function TripDetails() {
           )}
         </View>
 
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
           <View style={styles.headerBlock}>
             <View style={styles.titleRow}>
-              <Text 
-                style={[styles.title, { flexShrink: 1 }]} 
-                numberOfLines={1} 
-                adjustsFontSizeToFit 
+              <Text
+                style={[styles.title, { color: colors.TEXT, flexShrink: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
                 {tripDetails?.concertData?.artist
                   ? `${tripDetails?.concertData?.artist} Concert`
                   : tripDetails?.tripPlan?.tripName || "Trip Details"}
               </Text>
-              <View style={styles.goldDot} />
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
             </View>
-            <Text style={styles.dateText}>
+            <Text style={[styles.dateText, { color: colors.MUTED_TEXT }]}>
               {tripDetails.totalDays} {tripDetails.totalDays === 1 ? "DAY" : "DAYS"} CURATED JOURNEY
             </Text>
           </View>
 
           {tripDetails.isFinished ? (
-            <View style={styles.finishedBadge}>
-              <MaterialCommunityIcons name="flag-checkered" size={20} color="#64748B" />
-              <Text style={styles.finishedText}>JOURNEY COMPLETED</Text>
+            <View style={[styles.finishedBadge, { backgroundColor: isDark ? "rgba(212,175,55,0.05)" : "rgba(235, 186, 73, 0.05)", borderColor: isDark ? "rgba(212,175,55,0.2)" : "rgba(235, 186, 73, 0.2)", borderWidth: 1 }]}>
+              <MaterialCommunityIcons name="trophy-outline" size={20} color={colors.GOLD} />
+              <Text style={[styles.finishedText, { color: colors.GOLD }]}>JOURNEY COMPLETED</Text>
             </View>
           ) : tripDetails.isActive ? (
-            <TouchableOpacity
+            <Button
+              title="End Journey"
               onPress={handleEndJourney}
-              style={[styles.activateButton, { backgroundColor: "#FFF", borderWidth: 1, borderColor: "#EF4444" }]}
-            >
-              <Text style={[styles.activateButtonText, { color: "#EF4444" }]}>
-                End Journey
-              </Text>
-            </TouchableOpacity>
+              style={[styles.activateButton, { borderColor: colors.RED, borderWidth: 1 }]}
+              type="secondary"
+            />
           ) : (
             !tripDetails?.concertData && (
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity
+                <Button
+                  title="Activate Trip & Open Wallet"
                   onPress={handleActivateTrip}
+                  loading={isAnimating}
+                  icon="rocket"
                   style={styles.activateButton}
-                >
-                  <Text style={styles.activateButtonText}>
-                    🚀 Activate Trip & Open Wallet
-                  </Text>
-                </TouchableOpacity>
+                />
               </Animated.View>
             )
           )}
@@ -355,14 +356,14 @@ export default function TripDetails() {
 
           <TransportInfo transportData={transportData as any} />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <HotelInfo
             cityName={tripDetails?.tripPlan?.tripName || ""}
             hotelData={tripDetails?.tripPlan?.hotelOptions}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <PlannedTrip
             itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
@@ -389,14 +390,14 @@ export default function TripDetails() {
       </ScrollView>
 
       {isAnimating && (
-        <View style={styles.animationOverlay}>
+        <View style={[styles.animationOverlay, { backgroundColor: isDark ? "rgba(0, 0, 0, 0.95)" : "rgba(255, 255, 255, 0.95)" }]}>
           <LottieView
-            source={require("@/src/assets/animations/active.json")}
+            source={require("@/assets/animations/active.json")}
             autoPlay
             loop
             style={{ width: width * 0.8, height: width * 0.8 }}
           />
-          <Text style={styles.activatingText}>Setting up your trip...</Text>
+          <Text style={[styles.activatingText, { color: colors.TEXT }]}>Setting up your trip...</Text>
         </View>
       )}
 
@@ -428,7 +429,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.WHITE,
   },
   slideshowContainer: {
     height: SLIDESHOW_HEIGHT,
@@ -441,7 +441,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 100,
@@ -463,12 +462,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
   },
-  activeDot: { width: 8, backgroundColor: Colors.WHITE },
+  activeDot: { width: 8, backgroundColor: "#FFF" },
   inactiveDot: { width: 8, backgroundColor: "rgba(255, 255, 255, 0.5)" },
   container: {
     paddingHorizontal: 12,
     paddingVertical: width * 0.05,
-    backgroundColor: Colors.WHITE,
     minHeight: height,
     marginTop: -35,
     borderTopLeftRadius: 35,
@@ -481,25 +479,22 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 4,
   },
-  title: { fontSize: 32, fontFamily: "playfairBold", color: Colors.TEXT, lineHeight: 40 },
+  title: { fontSize: 32, fontFamily: "playfairBold", lineHeight: 40 },
   goldDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.SECONDARY,
     marginLeft: 2,
     marginBottom: 6,
   },
-  dateText: { fontFamily: "outfitMedium", fontSize: 14, color: Colors.GRAY, marginTop: 6 },
+  dateText: { fontFamily: "outfitMedium", fontSize: 14, marginTop: 6 },
   activateButton: {
-    backgroundColor: Colors.PRIMARY,
     padding: 18,
     borderRadius: 15,
     marginVertical: 10,
     elevation: 5,
   },
   activateButtonText: {
-    color: Colors.WHITE,
     textAlign: "center",
     fontFamily: "interBold",
     fontSize: 16,
@@ -507,7 +502,6 @@ const styles = StyleSheet.create({
   animationOverlay: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
@@ -516,17 +510,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontFamily: "interBold",
     fontSize: 18,
-    color: Colors.PRIMARY,
   },
   divider: {
     height: 1,
     width: width * 0.923,
     marginLeft: width * 0.025,
-    backgroundColor: "rgba(0,0,0,0.08)",
     marginVertical: 20,
   },
   finishedBadge: {
-    backgroundColor: "#F1F5F9",
     paddingVertical: 15,
     borderRadius: 15,
     flexDirection: "row",
@@ -538,7 +529,6 @@ const styles = StyleSheet.create({
   finishedText: {
     fontFamily: "outfitBold",
     fontSize: 14,
-    color: "#64748B",
     letterSpacing: 1,
   },
 });

@@ -10,10 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Button from "@/src/components/common/Button";
 import { useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useUser } from "@/src/context/UserContext";
 import { updateUserProfile } from "@/src/lib/api";
 import * as Location from "expo-location";
@@ -28,6 +30,8 @@ export default function PersonalDetails() {
   const router = useRouter();
   const auth = getAuth();
   const { userProfile, setUserProfile } = useUser();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const [name, setName] = useState(userProfile?.fullName || "");
   const [homeLocation, setHomeLocation] = useState<any>(userProfile?.homeLocation || null);
@@ -132,14 +136,15 @@ export default function PersonalDetails() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
       <Stack.Screen
         options={{
           headerShown: true,
           headerTitle: "PERSONAL DETAILS",
-          headerTitleStyle: { fontFamily: "playfairBold", fontSize: 18, color: Colors.PRIMARY },
+          headerTitleStyle: { fontFamily: "playfairBold", fontSize: 18, color: colors.TEXT },
           headerTransparent: true,
-          headerTintColor: Colors.PRIMARY,
+          headerTintColor: colors.TEXT,
+          headerStyle: { backgroundColor: "transparent" },
         }}
       />
       
@@ -149,31 +154,31 @@ export default function PersonalDetails() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerInfo}>
-            <Text style={styles.sectionTitle}>Identity Info</Text>
-            <Text style={styles.sectionDesc}>Update your public profile and home city for personalized trip suggestions.</Text>
+            <Text style={[styles.sectionTitle, { color: colors.TEXT }]}>Identity Info</Text>
+            <Text style={[styles.sectionDesc, { color: colors.MUTED_TEXT }]}>Update your public profile and home city for personalized trip suggestions.</Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.SURFACE }]}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>FULL NAME</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>FULL NAME</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)", borderColor: colors.BORDER }]}>
+                <Ionicons name="person-outline" size={20} color={colors.TEXT} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.TEXT }]}
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter your name"
-                  placeholderTextColor={Colors.GRAY}
+                  placeholderTextColor={colors.GRAY}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>EMAIL ADDRESS (READ-ONLY)</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: Colors.LIGHT_GRAY, borderColor: "transparent" }]}>
-                    <Ionicons name="mail-outline" size={20} color={Colors.GRAY} style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>EMAIL ADDRESS (READ-ONLY)</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.02)" : colors.SURFACE_LIGHT, borderColor: "transparent" }]}>
+                    <Ionicons name="mail-outline" size={20} color={colors.GRAY} style={styles.inputIcon} />
                     <TextInput
-                        style={[styles.input, { color: Colors.GRAY }]}
+                        style={[styles.input, { color: colors.GRAY }]}
                         value={auth.currentUser?.email || ""}
                         editable={false}
                     />
@@ -181,34 +186,33 @@ export default function PersonalDetails() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>HOME LOCATION</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="home-outline" size={20} color={Colors.PRIMARY} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>HOME LOCATION</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)", borderColor: colors.BORDER }]}>
+                <Ionicons name="home-outline" size={20} color={colors.TEXT} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, { flex: 1, color: colors.TEXT }]}
                   value={homeLocation?.label || ""}
                   editable={false}
                   placeholder="Not set"
-                  placeholderTextColor={Colors.GRAY}
+                  placeholderTextColor={colors.GRAY}
                 />
                 <TouchableOpacity style={styles.detectBtn} onPress={detectLocation} disabled={detecting}>
                   {detecting ? (
-                    <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                    <ActivityIndicator size="small" color={colors.PRIMARY} />
                   ) : (
-                    <Ionicons name="locate" size={20} color={Colors.PRIMARY} />
+                    <Ionicons name="locate" size={20} color={colors.PRIMARY} />
                   )}
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={Colors.WHITE} />
-            ) : (
-              <Text style={styles.saveBtnText}>SAVE CHANGES</Text>
-            )}
-          </TouchableOpacity>
+          <Button
+            title="SAVE CHANGES"
+            onPress={handleSave}
+            loading={loading}
+            style={{ marginTop: 10 }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -225,23 +229,20 @@ export default function PersonalDetails() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.WHITE },
-  scrollContent: { padding: 25, paddingBottom: 50 },
+  container: { flex: 1 },
+  scrollContent: { paddingVertical: 25, paddingHorizontal: 10, paddingBottom: 50 },
   headerInfo: { marginBottom: 30 },
   sectionTitle: {
     fontFamily: "playfairBold",
     fontSize: 24,
-    color: Colors.PRIMARY,
     marginBottom: 8,
   },
   sectionDesc: {
     fontFamily: "outfit",
     fontSize: 14,
-    color: Colors.MUTED_TEXT,
     lineHeight: 20,
   },
   card: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 24,
     padding: 24,
     marginBottom: 30,
@@ -255,7 +256,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
     marginBottom: 8,
     marginLeft: 4,
@@ -263,11 +263,9 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.025)",
     borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: Colors.BORDER,
   },
   inputIcon: { marginRight: 12 },
   input: {
@@ -275,27 +273,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontFamily: "outfitMedium",
     fontSize: 16,
-    color: Colors.PRIMARY,
   },
   detectBtn: {
     padding: 10,
     marginLeft: 5,
-  },
-  saveBtn: {
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: 18,
-    paddingVertical: 18,
-    alignItems: "center",
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  saveBtnText: {
-    fontFamily: "outfitBold",
-    fontSize: 14,
-    color: Colors.WHITE,
-    letterSpacing: 2,
   },
 });

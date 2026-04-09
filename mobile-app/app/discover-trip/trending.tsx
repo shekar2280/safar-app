@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/src/context/UserContext";
@@ -23,6 +24,8 @@ export default function TrendingTrips() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userProfile } = useUser();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [selectedOption, setSelectedOption] = useState<any>(null);
 
   // Derive country from user profile, fall back to India
@@ -47,23 +50,23 @@ export default function TrendingTrips() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <View style={[styles.header, { borderBottomColor: colors.BORDER }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={Colors.PRIMARY} />
+          <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.subtitle}>POPULAR NEAR {currentCity?.toUpperCase()}</Text>
-          <Text style={styles.title}>Trending Trips</Text>
+          <Text style={[styles.subtitle, { color: colors.GOLD }]}>POPULAR NEAR {currentCity?.toUpperCase()}</Text>
+          <Text style={[styles.title, { color: colors.TEXT }]}>Trending Trips</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.PRIMARY} />
-          <Text style={styles.loadingText}>Finding trending spots...</Text>
+          <ActivityIndicator size="large" color={colors.PRIMARY} />
+          <Text style={[styles.loadingText, { color: colors.MUTED_TEXT }]}>Finding trending spots...</Text>
         </View>
       ) : (
         <FlatList
@@ -90,7 +93,7 @@ export default function TrendingTrips() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.WHITE },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -98,7 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   backBtn: {
     width: 40,
@@ -108,13 +110,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: "outfitMedium",
     fontSize: 10,
-    color: Colors.MUTED_TEXT,
     letterSpacing: 2,
   },
   title: {
     fontFamily: "playfairBold",
     fontSize: 22,
-    color: Colors.PRIMARY,
   },
   loadingContainer: {
     flex: 1,
@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: "outfit",
     fontSize: 15,
-    color: Colors.MUTED_TEXT,
   },
   listContent: {
     paddingHorizontal: 15,

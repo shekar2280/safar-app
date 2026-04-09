@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontFamily: "outfitBold",
     fontSize: width * 0.12,
-    color: Colors.HIGHLIGHT,
+    color: Colors.WHITE,
     letterSpacing: 2,
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },

@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import React, { useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -24,6 +25,8 @@ export default function ActiveTrips() {
   const insets = useSafeAreaInsets();
   const { data: userTrips = [], isLoading: loading } = useTrips();
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const sortedTrips = useMemo(() => {
     return (userTrips || [])
@@ -48,17 +51,17 @@ export default function ActiveTrips() {
   }, [userTrips]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.BACKGROUND }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
-          <Text style={styles.subtitle}>MY JOURNEY HISTORY</Text>
+          <Text style={[styles.subtitle, { color: colors.MUTED_TEXT }]}>MY JOURNEY HISTORY</Text>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>Active Trips</Text>
-            <View style={styles.goldDot} />
+            <Text style={[styles.title, { color: colors.TEXT }]}>Active Trips</Text>
+            <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
           </View>
         </View>
 
@@ -73,18 +76,18 @@ export default function ActiveTrips() {
             <MaterialCommunityIcons
               name="bag-checked"
               size={width * 0.2}
-              color={Colors.GRAY}
+              color={colors.GRAY}
             />
-            <Text style={styles.emptyTitle}>You have no active trips.</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.GRAY }]}>You have no active trips.</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.GRAY }]}>
               Activate a trip from the "My Trips" details page to manage its
               expenses and itinerary here.
             </Text>
             <TouchableOpacity
-              style={styles.exploreBtn}
+              style={[styles.exploreBtn, { backgroundColor: colors.PRIMARY }]}
               onPress={() => router.push("/mytrip")}
             >
-              <Text style={styles.exploreBtnText}>Browse My Portfolio</Text>
+              <Text style={[styles.exploreBtnText, { color: colors.WHITE }]}>Browse My Portfolio</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -102,25 +105,18 @@ export default function ActiveTrips() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
   },
   scrollContent: {
-    flexGrow: 1,
-    backgroundColor: Colors.WHITE,
-    paddingBottom: 160,
+    paddingBottom: 120,
   },
   header: {
-    paddingHorizontal: width * 0.05,
-    paddingBottom: 20,
-    minHeight: 80,
-    justifyContent: "flex-end",
+    paddingHorizontal: width * 0.03,
+    marginBottom: 10,
   },
   subtitle: {
     fontFamily: "outfitMedium",
     fontSize: 11,
-    color: Colors.MUTED_TEXT,
     letterSpacing: 3,
-    marginBottom: 0,
     textTransform: "uppercase",
   },
   titleRow: {
@@ -130,15 +126,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 40,
-    color: Colors.TEXT,
+    fontSize: 36,
     lineHeight: 48,
   },
   goldDot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: Colors.SECONDARY,
     marginLeft: 2,
     marginBottom: 8,
   },
@@ -146,32 +140,29 @@ const styles = StyleSheet.create({
     marginTop: height * 0.1,
   },
   emptyContainer: {
-    marginTop: height * 0.1,
+    marginTop: height * 0.3,
     alignItems: "center",
     paddingHorizontal: width * 0.03,
   },
   emptyTitle: {
     fontFamily: "outfitMedium",
     fontSize: 20,
-    color: Colors.GRAY,
     marginTop: height * 0.02,
   },
   emptySubtitle: {
     fontFamily: "outfit",
     fontSize: 14,
-    color: Colors.GRAY,
     marginTop: height * 0.01,
     textAlign: "center",
+    lineHeight: 22,
   },
   exploreBtn: {
     marginTop: 35,
-    backgroundColor: Colors.PRIMARY,
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 50,
   },
   exploreBtnText: {
-    color: "#FFF",
     fontFamily: "outfitBold",
     fontSize: 15,
   },
