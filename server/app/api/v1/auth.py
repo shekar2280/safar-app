@@ -28,11 +28,17 @@ async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)
     is_new_user = user is None
 
     if user:
+        auth_logger.info("Syncing existing user", extra={
+            "firebase_uid": firebase_uid,
+            "db_full_name": user.full_name,
+            "token_full_name": full_name
+        })
         user.last_login = now
         user.updated_at = now
         if email:
             user.email = email
-        if full_name:
+        if full_name and not user.is_name_custom:
+            auth_logger.info("Syncing name from token because DB name is not custom")
             user.full_name = full_name
         if photo_url:
             user.photo_url = photo_url
@@ -75,12 +81,25 @@ async def update_me(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    auth_logger.info("PATCH /me received", extra={
+        "has_full_name": body.full_name is not None,
+        "new_name": body.full_name
+    })
     if body.home_location is not None:
         current_user.home_location = body.home_location
     if body.full_name is not None:
+        auth_logger.info(f"Manual name update: {body.full_name}")
         current_user.full_name = body.full_name
+        db.query(models.User).filter(models.User.id == current_user.id).update(
+            {models.User.is_name_custom: True}
+        )
     
     current_user.updated_at = datetime.datetime.utcnow()
     db.commit()
     db.refresh(current_user)
+    
+    auth_logger.info("PATCH finished", extra={
+        "db_full_name": current_user.full_name,
+        "db_is_name_custom": current_user.is_name_custom
+    })
     return current_user

@@ -126,14 +126,14 @@ export default function Profile() {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.menuIconBox, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
+      <View style={[styles.menuIconBox, { backgroundColor: isDark ? "#1A1A1A" : Colors.SURFACE }]}>
         <Ionicons name={icon} size={20} color={isDestructive ? "#EF4444" : colors.GOLD} />
       </View>
       <View style={styles.menuTextContainer}>
         <Text style={[styles.menuTitle, { color: colors.TEXT }, isDestructive && { color: "#EF4444" }]}>{title}</Text>
         {subtitle && <Text style={[styles.menuSubtitle, { color: colors.MUTED_TEXT }]}>{subtitle}</Text>}
       </View>
-      <View style={[styles.chevronBox, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
+      <View style={[styles.chevronBox, { backgroundColor: isDark ? "#1A1A1A" : colors.SURFACE }]}>
         <Ionicons name="chevron-forward" size={16} color={isDestructive ? "#FCA5A5" : colors.TEXT} />
       </View>
     </TouchableOpacity>
