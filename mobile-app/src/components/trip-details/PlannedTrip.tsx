@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
@@ -6,15 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Button from "@/src/components/common/Button";
 
-interface PlannedTripProps {
-  itineraryDetails?: any;
-  cityName: string;
-  isActive: boolean;
-  onActivate: () => void;
-  onNavigateToActive: () => void;
-  visitedIndices?: number[];
-  onToggleVisited?: (index: number) => void;
-}
+import { PlannedTripProps } from "@/src/types/interfaces";
 
 export default function PlannedTrip({
   cityName,
@@ -28,7 +20,13 @@ export default function PlannedTrip({
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
-  const places = Array.isArray(itineraryDetails) ? itineraryDetails : [];
+  const places = useMemo(() => {
+    if (!itineraryDetails || !Array.isArray(itineraryDetails)) return [];
+    if (itineraryDetails.length > 0 && itineraryDetails[0].places) {
+      return itineraryDetails.flatMap(day => day.places || []);
+    }
+    return itineraryDetails;
+  }, [itineraryDetails]);
 
   const renderPlaceItem = (item: any, idx: number, isBlurred = false, hideLine = false) => {
     const isVisited = visitedIndices.includes(idx);
@@ -95,7 +93,7 @@ export default function PlannedTrip({
         {!isActive && places.length > 1 && (
           <View style={styles.lockedContainer}>
             <View style={styles.blurredItemsWrapper}>
-              {places.slice(1, 3).map((item, idx, arr) => renderPlaceItem(item, idx + 1, true, idx === arr.length - 1))}
+              {places.slice(1, 2).map((item, idx, arr) => renderPlaceItem(item, idx + 1, true, idx === arr.length - 1))}
               <LinearGradient
                 colors={["rgba(255,255,255,0)", isDark ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.8)", colors.BACKGROUND]}
                 style={StyleSheet.absoluteFillObject}
@@ -140,16 +138,16 @@ export default function PlannedTrip({
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 0, marginBottom: 10 },
-  header: { paddingHorizontal: 0, marginBottom: 20 },
+  wrapper: { marginVertical: 10 },
+  header: { paddingHorizontal: 0, marginBottom: 16 },
   overline: {
     fontFamily: "outfitMedium",
     fontSize: 10,
     letterSpacing: 3,
     textTransform: "uppercase",
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
+  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
   goldDot: {
     width: 6, height: 6, borderRadius: 3,
@@ -157,7 +155,7 @@ const styles = StyleSheet.create({
   },
   itineraryList: {
     paddingHorizontal: 0,
-    marginBottom: 20,
+    marginBottom: 0,
   },
   lockedContainer: {
     position: "relative",
@@ -171,14 +169,18 @@ const styles = StyleSheet.create({
   },
   lockOverlayContainer: {
     position: "absolute",
-    inset: 0,
-    justifyContent: "flex-end",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 0,
   },
   placeCard: {
     borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
-    marginTop: 20,
+    marginTop: 0,
   },
   gradientBg: { padding: 30, alignItems: "center", justifyContent: "center" },
   lockIconContainer: {

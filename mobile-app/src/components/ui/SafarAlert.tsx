@@ -70,7 +70,12 @@ export default function SafarAlert({
                       onPress={onConfirm}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.confirmText, { color: colors.WHITE }]}>{confirmText}</Text>
+                      <Text style={[
+                        styles.confirmText, 
+                        { color: (iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE }
+                      ]}>
+                        {confirmText}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </MotiView>
@@ -97,7 +102,6 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     width: width * 0.85,
-    backgroundColor: Colors.WHITE,
     borderRadius: Radius.xl,
     padding: Spacing.xxl,
     alignItems: "center",
@@ -120,14 +124,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "playfairBold",
     fontSize: 24,
-    color: Colors.PRIMARY,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
   message: {
     fontFamily: "outfit",
     fontSize: 15,
-    color: Colors.MUTED_TEXT,
     textAlign: "center",
     lineHeight: 22,
     paddingHorizontal: 10,
@@ -143,12 +145,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
   },
   cancelText: {
     fontFamily: "outfitBold",
     fontSize: 14,
-    color: Colors.MUTED_TEXT,
   },
   confirmBtn: {
     flex: 1,
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
   confirmText: {
     fontFamily: "outfitBold",
     fontSize: 14,
-    color: Colors.WHITE,
     letterSpacing: 1,
   },
 });

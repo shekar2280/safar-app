@@ -31,7 +31,7 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices: newVisited } : prev);
       
-      await apiPatch(`/api/trips/${tripId}/visited-indices`, {
+      await apiPatch(`/api/v1/trips/${tripId}/visited-indices`, {
         visited_indices: newVisited,
       });
       

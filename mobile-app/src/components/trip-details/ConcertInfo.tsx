@@ -145,10 +145,10 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 35, marginBottom: 20 },
-  header: { paddingHorizontal: 4, marginBottom: 20 },
-  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
-  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
+  wrapper: { marginVertical: 10 },
+  header: { paddingHorizontal: 4, marginBottom: 16 },
+  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
+  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold", color: Colors.TEXT },
   goldDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 4, marginBottom: 6 },
   card: { borderRadius: 28, overflow: "hidden", elevation: 6, borderWidth: 1 },

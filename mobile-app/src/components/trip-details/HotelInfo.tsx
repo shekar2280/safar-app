@@ -14,16 +14,11 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
-import { HotelOption } from "@/src/types/interfaces";
+import { HotelOption, HotelInfoProps } from "@/src/types/interfaces";
 import Button from "@/src/components/common/Button";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
 
 const { width } = Dimensions.get("window");
-
-interface HotelInfoProps {
-  hotelData?: HotelOption[];
-  cityName: string;
-}
 
 export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) {
   const colors = useThemeColors();
@@ -130,15 +125,16 @@ export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) 
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginVertical: 5, paddingBottom: 20 },
-  header: { paddingHorizontal: 0, marginBottom: 20 },
+  wrapper: { marginVertical: 10 },
+  header: { paddingHorizontal: 0, marginBottom: 16 },
   overline: {
     fontFamily: "interMedium",
     fontSize: 10,
     letterSpacing: 3,
     textTransform: "uppercase",
+    marginBottom: 4,
   },
-  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 2 },
+  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
   goldDot: {
     width: 6, height: 6, borderRadius: 3,

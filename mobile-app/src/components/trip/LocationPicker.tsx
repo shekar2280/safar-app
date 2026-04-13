@@ -24,7 +24,7 @@ export default function LocationPicker({
   placeholder = "Where are you starting from?",
   value,
 }: LocationPickerProps & { value?: LocationData | null }) {
-  const { updateLocation } = useLocation();
+  const { updateLocation, refreshGPS } = useLocation();
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
@@ -46,35 +46,12 @@ export default function LocationPicker({
   const detectCurrentLocation = async () => {
     setLoading(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert("Permission Denied", "Location permission is needed to detect your current city.");
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (address) {
-        const city = address.city || address.name || "Unknown City";
-        const locData: LocationData = {
-          name: city,
-          label: `${city}${address.region ? ", " + address.region : ""}`,
-          fullAddress: `${address.name ? address.name + ", " : ""}${address.city ? address.city + ", " : ""}${address.region ? address.region + ", " : ""}${address.country || ""}`,
-          country: address.country || "",
-          countryCode: address.isoCountryCode || "",
-          coordinates: {
-            lat: location.coords.latitude,
-            lon: location.coords.longitude
-          }
-        };
-        handleLocationSelect(locData);
+      const newData = await refreshGPS();
+      if (newData) {
+        handleLocationSelect(newData);
       }
     } catch (e: any) {
-      Alert.alert("Error", e.message || "Failed to detect location");
+      console.log("detectCurrentLocation error:", e);
     } finally {
       setLoading(false);
     }

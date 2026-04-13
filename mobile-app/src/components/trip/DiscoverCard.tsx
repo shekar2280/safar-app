@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Dimensions, StyleSheet } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import { trendingTripCardImages } from "@/src/constants/travel-data";
 import { DiscoverCardProps } from "@/src/types/interfaces";
 import { Image } from "expo-image";
@@ -20,6 +20,7 @@ export default function DiscoverCard({
   const isSelected = selectedOption?.id === option?.id;
   const defaultHeight = screenHeight * 0.18;
   const cardRadius = 24;
+  const colors = useThemeColors();
 
   const originalSource = React.useMemo(() => {
     if (option?.image) {
@@ -51,7 +52,7 @@ export default function DiscoverCard({
         {
           height: cardHeight || defaultHeight,
           borderRadius: cardRadius,
-          borderColor: Colors.PRIMARY,
+          borderColor: colors.PRIMARY,
           borderWidth: isSelected ? 3 : 0,
         },
       ]}

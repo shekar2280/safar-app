@@ -225,12 +225,10 @@ const styles = StyleSheet.create({
   clearText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: Colors.MUTED_TEXT,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   suggestionList: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 24,
     marginTop: 10,
     maxHeight: 280,
@@ -246,7 +244,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: Colors.WHITE,
   },
   iconCircle: {
     width: 32,
@@ -261,12 +258,10 @@ const styles = StyleSheet.create({
   mainText: {
     fontFamily: "outfitBold",
     fontSize: 15,
-    color: Colors.PRIMARY,
   },
   subText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: Colors.MUTED_TEXT,
     marginTop: 1,
   },
 });

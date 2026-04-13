@@ -11,17 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors } from "@/src/constants/colors";
 
-interface ButtonProps {
-  title: string;
-  onPress: () => void;
-  loading?: boolean;
-  icon?: keyof typeof Ionicons.glyphMap;
-  style?: ViewStyle | ViewStyle[];
-  textStyle?: TextStyle;
-  disabled?: boolean;
-  type?: "primary" | "secondary" | "danger";
-  size?: "small" | "medium" | "large";
-}
+import { ButtonProps } from "@/src/types/interfaces";
 
 export default function Button({
   title,
@@ -40,7 +30,7 @@ export default function Button({
     if (disabled) return colors.BORDER;
     switch (type) {
       case "primary": return colors.GOLD;
-      case "secondary": return "#000000";
+      case "secondary": return colors.PRIMARY;
       case "danger": return colors.RED;
       default: return colors.GOLD;
     }
@@ -49,10 +39,10 @@ export default function Button({
   const getTextColor = () => {
     if (disabled) return colors.MUTED_TEXT;
     switch (type) {
-        case "primary": return "#000000";
-        case "secondary": return colors.GOLD;
-        case "danger": return "#FFFFFF";
-        default: return "#000000";
+      case "primary": return colors.BLACK;
+      case "secondary": return colors.BACKGROUND;
+      case "danger": return colors.WHITE;
+      default: return colors.BLACK;
     }
   };
 

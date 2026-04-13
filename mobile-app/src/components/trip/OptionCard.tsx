@@ -1,12 +1,12 @@
-import React from "react";
 import { View, Text, Dimensions } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/colors";
 import { OptionCardProps } from "@/src/types/interfaces";
 
 const { width, height } = Dimensions.get("window");
 
 export default function OptionCard({ option, selectedOption }: OptionCardProps) {
   const isSelected = selectedOption?.id === option?.id;
+  const colors = useThemeColors();
 
   return (
     <View
@@ -14,9 +14,9 @@ export default function OptionCard({ option, selectedOption }: OptionCardProps) 
         padding: width * 0.06,
         flexDirection: "row",
         justifyContent: "space-between",
-        backgroundColor: Colors.LIGHT_GRAY,
+        backgroundColor: colors.SURFACE_LIGHT,
         borderWidth: isSelected ? 3 : 0,
-        borderColor: Colors.PRIMARY,
+        borderColor: colors.PRIMARY,
         borderRadius: width * 0.04,
         alignItems: "center",
       }}
@@ -25,7 +25,9 @@ export default function OptionCard({ option, selectedOption }: OptionCardProps) 
         <Text
           style={{
             fontSize: width * 0.05,
+            paddingRight: 10,
             fontFamily: "outfitBold",
+            color: colors.TEXT,
           }}
         >
           {option?.title}
@@ -34,7 +36,7 @@ export default function OptionCard({ option, selectedOption }: OptionCardProps) 
           style={{
             fontSize: width * 0.043,
             fontFamily: "outfit",
-            color: Colors.GRAY,
+            color: colors.MUTED_TEXT,
             marginTop: height * 0.005,
           }}
         >

@@ -18,20 +18,7 @@ import { ImageBackground, ScrollView as RNScrollView } from "react-native";
 import dayjs from "dayjs";
 import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants/travel-data";
 
-interface FlightDeal {
-  destination: string;
-  price: string;
-  departureDate: string;
-}
-
-interface TransportData {
-  tripType?: string;
-  departureIata?: string;
-  destinationIata?: string;
-  bestTransport?: string;
-  weatherInsight?: string;
-  flights?: FlightDeal[];
-}
+import { FlightDeal, TransportData } from "@/src/types/interfaces";
 
 const TransportInfo = ({ transportData }: { transportData?: TransportData }) => {
   const colors = useThemeColors();
@@ -178,9 +165,9 @@ const TransportInfo = ({ transportData }: { transportData?: TransportData }) => 
 export default memo(TransportInfo);
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 15 },
-  header: { paddingHorizontal: 0, marginBottom: 20, marginTop: 10, },
-  overline: { fontFamily: "interMedium", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
+  wrapper: { marginVertical: 10 },
+  header: { paddingHorizontal: 0, marginBottom: 16 },
+  overline: { fontFamily: "interMedium", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
   goldDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 4, marginBottom: 6 },

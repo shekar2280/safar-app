@@ -18,7 +18,7 @@ import {
   INTL_FOOD_COLLECTION,
 } from "@/src/constants/travel-data";
 import { LinearGradient } from "expo-linear-gradient";
-import { Restaurant, LocalExperience } from "@/src/types/interfaces";
+import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types/interfaces";
 import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");
@@ -27,14 +27,6 @@ const getTransformCloudinaryUrl = (url: string, w: number, h: number, gravity = 
   if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", `/upload/c_fill,g_${gravity},w_${w},h_${h},f_auto,q_auto/`);
 };
-
-interface RestaurantsInfoProps {
-  restaurantsInfo?: {
-    restaurants?: Restaurant[];
-    localExperiences?: LocalExperience[];
-  } | null;
-  cityName: string;
-}
 
 export default function RestaurantsInfo({ restaurantsInfo, cityName }: RestaurantsInfoProps) {
   const colors = useThemeColors();
@@ -190,14 +182,14 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     width: width * 0.923,
-    marginLeft: width * 0.055,
+    marginLeft: width * 0.025,
     backgroundColor: "rgba(0,0,0,0.08)",
-    marginVertical: 20,
+    marginVertical: 15,
   },
   sectionContainer: {},
-  header: { paddingHorizontal: width * 0.03, marginBottom: 15 },
-  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
-  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
+  header: { paddingHorizontal: width * 0.03, marginBottom: 16 },
+  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
+  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold", color: Colors.TEXT },
   goldDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.SECONDARY, marginLeft: 4, marginBottom: 6 },
 
