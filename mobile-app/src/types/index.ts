@@ -24,3 +24,8 @@ export type PaymentMethod = "card" | "wallet";
 export type AuthMode = "login" | "register";
 export type TimeSlot = "Morning" | "Afternoon" | "Evening";
 export type AlertType = "error" | "confirm" | "info";
+
+export enum TripType {
+  Oneway = "ONEWAY",
+  Round = "ROUND",
+}

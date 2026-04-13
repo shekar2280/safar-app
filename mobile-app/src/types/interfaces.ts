@@ -4,8 +4,9 @@ import {
   TripCategory,
   TimeSlot,
   AlertType,
+  TripType,
 } from "./index";
-export { TravelerMode, BudgetTier, TripCategory, TimeSlot, AlertType };
+export { TravelerMode, BudgetTier, TripCategory, TimeSlot, AlertType, TripType };
 
 export interface GeoCoordinates {
   latitude: number;
@@ -25,6 +26,7 @@ export interface LocationData {
     longitude?: number;
   };
   iataCode?: string;
+  isLiveGPS?: boolean;
 }
 
 export interface DestinationData {
@@ -259,8 +261,9 @@ export interface ActiveTripContextValue {
 export interface LocationContextValue {
   currentLocation: LocationData | null;
   updateLocation: (locationData: LocationData | null) => Promise<void>;
-  refreshGPS: () => Promise<LocationData>;
+  refreshGPS: () => Promise<LocationData | null>;
   loading: boolean;
+  gpsEnabled: boolean;
 }
 
 export interface UserContextValue {
@@ -413,4 +416,111 @@ export interface LocationPickerProps {
 export interface HotelInfoProps {
   hotelData?: HotelOption[];
   cityName?: string;
+}
+
+export interface HotelTypeToggleProps {
+  selectedType: TripType;
+  onSelectType: (type: TripType) => void;
+}
+
+export interface GeoCoords {
+  latitude: number;
+  longitude: number;
+}
+
+export interface SafarUser {
+  id: number;
+  firebase_uid: string;
+  email: string | null;
+  full_name: string | null;
+  photo_url: string | null;
+  created_at: string;
+  last_login: string | null;
+}
+
+export interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  loading?: boolean;
+  icon?: any; 
+  style?: any;
+  textStyle?: any;
+  disabled?: boolean;
+  type?: "primary" | "secondary" | "danger";
+  size?: "small" | "medium" | "large";
+}
+
+export interface LocationStatusProps {
+  effectiveLocation: any;
+  isFinished: boolean;
+  isDark: boolean;
+  onRefresh: () => void;
+}
+
+export interface JourneyItemProps {
+  item: any;
+  index: number;
+  isCompleted?: boolean;
+  isFinished: boolean;
+  isDark: boolean;
+  colors: any;
+  sections: any;
+  processingIndex: number | null;
+  onMarkAsDone: (item: any) => void;
+  onOpenNavigation: (placeName: string) => void;
+  onFindFood: (placeName: string) => void;
+}
+
+export interface SightItem extends PlaceItem {
+  isLocation: boolean;
+  isDone: boolean;
+  distance: number | null;
+  originalIndex: number;
+}
+
+export interface ExperienceItem extends LocalExperience {
+  placeName: string;
+  isDone: boolean;
+  isLocation: boolean;
+}
+
+export interface JourneyItem extends SightItem {
+  activity: ExperienceItem | null;
+}
+
+export interface WeatherWidgetProps {
+  cityName: string;
+}
+
+export interface FlightDeal {
+  destination: string;
+  price: string;
+  departureDate: string;
+}
+
+export interface TransportData {
+  tripType?: string;
+  departureIata?: string;
+  destinationIata?: string;
+  bestTransport?: string;
+  weatherInsight?: string;
+  flights?: FlightDeal[];
+}
+
+export interface PlannedTripProps {
+  itineraryDetails?: any;
+  cityName: string;
+  isActive: boolean;
+  onActivate: () => void;
+  onNavigateToActive: () => void;
+  visitedIndices?: number[];
+  onToggleVisited?: (index: number) => void;
+}
+
+export interface RestaurantsInfoProps {
+  restaurantsInfo?: {
+    restaurants?: Restaurant[];
+    localExperiences?: LocalExperience[];
+  } | null;
+  cityName: string;
 }

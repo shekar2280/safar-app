@@ -6,7 +6,7 @@ export const flightDealsKeys = {
 };
 
 async function fetchFlightDeals() {
-  const data = await apiGet<any>("/api/discovery/inspiration");
+  const data = await apiGet<any>("/api/v1/discovery/inspiration");
   return data?.destinations || [];
 }
 
@@ -14,7 +14,7 @@ export function useFlightDeals() {
   return useQuery({
     queryKey: flightDealsKeys.all,
     queryFn: fetchFlightDeals,
-    staleTime: 6 * 60 * 60 * 1000, 
+    staleTime: 6 * 60 * 60 * 1000,
     gcTime: 12 * 60 * 60 * 1000,
   });
 }

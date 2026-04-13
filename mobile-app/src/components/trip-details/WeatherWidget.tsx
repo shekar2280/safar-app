@@ -9,9 +9,7 @@ import { useWeather } from "@/src/hooks/queries/useWeather";
 
 const { width } = Dimensions.get("window");
 
-interface WeatherWidgetProps {
-  cityName: string;
-}
+import { WeatherWidgetProps } from "@/src/types/interfaces";
 
 export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const { data: weather, isLoading: loading } = useWeather(cityName);
@@ -131,7 +129,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 5,
+    marginVertical: 10,
   },
   loadingContainer: {
     height: 150,
@@ -142,7 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 2,
+    marginBottom: 16,
     marginLeft: 0,
   },
   title: {

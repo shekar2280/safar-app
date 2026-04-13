@@ -128,7 +128,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   const handleDeleteFinal = async () => {
     try {
-      await apiDelete(`/api/trips/${trip.id}`);
+      await apiDelete(`/api/v1/trips/${trip.id}`);
       onDelete?.(trip.id);
       setDeleteVisible(false);
     } catch {

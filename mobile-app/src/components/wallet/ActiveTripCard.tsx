@@ -98,10 +98,10 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       });
 
       if (spendingsToArchive.length > 0) {
-        await apiPatch(`/api/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
+        await apiPatch(`/api/v1/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
       }
 
-      await apiPatch(`/api/trips/${trip.id}/deactivate`, {});
+      await apiPatch(`/api/v1/trips/${trip.id}/deactivate`, {});
 
       if (spendingsToArchive.length > 0) {
         const batchDeletes = snapshot.docs.map(d => deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id, "transactions", d.id)));

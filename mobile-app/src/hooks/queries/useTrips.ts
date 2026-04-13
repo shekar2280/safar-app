@@ -3,7 +3,6 @@ import { apiGet, apiDelete, apiPatch, JWT_KEY } from "@/src/lib/api";
 import { UserTrip } from "@/src/types/interfaces";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// --- Data mapper (same as in UserContext for consistency) ---
 function mapBackendTrip(raw: any): UserTrip {
   const savedTrip = raw.saved_trip;
   const imageUrls: string[] = savedTrip?.image_urls ?? [];
@@ -33,50 +32,42 @@ function mapBackendTrip(raw: any): UserTrip {
   };
 }
 
-// ─── Query Keys ───────────────────────────────────────────
 export const tripQueryKeys = {
   all: ["trips"] as const,
   lists: () => [...tripQueryKeys.all, "list"] as const,
 };
 
-// ─── Fetch Function ────────────────────────────────────────
 async function fetchTrips(): Promise<UserTrip[]> {
   const jwt = await AsyncStorage.getItem(JWT_KEY);
   if (!jwt) return [];
-  const raw = await apiGet<any[]>("/api/trips");
+  const raw = await apiGet<any[]>("/api/v1/trips");
   return (raw ?? []).map(mapBackendTrip);
 }
 
-// ─── useTrips ──────────────────────────────────────────────
-// staleTime: 2 min — trips change after user actions (save/delete/activate)
-// gcTime: 15 min — keep cached data in memory for a while
 export function useTrips() {
   return useQuery({
     queryKey: tripQueryKeys.lists(),
     queryFn: fetchTrips,
-    staleTime: 2 * 60 * 1000,   // 2 minutes
-    gcTime: 15 * 60 * 1000,      // 15 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 }
 
-// ─── useActivateTrip ───────────────────────────────────────
 export function useActivateTrip() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (tripId: string) => apiPatch(`/api/trips/${tripId}/activate`, {}),
+    mutationFn: (tripId: string) => apiPatch(`/api/v1/trips/${tripId}/activate`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },
   });
 }
 
-// ─── useDeleteTrip ─────────────────────────────────────────
 export function useDeleteTrip() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (tripId: string) => apiDelete(`/api/trips/${tripId}`),
+    mutationFn: (tripId: string) => apiDelete(`/api/v1/trips/${tripId}`),
     onMutate: async (tripId: string) => {
-      // Optimistic update: remove from cache immediately
       await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
       const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
       queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
@@ -85,7 +76,6 @@ export function useDeleteTrip() {
       return { previous };
     },
     onError: (_err, _id, context) => {
-      // Roll back on failure
       if (context?.previous) {
         queryClient.setQueryData(tripQueryKeys.lists(), context.previous);
       }
@@ -96,24 +86,22 @@ export function useDeleteTrip() {
   });
 }
 
-// ─── useUpdateTripBudget ───────────────────────────────────
 export function useUpdateTripBudget() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ tripId, total_budget }: { tripId: string; total_budget: number }) =>
-      apiPatch(`/api/trips/${tripId}/budget`, { total_budget }),
+      apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },
   });
 }
 
-// ─── useUpdateVisitedIndices ───────────────────────────────
 export function useUpdateVisitedIndices() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ tripId, visited_indices }: { tripId: string; visited_indices: number[] }) =>
-      apiPatch(`/api/trips/${tripId}/visited-indices`, { visited_indices }),
+      apiPatch(`/api/v1/trips/${tripId}/visited-indices`, { visited_indices }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },

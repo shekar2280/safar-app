@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
 import { UserContextValue, UserProfile } from "@/src/types/interfaces";
 import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile } from "@/src/lib/api";
-import * as Location from "expo-location";
+import { useLocation } from "@/src/context/LocationContext";
 import { Alert } from "react-native";
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -38,7 +38,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         const jwt = await AsyncStorage.getItem(JWT_KEY);
         if (!jwt) { setLoading(false); return; }
 
-        // TanStack Query handles all /api/trips and /api/auth/me fetching now.
+        // TanStack Query handles all /api/v1/trips and /api/v1/auth/me fetching now.
         // We only hydrate the userProfile here from cache for the first paint.
         setLoading(false);
       } else {
@@ -50,45 +50,50 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, []);
 
+  const { refreshGPS } = useLocation();
+
   const detectHomeLocation = async () => {
     Alert.alert(
       "Welcome to Safar",
       "We use your location to pick your home airport for trip planning. Would you like us to detect your current city?",
       [
-        { text: "Later", style: "cancel" },
+        { 
+          text: "Later", 
+          style: "cancel"
+        },
         {
           text: "Detect City",
           onPress: async () => {
             try {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== "granted") return;
+              const newData = await refreshGPS();
+              if (newData) {
+                const latitude = newData.coordinates.latitude || newData.coordinates.lat;
+                const longitude = newData.coordinates.longitude || newData.coordinates.lon;
+                
+                if (latitude === undefined || longitude === undefined) return;
 
-              const loc = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
-              });
+                const res = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+                  { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
+                );
+                const data = await res.json();
 
-              const { latitude, longitude } = loc.coords;
-              const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-                { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
-              );
-              const data = await res.json();
+                const address = data.address || {};
+                let rawCity = address.city || address.town || address.village || address.state_district || "";
+                let cleanCity = rawCity.replace(/City of /gi, "").replace(/ City/gi, "").trim();
 
-              const address = data.address || {};
-              let rawCity = address.city || address.town || address.village || address.state_district || "";
-              let cleanCity = rawCity.replace(/City of /gi, "").replace(/ City/gi, "").trim();
+                const homeData = {
+                  name: cleanCity,
+                  label: `${cleanCity}, ${address.state || ""}`,
+                  fullAddress: data.display_name || "",
+                  country: address.country || "",
+                  countryCode: address.country_code || "",
+                  coordinates: { latitude, longitude },
+                };
 
-              const homeData = {
-                name: cleanCity,
-                label: `${cleanCity}, ${address.state || ""}`,
-                fullAddress: data.display_name || "",
-                country: address.country || "",
-                countryCode: address.country_code || "",
-                coordinates: { latitude, longitude },
-              };
-
-              await updateUserProfile({ home_location: homeData });
-              setUserProfile(prev => prev ? { ...prev, homeLocation: homeData } : null);
+                await updateUserProfile({ home_location: homeData });
+                setUserProfile(prev => prev ? { ...prev, homeLocation: homeData } : null);
+              }
             } catch (err) {
               console.log("Onboarding location error:", err);
             }
