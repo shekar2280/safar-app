@@ -103,12 +103,12 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <QueryClientProvider client={queryClient}>
           <StatusBar style={theme === "dark" ? "light" : "dark"} />
-          <UserProvider>
-            <CreateTripContext.Provider value={{ tripData, setTripData }}>
-              <ConcertTripProvider>
-                <TripProvider>
-                  <ActiveTripProvider>
-                    <LocationProvider>
+          <LocationProvider>
+            <UserProvider>
+              <CreateTripContext.Provider value={{ tripData, setTripData }}>
+                <ConcertTripProvider>
+                  <TripProvider>
+                    <ActiveTripProvider>
                       <Stack screenOptions={{ headerShown: false }}>
                         {!isSignedIn ? (
                           <Stack.Screen name="auth" />
@@ -116,12 +116,12 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
                           <Stack.Screen name="(tabs)" />
                         )}
                       </Stack>
-                    </LocationProvider>
-                  </ActiveTripProvider>
-                </TripProvider>
-              </ConcertTripProvider>
-            </CreateTripContext.Provider>
-          </UserProvider>
+                    </ActiveTripProvider>
+                  </TripProvider>
+                </ConcertTripProvider>
+              </CreateTripContext.Provider>
+            </UserProvider>
+          </LocationProvider>
         </QueryClientProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>

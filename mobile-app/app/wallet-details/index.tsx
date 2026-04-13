@@ -174,7 +174,7 @@ export default function SpendingsInput() {
 
     try {
       setLoading(true);
-      await apiPatch(`/api/trips/${tripId}/budget`, { total_budget: newBudget });
+      await apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: newBudget });
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setNewBudgetInput("");
       setLoading(false);
@@ -345,15 +345,24 @@ export default function SpendingsInput() {
             </View>
 
             {allSpendings.length > 0 && !hasSeenSwipeTip && (
-              <View style={[styles.swipeTipBox, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(235, 245, 255, 0.9)", borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(14, 165, 233, 0.2)" }]}>
+              <View style={[
+                styles.swipeTipBox, 
+                { 
+                  backgroundColor: isDark ? "rgba(225, 193, 110, 0.05)" : "rgba(235, 245, 255, 0.9)", 
+                  borderColor: isDark ? "rgba(225, 193, 110, 0.2)" : "rgba(14, 165, 233, 0.2)" 
+                }
+              ]}>
                 <Ionicons name="information-circle" size={24} color={colors.PRIMARY} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.swipeTipText, { color: colors.TEXT }]}>
                     Tip: Drag a log to the left to delete a transaction.
                   </Text>
                 </View>
-                <TouchableOpacity onPress={dismissSwipeTip} style={[styles.swipeTipBtn, { backgroundColor: colors.PRIMARY }]}>
-                  <Text style={[styles.swipeTipBtnText, { color: colors.WHITE }]}>OK, GOT IT</Text>
+                <TouchableOpacity 
+                   onPress={dismissSwipeTip} 
+                   style={[styles.swipeTipBtn, { backgroundColor: isDark ? colors.GOLD : colors.PRIMARY }]}
+                >
+                  <Text style={[styles.swipeTipBtnText, { color: isDark ? colors.BLACK : colors.WHITE }]}>OK, GOT IT</Text>
                 </TouchableOpacity>
               </View>
             )}
