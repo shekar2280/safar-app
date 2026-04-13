@@ -14,6 +14,7 @@ import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth } from "@/src/lib/firebase";
+import { Ionicons } from "@expo/vector-icons";
 import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import * as Haptics from "expo-haptics";
@@ -30,7 +31,6 @@ import { useUser } from "@/src/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
-import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");
 
@@ -96,7 +96,6 @@ export default function GenerateTrip() {
     const maxAttempts = 2;
     let success = false;
 
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
     const normalizedKey = `${tripData.destinationInfo?.shortName?.toLowerCase()}-${tripData.totalDays}-${tripData.budget?.toLowerCase()}`;
     const localDepartureIata =
       (tripData.departureInfo as any)?.iataCode ||
@@ -110,9 +109,8 @@ export default function GenerateTrip() {
         setRetryCount(attempts);
         let cached: any = null;
         try {
-          cached = await apiGet(`/api/trips/saved/${encodeURIComponent(normalizedKey)}`);
+          cached = await apiGet(`/api/v1/trips/saved/${encodeURIComponent(normalizedKey)}`);
         } catch {
-          // No cache found
         }
 
         if (cached) {
@@ -160,20 +158,13 @@ export default function GenerateTrip() {
             FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, (tripData as any).festival);
           }
 
-          const response = await fetch(API_BASE_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itineraryPrompt: FINAL_ITINERARY_PROMPT,
-              locationName: tripData.destinationInfo?.name,
-              tripCategory: category || "GENERAL",
-              latitude: tripData.destinationInfo?.coordinates?.lat,
-              longitude: tripData.destinationInfo?.coordinates?.lon,
-            }),
+          const result = await apiPost<{ itinerary: string, imageUrl?: string, imageUrls?: string[] }>("/api/v1/discovery/generate", {
+            itineraryPrompt: FINAL_ITINERARY_PROMPT,
+            locationName: tripData.destinationInfo?.name,
+            tripCategory: category || "GENERAL",
+            latitude: tripData.destinationInfo?.coordinates?.lat,
+            longitude: tripData.destinationInfo?.coordinates?.lon,
           });
-
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || "Backend failed");
 
           const rawAiResponse = cleanAiResponse(result.itinerary);
           const repairedJson = jsonrepair(rawAiResponse);
@@ -208,7 +199,7 @@ export default function GenerateTrip() {
             : (tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : [])
         } : null;
 
-        await apiPost("/api/trips", {
+        await apiPost("/api/v1/trips", {
           normalized_key: normalizedKey,
           trip_plan: itineraryData,
           image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
@@ -220,15 +211,6 @@ export default function GenerateTrip() {
           traveler_mode: tripData.travelerMode || "SOLO",
           concert_data: concertPayload,
         });
-
-        const userHome = userProfile?.homeLocation;
-        const currentDeparture = tripData.departureInfo;
-        
-        if (currentDeparture && JSON.stringify(currentDeparture) !== JSON.stringify(userHome)) {
-          updateUserProfile({ home_location: currentDeparture }).catch(e => 
-            console.error("Failed to update home location:", e)
-          );
-        }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
@@ -273,21 +255,31 @@ export default function GenerateTrip() {
 
       {error && (
         <View style={styles.errorWrapper}>
-          <Text style={[styles.errorTitle, { color: colors.TEXT }]}>INTERRUPTION</Text>
-          <Text style={[styles.errorText, { color: colors.TEXT }]}>{error.toUpperCase()}</Text>
+          <View style={styles.errorIconContainer}>
+             <Ionicons name="sparkles" size={40} color={colors.GOLD} style={styles.sparkleIcon} />
+             <Ionicons name="cloud-offline-outline" size={80} color={isDark ? "white" : "black"} />
+          </View>
+          
+          <Text style={[styles.errorTitle, { color: colors.TEXT }]}>SYSTEM OVERLOAD</Text>
+          
+          <Text style={[styles.errorText, { color: colors.MUTED_TEXT }]}>
+            Our travel engines are a bit overwhelmed. We couldn't map out your route this time.
+          </Text>
+
           <View style={styles.buttonStack}>
-            <Button
-              title="RETRY GENERATION"
+            <TouchableOpacity 
+              style={[styles.primaryButton, { backgroundColor: isDark ? "white" : "black" }]} 
               onPress={generateAiTrip}
-              type="primary"
-              size="medium"
-            />
-            <Button
-              title="RETURN TO HOME"
+            >
+              <Text style={[styles.buttonText, { color: isDark ? "black" : "white" }]}>RETRY GENERATION</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.secondaryButton, { borderColor: colors.GOLD, backgroundColor: Colors.GOLD }]} 
               onPress={() => router.replace("/(tabs)/mytrip" as any)}
-              type="secondary"
-              size="medium"
-            />
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.BLACK }]}>RETURN HOME</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -320,60 +312,71 @@ const styles = StyleSheet.create({
   loadingSub: {
     fontSize: 9,
     fontFamily: "outfitBold",
-    color: "#94A3B8",
     letterSpacing: 2,
     marginTop: 8,
   },
   errorWrapper: {
     alignItems: "center",
     width: "100%",
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
+  },
+  errorIconContainer: {
+    marginBottom: 30,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sparkleIcon: {
+    position: 'absolute',
+    top: -15,
+    right: -15,
   },
   errorTitle: {
-    fontSize: 12,
+    fontSize: 22,
     fontFamily: "outfitBold",
-    letterSpacing: 5,
-    marginBottom: 20,
-    opacity: 0.5,
+    letterSpacing: 2,
+    marginBottom: 12,
+    textAlign: 'center'
   },
   errorText: {
-    fontFamily: "outfitBold",
-    fontSize: 14,
+    fontFamily: "outfitMedium",
+    fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
-    letterSpacing: 1,
     marginBottom: 40,
+    paddingHorizontal: 10,
   },
   buttonStack: {
     width: "100%",
-    gap: 15,
+    gap: 12,
   },
   primaryButton: {
-    height: 65,
-    borderRadius: 22,
+    width: '100%',
+    height: 60,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonText: {
     fontFamily: "outfitBold",
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
   },
   secondaryButton: {
-    height: 65,
-    borderRadius: 22,
-    borderWidth: 1.5,
+    width: '100%',
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryButtonText: {
     fontFamily: "outfitBold",
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
   },
 });
