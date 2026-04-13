@@ -87,7 +87,7 @@ export default function ActiveTrips() {
               style={[styles.exploreBtn, { backgroundColor: colors.PRIMARY }]}
               onPress={() => router.push("/mytrip")}
             >
-              <Text style={[styles.exploreBtnText, { color: colors.WHITE }]}>Browse My Portfolio</Text>
+              <Text style={[styles.exploreBtnText, { color: isDark ? colors.BLACK : colors.WHITE }]}>Browse My Portfolio</Text>
             </TouchableOpacity>
           </View>
         ) : (
