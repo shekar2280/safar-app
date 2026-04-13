@@ -11,6 +11,8 @@ import {
   StatusBar,
 } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { BlurView } from "expo-blur";
+import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -24,7 +26,6 @@ import { auth } from "@/src/lib/firebase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fallbackImages } from "@/src/constants/travel-data";
 import { Image } from "expo-image";
-import LottieView from "lottie-react-native";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
 import AIDisclaimer from "@/src/components/common/AIDisclaimer";
 import Button from "@/src/components/common/Button";
@@ -43,6 +44,12 @@ import DetailsSkeleton from "@/src/components/skeleton/DetailsSkeleton";
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
 
+/**
+ * TripDetails Screen
+ * 
+ * The main container for displaying all aspects of a generated trip,
+ * including slideshow, weather, transport, hotels, itinerary, and dining.
+ */
 export default function TripDetails() {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
@@ -55,6 +62,7 @@ export default function TripDetails() {
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
+  // Memoize search params and parsed trip data
   const parsedTrip = useMemo(() => {
     try {
       return typeof trip === "string" ? JSON.parse(trip) : trip;
@@ -66,6 +74,9 @@ export default function TripDetails() {
   const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
   const { data: flights = [] } = useFlightDeals();
 
+  /**
+   * Complex memoization to consolidate trip data from cache, search params, and static itinerary data.
+   */
   const tripDetails = useMemo(() => {
     const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
     const base = latestFromCache || parsedTrip || {};
@@ -161,7 +172,7 @@ export default function TripDetails() {
     setConfirmActivateVisible(false);
     try {
       setIsAnimating(true);
-      await apiPatch(`/api/trips/${tripDetails.id}/activate`, {});
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/activate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setTimeout(() => {
         setIsAnimating(false);
@@ -187,7 +198,7 @@ export default function TripDetails() {
   const handleEndJourney = async () => {
     if (!tripDetails.id) return;
     try {
-      await apiPatch(`/api/trips/${tripDetails.id}/deactivate`, {});
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/deactivate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch {
       setAlertConfig({
@@ -208,7 +219,7 @@ export default function TripDetails() {
       : [...currentVisited, index];
 
     try {
-      await apiPatch(`/api/trips/${tripDetails.id}/visited-indices`, {
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/visited-indices`, {
         visited_indices: newVisited,
       });
 
@@ -333,19 +344,7 @@ export default function TripDetails() {
               style={[styles.activateButton, { borderColor: colors.RED, borderWidth: 1 }]}
               type="secondary"
             />
-          ) : (
-            !tripDetails?.concertData && (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <Button
-                  title="Activate Trip & Open Wallet"
-                  onPress={handleActivateTrip}
-                  loading={isAnimating}
-                  icon="rocket"
-                  style={styles.activateButton}
-                />
-              </Animated.View>
-            )
-          )}
+          ) : null}
 
           {tripDetails?.concertData && (
             <ConcertInfo concertDetails={tripDetails as any} />
@@ -353,6 +352,7 @@ export default function TripDetails() {
 
           <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || (tripDetails?.concertData?.artist ? `${tripDetails.concertData.artist} Concert` : "")} />
 
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <TransportInfo transportData={transportData as any} />
 
@@ -378,7 +378,7 @@ export default function TripDetails() {
             })}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <RestaurantsInfo
             restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}
@@ -389,17 +389,64 @@ export default function TripDetails() {
         </View>
       </ScrollView>
 
-      {isAnimating && (
-        <View style={[styles.animationOverlay, { backgroundColor: isDark ? "rgba(0, 0, 0, 0.95)" : "rgba(255, 255, 255, 0.95)" }]}>
-          <LottieView
-            source={require("@/assets/animations/active.json")}
-            autoPlay
-            loop
-            style={{ width: width * 0.8, height: width * 0.8 }}
-          />
-          <Text style={[styles.activatingText, { color: colors.TEXT }]}>Setting up your trip...</Text>
-        </View>
-      )}
+      <AnimatePresence>
+        {isAnimating && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={StyleSheet.absoluteFill}
+          >
+            <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.animationOverlay}>
+              <View style={styles.animCenterContent}>
+                <MotiView
+                  from={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 12 }}
+                  style={[styles.pulsingHex, { borderColor: colors.GOLD }]}
+                >
+                  <MotiView
+                    from={{ scale: 1 }}
+                    animate={{ scale: 1.2 }}
+                    transition={{
+                      type: "timing",
+                      duration: 1000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                  >
+                    <Ionicons name="sparkles" size={60} color={colors.GOLD} />
+                  </MotiView>
+                </MotiView>
+
+                <MotiView
+                  from={{ translateX: -width }}
+                  animate={{ translateX: width }}
+                  transition={{
+                    type: "timing",
+                    duration: 1500,
+                    loop: true,
+                  }}
+                  style={[styles.scannerLine, { backgroundColor: colors.GOLD }]}
+                />
+
+                <View style={styles.statusContainer}>
+                  <MotiView
+                    key="animating-text"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", duration: 500 }}
+                  >
+                    <Text style={[styles.activatingText, { color: colors.TEXT }]}>
+                      Configuring Safar Intel...
+                    </Text>
+                  </MotiView>
+                </View>
+              </View>
+            </BlurView>
+          </MotiView>
+        )}
+      </AnimatePresence>
 
       <SafarAlert
         visible={confirmActivateVisible}
@@ -473,7 +520,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 35,
     paddingBottom: 100,
   },
-  headerBlock: { marginBottom: 10, paddingHorizontal: 0 },
+  headerBlock: { marginBottom: 20, paddingHorizontal: 0 },
   titleRow: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -510,12 +557,39 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontFamily: "interBold",
     fontSize: 18,
+    textAlign: "center",
+  },
+  animCenterContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  pulsingHex: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  scannerLine: {
+    height: 2,
+    width: width * 0.8,
+    marginTop: 40,
+    opacity: 0.5,
+    borderRadius: 1,
+  },
+  statusContainer: {
+    marginTop: 40,
+    height: 30,
+    justifyContent: "center",
   },
   divider: {
     height: 1,
-    width: width * 0.923,
-    marginLeft: width * 0.025,
-    marginVertical: 20,
+    width: "95%",
+    alignSelf: "center",
+    marginVertical: 10,
   },
   finishedBadge: {
     paddingVertical: 15,

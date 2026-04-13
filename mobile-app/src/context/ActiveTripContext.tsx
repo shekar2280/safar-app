@@ -39,7 +39,7 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices: currentVisited } : prev);
       console.error("Failed to sync visited status:", error);
-      Alert.alert("Sync Error", "Failed to update visited status in global journey.");
+      Alert.alert("Update Failed", "We couldn't save your progress. Please check your connection and try again.");
     }
   };
 
