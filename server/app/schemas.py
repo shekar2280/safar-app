@@ -13,6 +13,7 @@ class UserProfile(BaseModel):
     updated_at: Optional[datetime.datetime] = None
     last_login: Optional[datetime.datetime] = None
     home_location: Optional[Any] = None
+    is_name_custom: bool = False
 
     class Config:
         from_attributes = True

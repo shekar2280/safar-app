@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useUser } from "@/src/context/UserContext";
-import { updateUserProfile } from "@/src/lib/api";
+import { updateUserProfile, USER_KEY } from "@/src/lib/api";
 import * as Location from "expo-location";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -106,25 +106,33 @@ export default function PersonalDetails() {
 
     setLoading(true);
     try {
-      // 1. Update Firebase
       await setDoc(doc(db, "users", user.uid), { fullName: name }, { merge: true });
-      
-      // 2. Update Backend API
+
       const updatedUser = await updateUserProfile({
         full_name: name,
         home_location: homeLocation
       });
 
-      // 3. Update local state
       const updatedProfile = { 
         ...userProfile!, 
         fullName: name, 
         homeLocation: homeLocation,
+        isNameCustom: true, 
         ...updatedUser 
       };
       
       setUserProfile(updatedProfile);
-      await AsyncStorage.setItem(`profile_${user.uid}`, JSON.stringify(updatedProfile));
+
+      const rawUser = {
+        full_name: name,
+        home_location: homeLocation,
+        is_name_custom: true,
+        email: userProfile?.email,
+        firebase_uid: user.uid,
+        photo_url: userProfile?.photoURL
+      };
+      
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(rawUser));
       
       showAlert("Profile Updated", "Your personal details have been saved successfully.");
       setTimeout(() => router.back(), 1500);
