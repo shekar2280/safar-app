@@ -16,7 +16,7 @@ async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)
         decoded = firebase_auth.verify_id_token(body.firebase_id_token)
     except Exception as e:
         auth_logger.error("Firebase token verification failed", extra={"error": str(e)})
-        raise HTTPException(status_code=401, detail="Invalid Firebase ID token")
+        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again to continue.")
 
     firebase_uid = decoded.get("uid")
     email = decoded.get("email")

@@ -165,6 +165,7 @@ export default function CreateTripIndex() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        style={{ backgroundColor: colors.BACKGROUND }}
       >
         {params.insight ? (
           <MotiView
@@ -259,7 +260,7 @@ export default function CreateTripIndex() {
             from={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: DELAY + 200, type: "timing" }}
-            style={styles.statTile}
+            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
           >
             <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>DURATION</Text>
             <Text style={[styles.tileValue, { color: colors.TEXT }]}>{totalDays}</Text>
@@ -267,18 +268,18 @@ export default function CreateTripIndex() {
 
             <View style={styles.tileActions}>
               <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, totalDays === 1 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === 1 && { opacity: 0.3 }]}
                 onPress={() => setTotalDays(p => Math.max(1, p - 1))}
                 disabled={totalDays === 1}
               >
-                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>—</Text>
+                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
                 onPress={() => setTotalDays(p => Math.min(MAX_TRIP_DAYS, p + 1))}
                 disabled={totalDays === MAX_TRIP_DAYS}
               >
-                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>+</Text>
+                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
               </TouchableOpacity>
             </View>
           </MotiView>
@@ -287,7 +288,7 @@ export default function CreateTripIndex() {
             from={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: DELAY + 300, type: "timing" }}
-            style={styles.statTile}
+            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
           >
             <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>COMPANIONS</Text>
             <Text style={[styles.tileValue, { color: colors.TEXT }]}>{travelerCount}</Text>
@@ -295,18 +296,18 @@ export default function CreateTripIndex() {
 
             <View style={styles.tileActions}>
               <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, travelerCount === 1 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 1 && { opacity: 0.3 }]}
                 onPress={() => setTravelerCount(p => Math.max(1, p - 1))}
                 disabled={travelerCount === 1}
               >
-                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>—</Text>
+                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, travelerCount === 6 && { opacity: 0.3 }]}
+                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 6 && { opacity: 0.3 }]}
                 onPress={() => setTravelerCount(p => Math.min(6, p + 1))}
                 disabled={travelerCount === 6}
               >
-                <Text style={[styles.tileBtnText, { color: colors.TEXT }]}>+</Text>
+                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
               </TouchableOpacity>
             </View>
           </MotiView>
@@ -328,10 +329,10 @@ export default function CreateTripIndex() {
                   onPress={() => setBudget(item)}
                   style={[styles.budgetPill, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }, isSelected && { backgroundColor: colors.PRIMARY }]}
                 >
-                  <Text style={[
+                    <Text style={[
                       styles.budgetPillText, 
                       { color: colors.MUTED_TEXT }, 
-                      isSelected && { color: isDark ? colors.BLACK : colors.WHITE }
+                      isSelected && { color: colors.GOLD }
                     ]}>
                     {item.title.toUpperCase()}
                   </Text>
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderLeftWidth: 5,
+    borderLeftWidth: 2,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
     shadowRadius: 15,
@@ -550,14 +551,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   tileBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   tileBtnText: {
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: "outfitBold",
   },
   budgetTierCard: {

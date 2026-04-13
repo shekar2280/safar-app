@@ -23,8 +23,6 @@ from app.services.opentripmap_service import opentripmap_service
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
-# --- Helpers ---
-
 def get_gemini_client():
     api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
     if not api_key:
@@ -32,29 +30,42 @@ def get_gemini_client():
         raise ValueError("AI API key missing")
     return genai.Client(api_key=api_key)
 
-async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash"):
+async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash", fallback_model: str = "gemini-1.5-flash"):
     client = get_gemini_client()
     attempts = 0
-    max_attempts = 3
+    max_attempts = 4 
+    current_model = primary_model
+    
     while attempts < max_attempts:
         try:
             response = client.models.generate_content(
-                model=primary_model,
+                model=current_model,
                 contents=prompt,
             )
             return response.text
         except Exception as e:
             error_str = str(e).upper()
+            attempts += 1
+
+            if attempts == 2 and current_model == primary_model:
+                api_logger.warning(f"Primary model {primary_model} busy. Switching to fallback {fallback_model}...")
+                current_model = fallback_model
+                continue
+
             if "503" in error_str or "UNAVAILABLE" in error_str or "EXHAUSTED" in error_str:
-                attempts += 1
                 if attempts < max_attempts:
-                    wait_time = attempts * 3
-                    api_logger.warning(f"Gemini {primary_model} busy. Retrying in {wait_time}s...", extra={"attempt": attempts})
+                    wait_time = attempts * 2 
+                    api_logger.warning(f"Gemini {current_model} busy. Retrying in {wait_time}s...", extra={"attempt": attempts})
                     await asyncio.sleep(wait_time)
                     continue
-            api_logger.error(f"Error with model {primary_model}: {str(e)}")
+            
+            api_logger.error(f"Error with model {current_model}: {str(e)}")
             break
-    raise HTTPException(status_code=503, detail="The AI Service (2.5-flash) is currently overloaded. Please try again in a moment.")
+            
+    raise HTTPException(
+        status_code=503, 
+        detail="We're experiencing high demand right now. Please try again in a moment."
+    )
 
 async def get_pexels_image(query: str) -> str:
     api_key = os.getenv("PEXELS_API_KEY")
@@ -78,8 +89,6 @@ async def get_pexels_image(query: str) -> str:
         api_logger.warning("Pexels fetch failed", extra={"query": query, "error": str(e)})
     
     return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
-
-# --- Endpoints ---
 
 @router.get("/inspiration", response_model=schemas.InspirationResponse)
 @cache(expire=3600)
@@ -150,7 +159,7 @@ async def get_places(lat: float, lon: float, radius: int = 5000):
 async def find_concerts(request: Request, artistName: str):
     ticketmaster_key = os.getenv("TICKETMASTER_API_KEY")
     if not ticketmaster_key:
-        raise HTTPException(status_code=500, detail="Ticketmaster API key missing")
+        raise HTTPException(status_code=503, detail="Concert discovery is temporarily unavailable. Check back soon!")
     async with httpx.AsyncClient() as http_client:
         url = (
             f"https://app.ticketmaster.com/discovery/v2/events.json"
@@ -200,14 +209,14 @@ async def get_trending_places(
         json_match = re.search(r"\[[\s\S]*\]", raw_text)
         if not json_match:
             api_logger.error("NO JSON ARRAY FOUND IN GEMINI RESPONSE", extra={"raw_text": raw_text})
-            raise HTTPException(status_code=500, detail="Failed to parse trending places from AI response")
+            raise HTTPException(status_code=500, detail="We couldn't refresh trending spots just now. Please try again later.")
 
         json_str = json_match.group(0)
         try:
             destinations = json.loads(json_str)
         except Exception as json_err:
             api_logger.error("JSON PARSE ERROR", extra={"error": str(json_err), "json_str": json_str})
-            raise HTTPException(status_code=500, detail="Invalid JSON format in AI response")
+            raise HTTPException(status_code=500, detail="Something went wrong while curating destinations. Please try again.")
 
         if not isinstance(destinations, list):
             api_logger.error("GEMINI RESPONSE IS NOT A LIST", extra={"type": str(type(destinations))})
@@ -299,6 +308,8 @@ async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
                             ]
 
         return {"itinerary": itinerary_text, "imageUrls": image_urls}
+    except HTTPException:
+        raise
     except Exception as e:
         api_logger.error("Generate itinerary failed", extra={"error": str(e), "location": body.locationName}, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

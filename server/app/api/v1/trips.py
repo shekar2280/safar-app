@@ -19,7 +19,7 @@ async def get_saved_trip(normalized_key: str, db: Session = Depends(get_db)):
     trip = db.query(models.SavedTrip).filter(models.SavedTrip.normalized_key == normalized_key).first()
     if not trip:
         trip_logger.info("CACHE MISS", extra={"normalized_key": normalized_key})
-        raise HTTPException(status_code=404, detail="No cached trip found")
+        raise HTTPException(status_code=404, detail="We couldn't find a saved plan for this destination. Try generating a new one!")
     trip_logger.info("CACHE HIT", extra={"normalized_key": normalized_key, "saved_trip_id": trip.id})
     return trip
 
@@ -95,7 +95,7 @@ async def activate_trip(
         models.UserTrip.user_id == current_user.id,
     ).first()
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
 
     if trip.is_finished:
         raise HTTPException(status_code=403, detail="Trip is already finished and cannot be reactivated.")
@@ -134,7 +134,7 @@ async def deactivate_trip(
         models.UserTrip.user_id == current_user.id,
     ).first()
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
 
     now = datetime.datetime.utcnow()
     trip.is_active = False
@@ -158,7 +158,7 @@ async def update_trip_budget(
         models.UserTrip.user_id == current_user.id,
     ).first()
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
     
     trip.total_budget = req.total_budget
     trip.updated_at = datetime.datetime.utcnow()
@@ -180,7 +180,7 @@ async def update_trip_visited_indices(
     ).first()
     
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
     
     trip.visited_indices = req.visited_indices
     flag_modified(trip, "visited_indices")
@@ -203,7 +203,7 @@ async def archive_trip_spendings(
         models.UserTrip.user_id == current_user.id,
     ).first()
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
     
     trip.archived_spendings = req.spendings
     trip.updated_at = datetime.datetime.utcnow()
@@ -216,7 +216,7 @@ async def archive_trip_spendings(
 async def delete_trip(trip_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     trip = db.query(models.UserTrip).filter(models.UserTrip.id == trip_id, models.UserTrip.user_id == current_user.id).first()
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
     
     db.delete(trip)
     db.commit()
