@@ -143,8 +143,8 @@ export default function Profile() {
     <View style={[styles.mainWrapper, { backgroundColor: colors.BACKGROUND }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} bounces={true}>
-        <View style={[styles.minimalHeader, { backgroundColor: isDark ? colors.BACKGROUND : "#F8FAFC", paddingTop: insets.top + 20 }]}>
-          <View style={[styles.logoGlassFrame, { borderColor: colors.GOLD }]}>
+        <View style={[styles.minimalHeader, { backgroundColor: isDark ? colors.BACKGROUND : colors.BACKGROUND, paddingTop: insets.top + 20 }]}>
+          <View style={[styles.logoGlassFrame, { borderColor: colors.GOLD, backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)" }]}>
             <Image
               source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775573387/new_logo5_tnguhv.png" }}
               style={styles.logoImage}
@@ -152,6 +152,7 @@ export default function Profile() {
             />
           </View>
           <Text style={[styles.appNameLarge, { color: colors.GOLD }]}>SAFAR</Text>
+          <Text style={[styles.tagline, { color: colors.MUTED_TEXT }]}>BEYOND THE HORIZON AWAITS</Text>
         </View>
 
         <View style={[styles.content, { backgroundColor: colors.BACKGROUND }]}>
@@ -299,10 +300,19 @@ const styles = StyleSheet.create({
   },
   appNameLarge: {
     fontFamily: "playfairBold",
-    fontSize: 32,
-    letterSpacing: 12,
+    fontSize: 28,
+    letterSpacing: 14,
     textAlign: "center",
-    marginLeft: 12,
+    marginLeft: 14,
+    marginTop: 10,
+  },
+  tagline: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    letterSpacing: 4,
+    textAlign: "center",
+    marginTop: 8,
+    opacity: 0.6,
   },
   content: {
     flex: 1,
@@ -316,12 +326,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 18,
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     borderRadius: 24,
     borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
   destructiveShadow: {
-    borderColor: "rgba(239, 68, 68, 0.1)",
+    borderColor: "rgba(239, 68, 68, 0.2)",
   },
   menuIconBox: {
     width: 44,
