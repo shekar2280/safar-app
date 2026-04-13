@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   minimalHeader: {
     alignItems: "center",
-    paddingBottom: 30,
+    paddingBottom: 10,
   },
   logoGlassFrame: {
     width: 100,
