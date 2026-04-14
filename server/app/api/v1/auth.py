@@ -103,3 +103,16 @@ async def update_me(
         "db_is_name_custom": current_user.is_name_custom
     })
     return current_user
+
+
+@router.delete("/me")
+async def delete_me(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Permanently delete the user account and all associated data."""
+    auth_logger.info(f"Account deletion initiated for user: {current_user.id}")
+    db.delete(current_user)
+    db.commit()
+    auth_logger.info(f"Account deleted successfully: {current_user.id}")
+    return {"status": "success", "message": "Account wiped successfully"}
