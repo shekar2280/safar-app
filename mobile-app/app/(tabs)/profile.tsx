@@ -38,6 +38,7 @@ import { useUser } from "@/src/context/UserContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { BlurView } from "expo-blur";
+import { apiDelete } from "@/src/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -99,8 +100,19 @@ export default function Profile() {
       const deleteTripsPromises = snapshot.docs.map((d) => deleteDoc(d.ref));
       await Promise.all(deleteTripsPromises);
 
+      // 1. Wipe from our primary SQL backend 
+      try {
+        await apiDelete("/api/v1/auth/me");
+      } catch (err) {
+        console.error("Backend wipe failed", err);
+        // We continue anyway to ensure Firebase is also cleared
+      }
+
+      // 2. Clear Firebase Firestore
       await deleteDoc(doc(db, "UserTrips", user.uid));
       await deleteDoc(doc(db, "users", user.uid));
+      
+      // 3. Delete Firebase Auth User
       await deleteUser(user);
 
       await AsyncStorage.removeItem("seenLogin");
