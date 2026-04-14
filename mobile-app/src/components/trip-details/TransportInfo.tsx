@@ -76,7 +76,9 @@ const TransportInfo = ({ transportData }: { transportData?: TransportData }) => 
       >
         <View style={styles.routeHeader}>
           <View style={styles.iataBox}>
-            <Text style={[styles.iataCode, { color: "#FFF" }]}>{departureIata}</Text>
+            <Text style={[styles.iataCode, { color: "#FFF", fontSize: (departureIata?.length || 0) > 3 ? 24 : 32 }]}>
+              {departureIata}
+            </Text>
             <Text style={[styles.cityLabel, { color: "rgba(255,255,255,0.6)" }]}>DEPARTURE</Text>
           </View>
 
@@ -88,7 +90,9 @@ const TransportInfo = ({ transportData }: { transportData?: TransportData }) => 
           </View>
 
           <View style={[styles.iataBox, { alignItems: "flex-end" }]}>
-            <Text style={[styles.iataCode, { color: "#FFF" }]}>{destinationIata}</Text>
+            <Text style={[styles.iataCode, { color: "#FFF", fontSize: (destinationIata?.length || 0) > 3 ? 24 : 32 }]}>
+              {destinationIata}
+            </Text>
             <Text style={[styles.cityLabel, { color: "rgba(255,255,255,0.6)" }]}>ARRIVAL</Text>
           </View>
         </View>

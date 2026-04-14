@@ -21,6 +21,7 @@ import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 import { singerOptions } from "@/src/constants/travel-data";
 import { ConcertEvent } from "@/src/types/interfaces";
 import { Ionicons } from "@expo/vector-icons";
+import { apiGet } from "@/src/lib/api";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,15 +42,16 @@ export default function ConcertTrip() {
 
   const fetchConcerts = async (artistName: string): Promise<ConcertEvent[]> => {
     try {
-      const CONCERT_FINDER_URL = process.env.EXPO_PUBLIC_CONCERT_FINDER_URL;
-      if (!CONCERT_FINDER_URL) return [];
+      const eventsRaw = await apiGet<any[]>("/api/v1/discovery/concert", { 
+        artistName 
+      });
 
-      const response = await fetch(
-        `${CONCERT_FINDER_URL}?artistName=${encodeURIComponent(artistName)}`,
-      );
-      const eventsRaw = await response.json();
+      if (!Array.isArray(eventsRaw)) {
+        console.warn("Expected concert array, got:", typeof eventsRaw);
+        return [];
+      }
 
-      if (!eventsRaw || eventsRaw.length === 0) return [];
+      if (eventsRaw.length === 0) return [];
 
       const events: ConcertEvent[] = eventsRaw.map((event: any) => {
         const highResImage =
