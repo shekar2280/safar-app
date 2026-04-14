@@ -199,7 +199,7 @@ export default function GenerateTrip() {
             : (tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : [])
         } : null;
 
-        await apiPost("/api/v1/trips", {
+        const newlyCreatedTrip = await apiPost<any>("/api/v1/trips", {
           normalized_key: normalizedKey,
           trip_plan: itineraryData,
           image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
@@ -212,9 +212,41 @@ export default function GenerateTrip() {
           concert_data: concertPayload,
         });
 
+        const savedTrip = newlyCreatedTrip.saved_trip;
+        const imageUrls: string[] = savedTrip?.image_urls ?? [];
+        const mappedTrip = {
+          id: String(newlyCreatedTrip.id),
+          savedTripId: newlyCreatedTrip.normalized_key,
+          userEmail: "",
+          userId: String(newlyCreatedTrip.user_id ?? ""),
+          totalDays: newlyCreatedTrip.total_days ?? 1,
+          traveler: newlyCreatedTrip.traveler,
+          isInternational: newlyCreatedTrip.is_international,
+          departureIata: newlyCreatedTrip.departure_iata,
+          destinationIata: newlyCreatedTrip.destination_iata,
+          travelerMode: newlyCreatedTrip.traveler_mode,
+          isActive: newlyCreatedTrip.is_active,
+          isFinished: newlyCreatedTrip.is_finished,
+          totalBudget: newlyCreatedTrip.total_budget || 0,
+          visitedIndices: newlyCreatedTrip.visited_indices || [],
+          archivedSpendings: newlyCreatedTrip.archived_spendings || [],
+          activatedAt: newlyCreatedTrip.activated_at,
+          completedAt: newlyCreatedTrip.completed_at,
+          updatedAt: newlyCreatedTrip.updated_at,
+          createdAt: newlyCreatedTrip.created_at,
+          tripPlan: savedTrip?.trip_plan,
+          concertData: newlyCreatedTrip.concert_data,
+          imageUrl: newlyCreatedTrip.image_url || newlyCreatedTrip.imageUrl || (imageUrls.length > 0 ? imageUrls : undefined),
+        };
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
-        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+
+        queryClient.setQueryData(tripQueryKeys.lists(), (old: any) => {
+          return old ? [mappedTrip, ...old] : [mappedTrip];
+        });
+        
+        await queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
         setLoading(false);
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {

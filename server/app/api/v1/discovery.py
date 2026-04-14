@@ -30,7 +30,7 @@ def get_gemini_client():
         raise ValueError("AI API key missing")
     return genai.Client(api_key=api_key)
 
-async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash", fallback_model: str = "gemini-1.5-flash"):
+async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash", fallback_model: str = "gemini-2.5-flash-lite"):
     client = get_gemini_client()
     attempts = 0
     max_attempts = 4 
