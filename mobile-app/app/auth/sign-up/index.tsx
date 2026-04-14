@@ -18,7 +18,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { syncUserWithBackend } from "@/src/lib/api";
@@ -57,7 +57,10 @@ export default function SignUp() {
     setLoading(true);
     createUserWithEmailAndPassword(auth, email.trim(), password.trim())
       .then(async (userCredential) => {
-        const idToken = await userCredential.user.getIdToken();
+        await updateProfile(userCredential.user, { displayName: fullName.trim() });
+
+        const idToken = await userCredential.user.getIdToken(true);
+        
         await AsyncStorage.setItem("seenLogin", "true");
         await syncUserWithBackend(idToken);
         router.replace("/mytrip" as any);
