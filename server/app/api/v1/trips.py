@@ -191,6 +191,58 @@ async def update_trip_visited_indices(
     return trip
 
 
+@router.patch("/{trip_id}/skipped-indices", response_model=schemas.UserTripOut)
+async def update_trip_skipped_indices(
+    trip_id: str,
+    req: schemas.UpdateTripSkippedRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.UserTrip).filter(
+        models.UserTrip.id == trip_id,
+        models.UserTrip.user_id == current_user.id,
+    ).first()
+    
+    if not trip:
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
+    
+    trip.skipped_indices = req.skipped_indices
+    flag_modified(trip, "skipped_indices")
+    trip.updated_at = datetime.datetime.utcnow()
+    
+    db.commit()
+    db.refresh(trip)
+    return trip
+
+
+@router.patch("/{trip_id}/finalize", response_model=schemas.UserTripOut)
+async def finalize_trip(
+    trip_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Conclude the active journey: mark as finished, deactivate, and freeze the record."""
+    trip = db.query(models.UserTrip).filter(
+        models.UserTrip.id == trip_id,
+        models.UserTrip.user_id == current_user.id,
+    ).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="We couldn't locate this trip journey. It might have been deleted.")
+
+    if trip.is_finished:
+        return trip
+
+    now = datetime.datetime.utcnow()
+    trip.is_finished = True
+    trip.is_active = False
+    trip.completed_at = now
+    trip.updated_at = now
+    db.commit()
+    db.refresh(trip)
+    trip_logger.info("Trip finalized (Conclude Journey)", extra={"trip_id": trip_id, "user_id": current_user.id})
+    return trip
+
+
 @router.patch("/{trip_id}/archive-spendings", response_model=schemas.UserTripOut)
 async def archive_trip_spendings(
     trip_id: str,

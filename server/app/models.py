@@ -68,6 +68,7 @@ class UserTrip(Base):
     # Wallet & Progress (Space-Efficient)
     total_budget = Column(Float, default=0.0)
     visited_indices = Column(JSON, default=list)
+    skipped_indices = Column(JSON, default=list)
     archived_spendings = Column(JSON, nullable=True) # Compact historical data
 
     # Personal Event Data (Overwrites shared SavedTrip photos/info if present)

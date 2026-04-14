@@ -4,17 +4,18 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Button from "@/src/components/common/Button";
 
 import { PlannedTripProps } from "@/src/types/interfaces";
 
 export default function PlannedTrip({
   cityName,
   isActive,
+  isFinished = false,
   onActivate,
   onNavigateToActive,
   itineraryDetails,
   visitedIndices = [],
+  skippedIndices = [],
   onToggleVisited,
 }: PlannedTripProps) {
   const colors = useThemeColors();
@@ -22,11 +23,28 @@ export default function PlannedTrip({
 
   const places = useMemo(() => {
     if (!itineraryDetails || !Array.isArray(itineraryDetails)) return [];
+    let raw: any[];
     if (itineraryDetails.length > 0 && itineraryDetails[0].places) {
-      return itineraryDetails.flatMap(day => day.places || []);
+      raw = itineraryDetails.flatMap(day => day.places || []);
+    } else {
+      raw = itineraryDetails;
     }
-    return itineraryDetails;
-  }, [itineraryDetails]);
+
+    const unvisited = raw.map((p, idx) => ({ ...p, originalIndex: idx }))
+      .filter(p => !visitedIndices.includes(p.originalIndex));
+    
+    const normal = unvisited.filter(p => !skippedIndices.includes(p.originalIndex));
+    const postponed = unvisited.filter(p => skippedIndices.includes(p.originalIndex));
+    
+    // Always show the next available stop as the first item, even if it was skipped 
+    // unless there are non-skipped items. This keeps the summary clean.
+    const activeOrdered = [...normal, ...postponed];
+    
+    const completed = raw.map((p, idx) => ({ ...p, originalIndex: idx }))
+      .filter(p => visitedIndices.includes(p.originalIndex));
+
+    return [...activeOrdered, ...completed];
+  }, [itineraryDetails, visitedIndices, skippedIndices]);
 
   const renderPlaceItem = (item: any, idx: number, isBlurred = false, hideLine = false) => {
     const isVisited = visitedIndices.includes(idx);
@@ -37,9 +55,9 @@ export default function PlannedTrip({
           <View style={[styles.timelineDot, { backgroundColor: isVisited ? colors.GOLD : colors.BORDER }]} />
           {!hideLine && !(idx === places.length - 1 && !isBlurred) && <View style={[styles.timelineLine, { backgroundColor: isVisited ? colors.GOLD : colors.BORDER }]} />}
         </View>
-        <View style={[styles.placeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER, flex: 1 }, isBlurred && styles.blurredCard, isVisited && [styles.visitedCard, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderColor: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0" }]]}>
+        <View style={[styles.placeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER, flex: 1 }, isBlurred && styles.blurredCard, isVisited && styles.visitedCard]}>
           <View style={styles.vibeRow}>
-            <Text style={[styles.placeName, { color: colors.TEXT }, isVisited && [styles.visitedText, { color: isDark ? "rgba(255,255,255,0.3)" : "#94A3B8" }]]}>{item.placeName}</Text>
+            <Text style={[styles.placeName, { color: colors.TEXT }, isVisited && styles.visitedText]}>{item.placeName}</Text>
             {isActive && !isBlurred && (
               <TouchableOpacity
                 onPress={() => onToggleVisited?.(idx)}
@@ -75,6 +93,42 @@ export default function PlannedTrip({
     );
   };
 
+  const renderTeaserItem = (item: any, idx: number) => (
+    <View key={idx} style={styles.timelineRow}>
+      <View style={styles.timelineSidebar}>
+        <View style={[styles.timelineDot, { backgroundColor: 'transparent', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.GOLD, opacity: 0.5 }]} />
+        <View style={[styles.timelineLine, { backgroundColor: colors.BORDER }]} />
+      </View>
+      <View style={[styles.placeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER, flex: 1, overflow: 'hidden' }]}>
+        <View style={styles.vibeRow}>
+          <Text style={[styles.placeName, { color: colors.MUTED_TEXT, opacity: 0.7 }]} numberOfLines={1}>{item.placeName}</Text>
+          <View style={[styles.teaserBadge, { backgroundColor: isDark ? 'rgba(212,175,55,0.10)' : 'rgba(212,175,55,0.08)' }]}>
+            <Text style={[styles.teaserBadgeText, { color: '#D4AF37' }]}>COMING UP</Text>
+          </View>
+        </View>
+        <View style={[styles.teaserOverlay, { backgroundColor: isDark ? 'rgba(18,18,28,0.7)' : 'rgba(248,248,252,0.78)' }]} pointerEvents="none">
+          <Ionicons name="lock-closed-outline" size={13} color={colors.MUTED_TEXT} />
+          <Text style={[styles.teaserOverlayText, { color: colors.MUTED_TEXT }]}>Details revealed when you arrive</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderLockedSummary = (count: number) => (
+    <View style={styles.timelineRow}>
+      <View style={styles.timelineSidebar}>
+        <View style={[styles.timelineDot, { backgroundColor: 'transparent', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.BORDER, opacity: 0.4 }]} />
+      </View>
+      <View style={[styles.lockedSummaryCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+        <Ionicons name="lock-closed" size={16} color="#D4AF37" />
+        <Text style={[styles.lockedSummaryText, { color: colors.MUTED_TEXT }]}>
+          {count === 1 ? '1 more hidden sight ahead' : `${count} more hidden sights ahead`}
+        </Text>
+      </View>
+    </View>
+  );
+
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
@@ -88,12 +142,10 @@ export default function PlannedTrip({
       <View style={styles.itineraryList}>
         {places.length > 0 && renderPlaceItem(places[0], 0)}
 
-        {isActive && places.slice(1).map((item, idx) => renderPlaceItem(item, idx + 1))}
-
-        {!isActive && places.length > 1 && (
+        {places.length > 1 && (
           <View style={styles.lockedContainer}>
             <View style={styles.blurredItemsWrapper}>
-              {places.slice(1, 2).map((item, idx, arr) => renderPlaceItem(item, idx + 1, true, idx === arr.length - 1))}
+              {places.slice(1, 2).map((item, idx) => renderPlaceItem(item, idx + 1, true, true))}
               <LinearGradient
                 colors={["rgba(255,255,255,0)", isDark ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.8)", colors.BACKGROUND]}
                 style={StyleSheet.absoluteFillObject}
@@ -102,37 +154,69 @@ export default function PlannedTrip({
             </View>
 
             <View style={[styles.lockOverlayContainer, { zIndex: 10 }]}>
-              <TouchableOpacity activeOpacity={0.95} onPress={onActivate} style={styles.premiumLockCard}>
-                <LinearGradient colors={["#262626", "#1a1a1a"]} style={styles.gradientBg}>
-                  <View style={styles.lockIconContainer}>
-                    <Ionicons name="sparkles" size={28} color={colors.GOLD} />
-                    <View style={styles.lockBadge}>
-                      <Ionicons name="lock-closed" size={12} color={Colors.BLACK} />
+              {isFinished ? (
+                <View style={[styles.premiumLockCard, { opacity: 0.95 }]}>
+                  <LinearGradient colors={["#262626", "#1a1a1a"]} style={styles.gradientBg}>
+                    <View style={styles.lockIconContainer}>
+                      <Ionicons name="trophy" size={28} color={colors.GOLD} />
+                      <View style={[styles.lockBadge, { backgroundColor: colors.GOLD }]}>
+                        <Ionicons name="checkmark-sharp" size={12} color={Colors.BLACK} />
+                      </View>
                     </View>
-                  </View>
-                  <Text style={[styles.lockTitle, { color: Colors.WHITE }]}>Unlock The Full Guide</Text>
-                  <Text style={[styles.lockSubtitle, { color: "rgba(255,255,255,0.6)" }]}>
-                    Activate your trip to reveal your full daily schedule, local hidden gems, and AI-powered travel tools.
-                  </Text>
-                  <View style={[styles.unlockButton, { backgroundColor: colors.GOLD }]}>
-                    <Text style={[styles.unlockButtonText, { color: Colors.BLACK }]}>Go Premium & Unlock</Text>
-                    <Ionicons name="chevron-forward" size={16} color={Colors.BLACK} />
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={[styles.lockTitle, { color: Colors.WHITE }]}>Journey Completed</Text>
+                      <Text style={[styles.lockSubtitle, { color: "rgba(255,255,255,0.6)", textAlign: 'center' }]}>
+                        We hope you had a magical experience!
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.95}
+                  onPress={isActive ? onNavigateToActive : onActivate}
+                  style={styles.premiumLockCard}
+                >
+                  <LinearGradient colors={["#262626", "#1a1a1a"]} style={styles.gradientBg}>
+                    <View style={styles.lockIconContainer}>
+                      <Ionicons
+                        name={isActive ? "compass" : "sparkles"}
+                        size={28}
+                        color={colors.GOLD}
+                      />
+                      <View style={styles.lockBadge}>
+                        <Ionicons
+                          name={isActive ? "navigate" : "lock-closed"}
+                          size={12}
+                          color={Colors.BLACK}
+                        />
+                      </View>
+                    </View>
+                    <Text style={[styles.lockTitle, { color: Colors.WHITE }]}>
+                      {isActive ? "Ready to Explore?" : "Unlock The Full Guide"}
+                    </Text>
+                    <Text style={[styles.lockSubtitle, { color: "rgba(255,255,255,0.6)" }]}>
+                      {isActive
+                        ? "Jump into the Live Guide to get real-time navigation, distances, and your full Fog-of-War itinerary."
+                        : "Activate your trip to reveal your full daily schedule, local hidden gems, and AI-powered travel tools."}
+                    </Text>
+                    <View style={[styles.unlockButton, { backgroundColor: colors.GOLD }]}>
+                      <Text style={[styles.unlockButtonText, { color: Colors.BLACK }]}>
+                        {isActive ? "GO LIVE" : "Activate Trip"}
+                      </Text>
+                      <Ionicons
+                        name={isActive ? "compass" : "chevron-forward"}
+                        size={16}
+                        color={Colors.BLACK}
+                      />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
       </View>
-
-      {isActive && (
-        <Button
-          title="GO LIVE"
-          onPress={onNavigateToActive}
-          icon="compass"
-          style={{ width: '100%' }}
-        />
-      )}
     </View>
   );
 }
@@ -175,7 +259,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 0,
+    padding: 0,
   },
   placeCard: {
     borderRadius: 20,
@@ -269,6 +353,7 @@ const styles = StyleSheet.create({
   },
   unlockButton: {
     paddingHorizontal: 20, paddingVertical: 12,
+    marginBottom: 25,
     borderRadius: 16, flexDirection: "row", alignItems: "center", gap: 8,
   },
   unlockButtonText: { fontFamily: "outfitBold", fontSize: 14 },
@@ -294,10 +379,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   visitedCard: {
-    opacity: 0.8,
+    opacity: 1,
   },
   visitedText: {
-    textDecorationLine: "line-through",
   },
   timelineRow: {
     flexDirection: "row",
@@ -321,5 +405,44 @@ const styles = StyleSheet.create({
     bottom: -16,
     left: 9,
     zIndex: 1,
+  },
+  teaserBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  teaserBadgeText: {
+    fontFamily: 'outfitBold',
+    fontSize: 8,
+    letterSpacing: 0.5,
+  },
+  teaserOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  teaserOverlayText: {
+    fontFamily: 'outfitMedium',
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  lockedSummaryCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  lockedSummaryText: {
+    fontFamily: 'outfitMedium',
+    fontSize: 13,
   },
 });
