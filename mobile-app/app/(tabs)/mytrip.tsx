@@ -10,6 +10,7 @@ import {
   Keyboard,
   StatusBar,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
@@ -37,7 +38,7 @@ export default function Mytrip() {
   const colors = useThemeColors();
   const deleteTrip = useDeleteTrip();
   const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
-  const loading = authLoading || tripsLoading || (isFetching && userTrips.length === 0);
+  const loading = authLoading || tripsLoading;
   
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
@@ -133,6 +134,14 @@ export default function Mytrip() {
           { backgroundColor: colors.BACKGROUND, paddingTop: insets.top + 5 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !loading}
+            onRefresh={refetch}
+            tintColor={colors.PRIMARY}
+            colors={[colors.PRIMARY]}
+          />
+        }
       >
         <View style={styles.header}>
           {isSearching ? (
