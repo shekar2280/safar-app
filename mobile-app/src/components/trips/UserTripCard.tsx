@@ -51,8 +51,10 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     return keywords.some(k => searchStr.includes(k));
   }, [trip]);
 
-  const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival)
-    ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival) as string || "").toLowerCase().includes("concert") ? "" : " Concert"}`
+  const isConcert = !!trip?.concertData || isConcertLegacy;
+
+  const tripName = trip?.concertData
+    ? `${trip?.concertData?.artist}${trip?.concertData?.artist?.toLowerCase().includes("concert") ? "" : " Concert"}`
     : isConcertLegacy
       ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ((trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
       : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
@@ -90,7 +92,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
       .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
       .map(u => u.trim());
 
-    if (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) {
+    if (isConcert) {
       if (uniqueUrls.length > 0) return [{ uri: uniqueUrls[0] }];
       return [{ uri: concertFallback }];
     }
@@ -98,7 +100,7 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     if (uniqueUrls.length > 0) return uniqueUrls.map(u => ({ uri: u }));
 
     return [{ uri: randomFallback }];
-  }, [trip, randomFallback, concertFallback, isConcertLegacy]);
+  }, [trip, randomFallback, concertFallback, isConcert]);
 
   React.useEffect(() => {
     if (imageSources.length <= 1) return;
@@ -203,10 +205,10 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
         </View>
       )}
 
-      {(trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) && (
+      {isConcert && (
         <View style={styles.badgeContainer}>
           <View style={[styles.eventBadge, { backgroundColor: colors.SECONDARY }]}>
-            <Text style={[styles.badgeText, { color: isDark ? colors.BLACK : colors.WHITE }]}>CONCERT</Text>
+            <Text style={[styles.badgeText, { color: Colors.BLACK }]}>CONCERT</Text>
           </View>
         </View>
       )}

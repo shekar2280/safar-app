@@ -130,7 +130,7 @@ export default function GenerateTrip() {
             basePrompt = HIDDEN_GEMS_AI_PROMPT;
           } else if (category === "FESTIVE") {
             basePrompt = FESTIVE_AI_PROMPT;
-          } else if (category === "CONCERT" || (tripData as any).festival) {
+          } else if (category === "CONCERT") {
             basePrompt = CONCERT_TRIP_AI_PROMPT;
           }
 
@@ -146,7 +146,7 @@ export default function GenerateTrip() {
             .replace(/{totalRecs}/g, totalRecs.toString())
             .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO")
             .replace(/{departure}/g, tripData.departureInfo?.name || "current location")
-            .replace(/{venueName}/g, tripData.destinationInfo?.name || "");
+            .replace(/{venueName}/g, (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name || "");
 
           if ((tripData as any).festival) {
             FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{festival}/g, (tripData as any).festival);
@@ -154,8 +154,6 @@ export default function GenerateTrip() {
           
           if (concertContext?.concertData?.artist) {
             FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, concertContext.concertData.artist);
-          } else if ((tripData as any).festival) {
-            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, (tripData as any).festival);
           }
 
           const result = await apiPost<{ itinerary: string, imageUrl?: string, imageUrls?: string[] }>("/api/v1/discovery/generate", {
@@ -180,10 +178,9 @@ export default function GenerateTrip() {
 
         const { icon: _icon, ...cleanTraveler } = (tripData.traveler as any) || {};
 
-        const isConcert = tripData.tripCategory === "CONCERT" || !!(tripData.destinationInfo as any)?.festival;
+        const isConcert = tripData.tripCategory === "CONCERT";
         const festivalName = (tripData.destinationInfo as any)?.festival;
-        const artistFallback = festivalName ? festivalName.replace(" Concert", "") : "";
-        const finalArtist = (tripData.destinationInfo as any)?.artist || concertContext?.concertData?.artist || artistFallback;
+        const finalArtist = (tripData.destinationInfo as any)?.artist || concertContext?.concertData?.artist;
 
         const concertPayload = isConcert ? {
           artist: finalArtist,

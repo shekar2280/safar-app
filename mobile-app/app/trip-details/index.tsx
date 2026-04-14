@@ -85,7 +85,7 @@ export default function TripDetails() {
       departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
       destinationIata: tripDetails?.tripPlan?.destinationIata,
       bestTransport: tripDetails?.tripPlan?.bestTransport,
-      weatherInsight: tripDetails?.tripPlan?.weatherInsight,
+      weatherInsight: tripDetails?.concertData ? undefined : tripDetails?.tripPlan?.weatherInsight,
       flights: flights,
     }),
     [tripDetails, flights]
@@ -350,7 +350,9 @@ export default function TripDetails() {
             <ConcertInfo concertDetails={tripDetails as any} />
           )}
 
-          <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || (tripDetails?.concertData?.artist ? `${tripDetails.concertData.artist} Concert` : "")} />
+          {!tripDetails?.concertData && (
+            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
+          )}
 
           <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 

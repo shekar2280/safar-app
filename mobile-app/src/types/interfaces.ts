@@ -130,11 +130,11 @@ export interface HotelOption {
   hotelName: string;
   hotelAddress: string;
   pricePerNight: number;
-  hotelImageURL: string;
-  geoCoordinates: GeoCoordinates;
+  hotelImageURL?: string;
+  geoCoordinates?: GeoCoordinates;
   rating: number;
   description: string;
-  suitabilityReason?: string;
+  suitabilityReason: string;
 }
 
 export interface PlaceItem {
@@ -162,9 +162,10 @@ export interface Restaurant {
 export interface LocalExperience {
   experienceName: string;
   description: string;
-  priceRange: string;
-  approximateCost?: string;
+  ticketPricing?: string | number;
+  address?: string;
   geoCoordinates?: GeoCoordinates;
+  vibe?: string;
 }
 
 export interface TripPlan {
