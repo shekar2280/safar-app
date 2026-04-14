@@ -68,6 +68,7 @@ class UserTripOut(BaseModel):
     
     total_budget: float = 0.0
     visited_indices: List[int] = []
+    skipped_indices: List[int] = []
     archived_spendings: Optional[List[Any]] = None
     
     concert_data: Optional[Any] = None
@@ -102,6 +103,10 @@ class UpdateTripBudgetRequest(BaseModel):
 
 class UpdateTripVisitedRequest(BaseModel):
     visited_indices: List[int]
+
+
+class UpdateTripSkippedRequest(BaseModel):
+    skipped_indices: List[int]
 
 
 class ArchiveSpendingsRequest(BaseModel):

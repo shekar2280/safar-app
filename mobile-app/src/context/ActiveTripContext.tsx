@@ -17,29 +17,33 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     setLastRefreshed(null);
   };
 
-  const markAsDone = async (placeName: string, userId: string, tripId: string, index?: number): Promise<void> => {
-    if (typeof index !== 'number') {
-        console.warn("markAsDone now requires an 'index' parameter for the SQL backend.");
-        return;
-    }
-
+  const markAsDone = async (tripId: string, visitedIndices: number[]): Promise<void> => {
     const currentVisited = activeTrip?.visitedIndices || [];
-    const newVisited = currentVisited.includes(index)
-      ? currentVisited.filter((i: number) => i !== index)
-      : [...currentVisited, index];
-
     try {
-      setActiveTrip((prev) => prev ? { ...prev, visitedIndices: newVisited } : prev);
-      
+      setActiveTrip((prev) => prev ? { ...prev, visitedIndices } : prev);
       await apiPatch(`/api/v1/trips/${tripId}/visited-indices`, {
-        visited_indices: newVisited,
+        visited_indices: visitedIndices,
       });
-      
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices: currentVisited } : prev);
       console.error("Failed to sync visited status:", error);
-      Alert.alert("Update Failed", "We couldn't save your progress. Please check your connection and try again.");
+      Alert.alert("Update Failed", "We couldn't save your progress.");
+    }
+  };
+
+  const skipPlace = async (tripId: string, skippedIndices: number[]): Promise<void> => {
+    const currentSkipped = activeTrip?.skipped_indices || [];
+    try {
+      setActiveTrip((prev) => prev ? { ...prev, skipped_indices: skippedIndices } : prev);
+      await apiPatch(`/api/v1/trips/${tripId}/skipped-indices`, {
+        skipped_indices: skippedIndices,
+      });
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+    } catch (error) {
+      setActiveTrip((prev) => prev ? { ...prev, skipped_indices: currentSkipped } : prev);
+      console.error("Failed to sync skipped status:", error);
+      Alert.alert("Update Failed", "We couldn't postpone this stop.");
     }
   };
 
@@ -52,6 +56,16 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
         lastRefreshed,
         setLastRefreshed,
         markAsDone,
+        skipPlace,
+        finalizeTrip: async (tripId: string) => {
+          try {
+            await apiPatch(`/api/v1/trips/${tripId}/finalize`, {});
+            setActiveTrip(prev => prev ? { ...prev, isFinished: true } : prev);
+            queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+          } catch (error) {
+            console.error("Failed to finalize trip:", error);
+          }
+        }
       }}
     >
       {children}

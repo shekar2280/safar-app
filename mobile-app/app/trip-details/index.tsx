@@ -44,12 +44,6 @@ import DetailsSkeleton from "@/src/components/skeleton/DetailsSkeleton";
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
 
-/**
- * TripDetails Screen
- * 
- * The main container for displaying all aspects of a generated trip,
- * including slideshow, weather, transport, hotels, itinerary, and dining.
- */
 export default function TripDetails() {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
@@ -62,7 +56,6 @@ export default function TripDetails() {
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
-  // Memoize search params and parsed trip data
   const parsedTrip = useMemo(() => {
     try {
       return typeof trip === "string" ? JSON.parse(trip) : trip;
@@ -74,9 +67,6 @@ export default function TripDetails() {
   const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
   const { data: flights = [] } = useFlightDeals();
 
-  /**
-   * Complex memoization to consolidate trip data from cache, search params, and static itinerary data.
-   */
   const tripDetails = useMemo(() => {
     const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
     const base = latestFromCache || parsedTrip || {};
@@ -339,9 +329,19 @@ export default function TripDetails() {
             </View>
           ) : tripDetails.isActive ? (
             <Button
-              title="End Journey"
+              title="CONCLUDE JOURNEY"
               onPress={handleEndJourney}
-              style={[styles.activateButton, { borderColor: colors.RED, borderWidth: 1 }]}
+              style={[
+                styles.activateButton,
+                {
+                  backgroundColor: isDark ? "rgba(248, 113, 113, 0.1)" : "rgba(239, 68, 68, 0.05)",
+                  borderColor: colors.RED,
+                  borderWidth: 1.5,
+                  elevation: 0,
+                  shadowOpacity: 0,
+                },
+              ]}
+              textStyle={{ color: colors.RED, letterSpacing: 1.5 }}
               type="secondary"
             />
           ) : null}
@@ -369,7 +369,9 @@ export default function TripDetails() {
             itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
             cityName={tripDetails?.tripPlan?.tripName || ""}
             isActive={!!tripDetails?.isActive}
+            isFinished={!!tripDetails?.isFinished}
             visitedIndices={tripDetails.visitedIndices}
+            skippedIndices={tripDetails.skipped_indices}
             onToggleVisited={handleToggleVisited}
             onActivate={handleActivateTrip}
             onNavigateToActive={() => router.push({
@@ -536,7 +538,7 @@ const styles = StyleSheet.create({
   },
   dateText: { fontFamily: "outfitMedium", fontSize: 14, marginTop: 6 },
   activateButton: {
-    padding: 18,
+    padding: 15,
     borderRadius: 15,
     marginVertical: 10,
     elevation: 5,

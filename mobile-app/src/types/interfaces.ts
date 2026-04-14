@@ -6,7 +6,14 @@ import {
   AlertType,
   TripType,
 } from "./index";
-export { TravelerMode, BudgetTier, TripCategory, TimeSlot, AlertType, TripType };
+export {
+  TravelerMode,
+  BudgetTier,
+  TripCategory,
+  TimeSlot,
+  AlertType,
+  TripType,
+};
 
 export interface GeoCoordinates {
   latitude: number;
@@ -106,6 +113,7 @@ export interface UserTrip {
   tripPlan?: TripPlan;
   totalBudget: number;
   visitedIndices: number[];
+  skipped_indices?: number[];
   archivedSpendings?: any[];
   concertData?: any;
   imageUrl?: string[] | string;
@@ -238,6 +246,7 @@ export interface ActiveTripData {
   id: string;
   completedPlaceIds?: string[];
   visitedIndices?: number[];
+  skipped_indices?: number[];
   tripPlan?: TripPlan;
   imageUrl?: string | string[];
   isActive?: boolean;
@@ -250,12 +259,9 @@ export interface ActiveTripContextValue {
   clearActiveTrip: () => void;
   lastRefreshed: Date | null;
   setLastRefreshed: (date: Date | null) => void;
-  markAsDone: (
-    placeId: string,
-    userId: string,
-    tripId: string,
-    index?: number,
-  ) => Promise<void>;
+  markAsDone: (tripId: string, visitedIndices: number[]) => Promise<void>;
+  skipPlace: (tripId: string, skippedIndices: number[]) => Promise<void>;
+  finalizeTrip: (tripId: string) => Promise<void>;
 }
 
 export interface LocationContextValue {
@@ -442,7 +448,7 @@ export interface ButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  icon?: any; 
+  icon?: any;
   style?: any;
   textStyle?: any;
   disabled?: boolean;
@@ -457,6 +463,8 @@ export interface LocationStatusProps {
   onRefresh: () => void;
 }
 
+export type VisibilityState = "full" | "teaser" | "locked";
+
 export interface JourneyItemProps {
   item: any;
   index: number;
@@ -466,7 +474,9 @@ export interface JourneyItemProps {
   colors: any;
   sections: any;
   processingIndex: number | null;
+  visibilityState?: VisibilityState;
   onMarkAsDone: (item: any) => void;
+  onSkip?: (item: any) => void;
   onOpenNavigation: (placeName: string) => void;
   onFindFood: (placeName: string) => void;
 }
@@ -474,13 +484,15 @@ export interface JourneyItemProps {
 export interface SightItem extends PlaceItem {
   isLocation: boolean;
   isDone: boolean;
+  isSkipped?: boolean;
   distance: number | null;
   originalIndex: number;
 }
 
 export interface ExperienceItem extends LocalExperience {
-  placeName: string;
   isDone: boolean;
+  isSkipped?: boolean;
+  placeName: string;
   isLocation: boolean;
 }
 
@@ -511,9 +523,11 @@ export interface PlannedTripProps {
   itineraryDetails?: any;
   cityName: string;
   isActive: boolean;
+  isFinished?: boolean;
   onActivate: () => void;
   onNavigateToActive: () => void;
   visitedIndices?: number[];
+  skippedIndices?: number[];
   onToggleVisited?: (index: number) => void;
 }
 
