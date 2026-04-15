@@ -149,8 +149,6 @@ class WeatherResponse(BaseModel):
     forecast: Optional[Any] = None
 
 
-class InspirationResponse(BaseModel):
-    destinations: List[Any]
 
 
 class PlacesResponse(BaseModel):

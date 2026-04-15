@@ -18,15 +18,15 @@ import { ImageBackground, ScrollView as RNScrollView } from "react-native";
 import dayjs from "dayjs";
 import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants";
 
-import { FlightDeal, TransportData } from "@/src/types";
+import { TransportData } from "@/src/types";
 
-const TransportInfo = ({ transportData }: { transportData?: TransportData }) => {
+const TransportInfo = ({ transportData }: { transportData?: Partial<TransportData> }) => {
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
   if (!transportData?.departureIata) return null;
 
-  const { tripType, departureIata, destinationIata, bestTransport, weatherInsight, flights } = transportData;
+  const { tripType, departureIata, destinationIata, bestTransport, weatherInsight } = transportData;
 
   const openAgency = (url: string) => {
     Linking.openURL(url).catch(() =>
@@ -233,55 +233,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "rgba(255,255,255,0.9)",
     lineHeight: 26,
-  },
-  flightCard: {
-    width: 160,
-    height: 110,
-    marginRight: 12,
-    borderRadius: 24,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  flightGradient: {
-    flex: 1,
-    padding: 16,
-    justifyContent: "space-between",
-  },
-  flightHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  flightDest: {
-    fontFamily: "playfairBold",
-    fontSize: 22,
-    color: "#FFF",
-  },
-  priceBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  priceLabel: {
-    fontFamily: "outfitBold",
-    fontSize: 12,
-  },
-  flightFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  flightDate: {
-    fontFamily: "interMedium",
-    fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
-    letterSpacing: 0.5,
   },
 });

@@ -16,7 +16,6 @@ from app import models, schemas
 from app.database import get_db
 from app.logger import api_logger
 from app.api.dependencies import get_current_user
-from app.services.amadeus_service import amadeus_service
 from app.services.weather_service import weather_service
 from app.services.opentripmap_service import opentripmap_service
 
@@ -90,25 +89,6 @@ async def get_pexels_image(query: str) -> str:
     
     return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
 
-@router.get("/inspiration", response_model=schemas.InspirationResponse)
-@cache(expire=3600)
-async def get_flight_inspiration(
-    current_user: models.User = Depends(get_current_user),
-    max_price: Optional[int] = None
-):
-    origin = "BOM"
-    if current_user.home_location and isinstance(current_user.home_location, dict):
-        origin = current_user.home_location.get("iataCode")
-        if not origin:
-            city = current_user.home_location.get("name") or current_user.home_location.get("city")
-            if city:
-                airports = await amadeus_service.search_airports(city)
-                if airports:
-                    origin = airports[0].get("iataCode")
-    if not origin:
-        origin = "BOM"
-    data = await amadeus_service.get_flight_inspiration(origin, max_price)
-    return {"destinations": data}
 
 
 @router.get("/weather")
