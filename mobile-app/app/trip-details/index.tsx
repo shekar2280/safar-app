@@ -35,7 +35,6 @@ import { apiGet, apiPatch } from "@/src/lib/api";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
 import { useStaticItinerary } from "@/src/hooks/queries/useStaticItinerary";
-import { useFlightDeals } from "@/src/hooks/queries/useFlightDeals";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -65,7 +64,6 @@ export default function TripDetails() {
   }, [trip]);
 
   const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
-  const { data: flights = [] } = useFlightDeals();
 
   const tripDetails = useMemo(() => {
     const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
@@ -86,9 +84,8 @@ export default function TripDetails() {
       destinationIata: tripDetails?.tripPlan?.destinationIata,
       bestTransport: tripDetails?.tripPlan?.bestTransport,
       weatherInsight: tripDetails?.concertData ? undefined : tripDetails?.tripPlan?.weatherInsight,
-      flights: flights,
     }),
-    [tripDetails, flights]
+    [tripDetails]
   );
 
   const [isAnimating, setIsAnimating] = useState(false);

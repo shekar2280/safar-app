@@ -22,7 +22,6 @@ import httpx
 from app import models, schemas, auth_utils
 from app.database import engine, Base, get_db
 from app.logger import auth_logger, trip_logger, api_logger, db_logger
-from app.services.amadeus_service import amadeus_service
 from app.services.weather_service import weather_service
 from app.services.opentripmap_service import opentripmap_service
 

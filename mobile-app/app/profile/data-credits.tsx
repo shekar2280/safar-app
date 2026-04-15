@@ -35,20 +35,6 @@ export default function DataCredits() {
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
-                <Ionicons name="airplane-outline" size={20} color={colors.TEXT} />
-            </View>
-            <Text style={[styles.cardTitle, { color: colors.TEXT }]}>Amadeus</Text>
-          </View>
-          <Text style={[styles.cardText, { color: colors.MUTED_TEXT }]}>
-            Flight inspiration and airport data are powered by Amadeus for Developers.
-          </Text>
-          <TouchableOpacity onPress={() => openLink("https://developers.amadeus.com/")}>
-            <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Learn more about Amadeus</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
           <View style={styles.cardHeader}>
