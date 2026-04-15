@@ -20,6 +20,8 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { UserTripCardProps } from "@/src/types";
 import { apiDelete } from "@/src/lib/api";
+import * as Sentry from "@sentry/react-native";
+import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
@@ -31,6 +33,11 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [cardWidth, setCardWidth] = React.useState(width - 40);
   const flatListRef = React.useRef<FlatList>(null);
+
+  const [errorVisible, setErrorVisible] = React.useState(false);
+  const [errorTitle, setErrorTitle] = React.useState("");
+  const [errorMessage, setErrorMessage] = React.useState("");
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width } = e.nativeEvent.layout;
@@ -130,10 +137,18 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 
   const handleDeleteFinal = async () => {
     try {
+      setIsDeleting(true);
       await apiDelete(`/api/v1/trips/${trip.id}`);
       onDelete?.(trip.id);
+      setIsDeleting(false);
       setDeleteVisible(false);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { extra: { context: "UserTripCard:handleDeleteFinal", tripId: trip.id } });
+      setIsDeleting(false);
+      setDeleteVisible(false);
+      setErrorTitle("Delete Failed");
+      setErrorMessage("Something went wrong while trying to remove your journey. Please check your connection.");
+      setErrorVisible(true);
     }
   };
 
@@ -247,8 +262,19 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
         type="confirm"
         confirmText="Delete"
         cancelText="Keep Trip"
+        loading={isDeleting}
         onConfirm={handleDeleteFinal}
         onCancel={() => setDeleteVisible(false)}
+      />
+
+      <SafarAlert
+        visible={errorVisible}
+        title={errorTitle}
+        message={errorMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorVisible(false)}
+        onCancel={() => setErrorVisible(false)}
       />
     </TouchableOpacity>
   );

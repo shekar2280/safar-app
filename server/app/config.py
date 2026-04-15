@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     ticketmaster_api_key: str = ""
     opentripmap_api_key: str = ""
     weather_api_key: str = ""
+    sentry_dsn: str = ""
     
     # Firebase
     firebase_service_account_path: str = "firebase-service-account.json"

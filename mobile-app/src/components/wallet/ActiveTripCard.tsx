@@ -24,6 +24,7 @@ import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/fire
 import { auth, db } from "@/src/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
+import * as Sentry from "@sentry/react-native";
 
 export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
@@ -33,6 +34,10 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { isDark } = useTheme();
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveVisible, setArchiveVisible] = useState(false);
+  
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -111,10 +116,11 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setIsArchiving(false);
     } catch (error) {
-      // Silent fail
-
+      Sentry.captureException(error, { extra: { context: "ActiveTripCard:handleArchiveConfirmed", tripId: trip.id } });
       setIsArchiving(false);
-      Alert.alert("Error", "Failed to archive history.");
+      setErrorTitle("Archive Failed");
+      setErrorMessage("Something went wrong while finalizing your journey history. Please try again.");
+      setErrorVisible(true);
     }
   };
 
@@ -180,6 +186,16 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
         cancelText="Keep Going"
         onConfirm={handleArchiveConfirmed}
         onCancel={() => setArchiveVisible(false)}
+      />
+
+      <SafarAlert
+        visible={errorVisible}
+        title={errorTitle}
+        message={errorMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorVisible(false)}
+        onCancel={() => setErrorVisible(false)}
       />
     </View>
   );

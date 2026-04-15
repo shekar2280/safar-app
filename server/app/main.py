@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 import redis.asyncio as aioredis
+import sentry_sdk
 
 from app import models, schemas, auth_utils
 from app.database import engine, Base
@@ -20,6 +21,15 @@ from app.config import settings
 
 if settings.env == "development":
     Base.metadata.create_all(bind=engine)
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+        environment=settings.env,
+    )
+    api_logger.info("Sentry initialized for Backend")
 
 if not firebase_admin._apps:
     fb_cred_path = settings.firebase_service_account_path
@@ -43,6 +53,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    sentry_sdk.capture_exception(exc)
+    
+    api_logger.error(
+        f"Unhandled exception: {str(exc)}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "query_params": dict(request.query_params),
+        },
+        exc_info=True
+    )
+    return {
+        "detail": "Internal Server Error. Our team has been notified.",
+        "status_code": 500
+    }
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

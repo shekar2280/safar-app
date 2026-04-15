@@ -29,8 +29,19 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { TripData } from "@/src/types";
+import * as Sentry from '@sentry/react-native';
+import { ErrorScreen } from "@/src/components/ErrorScreen";
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: 'https://1464c657ef53845c8420b0a659df59e6@o4511224422924288.ingest.de.sentry.io/4511224429150288',
+  sendDefaultPii: true,
+  enableLogs: !__DEV__,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+});
+
+export default Sentry.wrap(function RootLayout() {
   const [fontsLoaded] = useFonts({
     inter: Inter_400Regular,
     interBold: Inter_700Bold,
@@ -84,15 +95,17 @@ export default function RootLayout() {
   if (!fontsLoaded || !assetsLoaded) return null;
 
   return (
-    <ThemeProvider>
-      <ThemeAwareApp
-        isSignedIn={isSignedIn}
-        tripData={tripData}
-        setTripData={setTripData}
-      />
-    </ThemeProvider>
+    <Sentry.ErrorBoundary fallback={ErrorScreen}>
+      <ThemeProvider>
+        <ThemeAwareApp
+          isSignedIn={isSignedIn}
+          tripData={tripData}
+          setTripData={setTripData}
+        />
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
   );
-}
+});
 
 function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
   const { theme } = useTheme();

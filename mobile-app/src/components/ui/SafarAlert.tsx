@@ -1,5 +1,4 @@
-import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
 import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -17,6 +16,7 @@ export default function SafarAlert({
   type = "info",
   confirmText = "Continue",
   cancelText = "Cancel",
+  loading = false,
   onConfirm,
   onCancel,
 }: SafarAlertProps) {
@@ -35,7 +35,7 @@ export default function SafarAlert({
               <TouchableOpacity
                 activeOpacity={1}
                 style={styles.centeredView}
-                onPress={onCancel}
+                onPress={loading ? undefined : onCancel}
               >
                 <MotiView
                   from={{ opacity: 0, scale: 0.9, translateY: 10 }}
@@ -57,25 +57,31 @@ export default function SafarAlert({
 
                   <View style={styles.buttonContainer}>
                     {isDestructive && (
-                      <TouchableOpacity
-                        style={[styles.cancelBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
-                        onPress={onCancel}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.cancelText, { color: colors.MUTED_TEXT }]}>{cancelText}</Text>
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.cancelBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
+                          onPress={onCancel}
+                          activeOpacity={0.7}
+                          disabled={loading}
+                        >
+                          <Text style={[styles.cancelText, { color: colors.MUTED_TEXT, opacity: loading ? 0.5 : 1 }]}>{cancelText}</Text>
+                        </TouchableOpacity>
                     )}
                     <TouchableOpacity
                       style={[styles.confirmBtn, { backgroundColor: iconColor }]}
                       onPress={onConfirm}
                       activeOpacity={0.8}
+                      disabled={loading}
                     >
-                      <Text style={[
-                        styles.confirmText, 
-                        { color: (iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE }
-                      ]}>
-                        {confirmText}
-                      </Text>
+                      {loading ? (
+                        <ActivityIndicator color={(iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE} size="small" />
+                      ) : (
+                        <Text style={[
+                          styles.confirmText, 
+                          { color: (iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE }
+                        ]}>
+                          {confirmText}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </MotiView>

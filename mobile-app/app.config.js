@@ -15,7 +15,7 @@ export default {
     },
     android: {
       package: "com.shekarsafar.safar",
-      "googleServicesFile": "./google-services.json",
+      googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#ffffff",
@@ -46,17 +46,26 @@ export default {
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
-        }
-      ]
+          photosPermission:
+            "The app accesses your photos to let you share them with your friends.",
+        },
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          url: "https://sentry.io/",
+          project: "react-native",
+          organization: "safar-gl",
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
     },
     extra: {
-      "eas": {
-        "projectId": "2420fa32-7cf7-49db-8529-22802ad9c805"
-      }
+      eas: {
+        projectId: "2420fa32-7cf7-49db-8529-22802ad9c805",
+      },
     },
   },
 };

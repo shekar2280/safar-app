@@ -12,7 +12,9 @@ const AutocompleteInput = Autocomplete as any;
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/types";
+import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/types";
+import SafarAlert from "@/src/components/ui/SafarAlert";
+import * as Sentry from "@sentry/react-native";
 
 export default function DestinationPicker({
   onLocationSelect,
@@ -25,6 +27,10 @@ export default function DestinationPicker({
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [selected, setSelected] = useState<DestinationData | null>(value || null);
   const [loading, setLoading] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
     if (value) {
@@ -45,7 +51,10 @@ export default function DestinationPicker({
             }
             setLoading(false);
           })
-          .catch(() => setLoading(false));
+          .catch((err) => {
+            Sentry.captureException(err, { extra: { context: "DestinationPicker:initialHydrate" } });
+            setLoading(false);
+          });
       }
     } else {
       setQuery("");
@@ -74,7 +83,10 @@ export default function DestinationPicker({
           setResults(data);
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch((err) => {
+          Sentry.captureException(err, { extra: { context: "DestinationPicker:bgSearch" } });
+          setLoading(false);
+        });
     }, 400);
     return () => clearTimeout(timeout);
   }, [query, selected]);
@@ -192,6 +204,15 @@ export default function DestinationPicker({
             );
           },
         }}
+      />
+      <SafarAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setAlertVisible(false)}
+        onCancel={() => setAlertVisible(false)}
       />
     </View>
   );
