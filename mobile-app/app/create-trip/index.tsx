@@ -17,12 +17,12 @@ import { UserContext } from "@/src/context/UserContext";
 import { MAX_TRIP_DAYS } from "@/src/constants/limits";
 import LocationPicker from "@/src/components/trip/LocationPicker";
 import DestinationPicker from "@/src/components/trip/DestinationPicker";
-import { SelectBudgetOptions } from "@/src/constants/travel-data";
+import { SelectBudgetOptions } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types/interfaces";
+import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types";
 import Button from "@/src/components/common/Button";
 
 const { width, height } = Dimensions.get("window");

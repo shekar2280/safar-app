@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { ConcertTripContextValue, ConcertData } from "@/src/types/interfaces";
+import { ConcertTripContextValue, ConcertData } from "@/src/types";
 
 const ConcertTripContext = createContext<ConcertTripContextValue | null>(null);
 

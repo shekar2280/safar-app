@@ -16,9 +16,9 @@ import {
   RESTAURANT_AND_LOCAL_IMAGES,
   INDIA_FOOD_COLLECTION,
   INTL_FOOD_COLLECTION,
-} from "@/src/constants/travel-data";
+} from "@/src/constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types/interfaces";
+import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types";
 import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");

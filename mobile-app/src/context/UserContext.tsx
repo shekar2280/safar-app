@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
-import { UserContextValue, UserProfile } from "@/src/types/interfaces";
+import { UserContextValue, UserProfile } from "@/src/types";
 import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile } from "@/src/lib/api";
 import { useLocation } from "@/src/context/LocationContext";
 import { Alert } from "react-native";
@@ -95,7 +95,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 setUserProfile(prev => prev ? { ...prev, homeLocation: homeData } : null);
               }
             } catch (err) {
-              console.log("Onboarding location error:", err);
+                // Silent fail
+
             }
           }
         }

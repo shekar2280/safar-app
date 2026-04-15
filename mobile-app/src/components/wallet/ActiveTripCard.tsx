@@ -18,8 +18,8 @@ import { useUser } from "@/src/context/UserContext";
 import { apiPatch } from "@/src/lib/api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import { fallbackImages } from "@/src/constants/travel-data";
-import { ActiveTripCardProps } from "@/src/types/interfaces";
+import { fallbackImages } from "@/src/constants";
+import { ActiveTripCardProps } from "@/src/types";
 import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
@@ -111,7 +111,8 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setIsArchiving(false);
     } catch (error) {
-      console.error(error);
+      // Silent fail
+
       setIsArchiving(false);
       Alert.alert("Error", "Failed to archive history.");
     }

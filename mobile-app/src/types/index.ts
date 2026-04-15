@@ -1,31 +1,10 @@
-export enum TravelerMode {
-  Solo = "SOLO",
-  Couple = "COUPLE",
-  Family = "FAMILY",
-  Friends = "FRIENDS",
-}
-
-export enum BudgetTier {
-  Cheap = "Cheap",
-  Moderate = "Moderate",
-  Luxury = "Luxury",
-}
-
-export enum TripCategory {
-  TRENDING = "TRENDING",
-  HIDDEN = "HIDDEN",
-  HIDDEN_GEMS = "HIDDEN_GEMS",
-  FESTIVE = "FESTIVE",
-  CONCERT = "CONCERT",
-  GENERAL = "GENERAL",
-}
-
-export type PaymentMethod = "card" | "wallet";
-export type AuthMode = "login" | "register";
-export type TimeSlot = "Morning" | "Afternoon" | "Evening";
-export type AlertType = "error" | "confirm" | "info";
-
-export enum TripType {
-  Oneway = "ONEWAY",
-  Round = "ROUND",
-}
+export * from "./base";
+export * from "./auth";
+export * from "./trip";
+export * from "./location";
+export * from "./concert";
+export * from "./ui";
+export * from "./itinerary";
+export * from "./context";
+export * from "./wallet";
+export * from "./api";

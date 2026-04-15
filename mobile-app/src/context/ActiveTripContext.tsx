@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { ActiveTripContextValue, ActiveTripData } from "@/src/types/interfaces";
+import { ActiveTripContextValue, ActiveTripData } from "@/src/types";
 import { apiPatch } from "@/src/lib/api";
 import { Alert } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,7 +27,8 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices: currentVisited } : prev);
-      console.error("Failed to sync visited status:", error);
+      // Silent fail
+
       Alert.alert("Update Failed", "We couldn't save your progress.");
     }
   };
@@ -42,7 +43,8 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
       setActiveTrip((prev) => prev ? { ...prev, skipped_indices: currentSkipped } : prev);
-      console.error("Failed to sync skipped status:", error);
+      // Silent fail
+
       Alert.alert("Update Failed", "We couldn't postpone this stop.");
     }
   };
@@ -63,7 +65,8 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
             setActiveTrip(prev => prev ? { ...prev, isFinished: true } : prev);
             queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
           } catch (error) {
-            console.error("Failed to finalize trip:", error);
+            // Silent fail
+
           }
         }
       }}

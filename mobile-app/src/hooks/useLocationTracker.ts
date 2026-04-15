@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
 
-import { GeoCoords } from "../types/interfaces";
+import { GeoCoords } from "../types";
 
 export const useLocationTracker = () => {
   const [userLocation, setUserLocation] = useState<GeoCoords | null>(null);
@@ -49,7 +49,8 @@ export const useLocationTracker = () => {
       }
       setLoading(false);
     } catch (e) {
-      console.error("[Location Tracker] Error:", e);
+      // Error tracked silently
+
       setLoading(false);
       setShowLocationAlert(true);
     }
@@ -75,7 +76,8 @@ export const useLocationTracker = () => {
           },
         );
       } catch (err) {
-        console.error("[Location Watcher] Error:", err);
+        // Error tracked silently
+
       }
     };
 

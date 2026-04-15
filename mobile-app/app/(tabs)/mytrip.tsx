@@ -24,7 +24,7 @@ import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
 import NetInfo from "@react-native-community/netinfo";
-import { UserTrip } from "@/src/types/interfaces";
+import { UserTrip } from "@/src/types";
 import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { useTheme } from "@/src/context/ThemeContext";

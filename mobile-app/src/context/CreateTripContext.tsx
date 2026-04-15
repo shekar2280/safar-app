@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { CreateTripContextValue, TripData } from "@/src/types/interfaces";
+import { CreateTripContextValue, TripData } from "@/src/types";
 
 const CreateTripContext = createContext<CreateTripContextValue | null>(null);
 

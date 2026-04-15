@@ -12,7 +12,7 @@ const AutocompleteInput = Autocomplete as any;
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/types/interfaces";
+import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/types";
 
 export default function DestinationPicker({
   onLocationSelect,

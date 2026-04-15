@@ -1,6 +1,6 @@
 import React from "react";
 import { ViewStyle } from "react-native";
-import { ActionButtonProps } from "@/src/types/interfaces";
+import { ActionButtonProps } from "@/src/types";
 import Button from "../common/Button";
 
 export const ActionButton = ({ title, onPress, disabled, styleOverride = {} }: ActionButtonProps) => (

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiDelete, apiPatch, JWT_KEY } from "@/src/lib/api";
-import { UserTrip } from "@/src/types/interfaces";
+import { UserTrip } from "@/src/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function mapBackendTrip(raw: any): UserTrip {

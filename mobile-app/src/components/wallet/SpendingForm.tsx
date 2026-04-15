@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../common/Button";
 import { Colors, useThemeColors } from "@/src/constants/colors";
-import { SpendingFormProps } from "@/src/types/interfaces";
+import { SpendingFormProps } from "@/src/types";
 import { useTheme } from "@/src/context/ThemeContext";
 
 const { width } = Dimensions.get("window");

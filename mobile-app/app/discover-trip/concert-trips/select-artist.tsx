@@ -18,8 +18,8 @@ import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
-import { singerOptions } from "@/src/constants/travel-data";
-import { ConcertEvent } from "@/src/types/interfaces";
+import { singerOptions } from "@/src/constants";
+import { ConcertEvent } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { apiGet } from "@/src/lib/api";
 
@@ -47,7 +47,8 @@ export default function ConcertTrip() {
       });
 
       if (!Array.isArray(eventsRaw)) {
-        console.warn("Expected concert array, got:", typeof eventsRaw);
+        // Silent fail
+
         return [];
       }
 
@@ -92,7 +93,8 @@ export default function ConcertTrip() {
 
       return events;
     } catch (err) {
-      console.error("Concert fetch error:", err);
+      // Silent fail
+
       return [];
     }
   };

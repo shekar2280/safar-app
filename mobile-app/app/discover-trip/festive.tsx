@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { FestiveTripIdeas } from "@/src/constants/travel-data";
+import { FestiveTripIdeas } from "@/src/constants";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import { Ionicons } from "@expo/vector-icons";
 

@@ -6,7 +6,7 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { SafarAlertProps } from "@/src/types/interfaces";
+import { SafarAlertProps } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
