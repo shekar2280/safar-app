@@ -47,12 +47,6 @@ export default function Mytrip() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch])
-  );
-
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const offline = !state.isConnected;

@@ -1,16 +1,27 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, onlineManager } from "@tanstack/react-query";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+
+onlineManager.setEventListener((setOnline) => {
+  return NetInfo.addEventListener((state) => {
+    setOnline(!!state.isConnected);
+  });
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Retry once on failure before showing error
       retry: 1,
-      // Don't refetch when component remounts if data is fresh
-      refetchOnMount: true,
-      // Refetch when the user tabs back into the app
       refetchOnWindowFocus: true,
-      // Don't refetch on reconnect by default (trips are not time-critical)
-      refetchOnReconnect: true,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 24 * 60 * 60 * 1000,
     },
   },
+});
+
+export const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: "SAFAR_QUERY_CACHE",
+  throttleTime: 1000,
 });
