@@ -8,6 +8,7 @@ export interface SafarAlertProps {
   type?: AlertType;
   confirmText?: string;
   cancelText?: string;
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }

@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { LocationContextValue, LocationData, AlertType } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
+import * as Sentry from "@sentry/react-native";
 
 const LocationContext = createContext<LocationContextValue | null>(null);
 
@@ -14,7 +15,6 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [rejectionCount, setRejectionCount] = useState(0);
   const [gpsEnabled, setGpsEnabled] = useState(true);
 
-  // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
@@ -30,7 +30,12 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         
         const isEnabled = await Location.hasServicesEnabledAsync();
         setGpsEnabled(isEnabled);
-      } catch {
+      } catch (err) {
+        Sentry.addBreadcrumb({
+          category: 'location',
+          message: 'Failed to initialize location cache',
+          level: 'warning',
+        });
       } finally {
         setLoading(false);
       }
@@ -142,8 +147,14 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       await updateLocation(newData);
       return newData;
     } catch (error) {
-      // Silent fail
-
+      Sentry.captureException(error, {
+        extra: { context: "LocationContext:refreshGPS" }
+      });
+      showAlert(
+        "Location Error",
+        "Something went wrong while detecting your location. Please try manually selecting your city.",
+        "error"
+      );
       return null;
     } finally {
       setLoading(false);

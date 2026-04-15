@@ -1,5 +1,6 @@
 import os
 import httpx
+import sentry_sdk
 from typing import Optional, List, Dict, Any
 from app.logger import api_logger
 
@@ -41,6 +42,7 @@ class OpenTripMapService:
                 })
                 return []
             except Exception as e:
+                sentry_sdk.capture_exception(e)
                 api_logger.error("OpenTripMap radius search failed", extra={"error": str(e), "lat": lat, "lon": lon})
                 return []
 
@@ -69,6 +71,7 @@ class OpenTripMapService:
                 })
                 return None
             except Exception as e:
+                sentry_sdk.capture_exception(e)
                 api_logger.error("OpenTripMap details fetch failed", extra={"error": str(e), "xid": xid})
                 return None
 

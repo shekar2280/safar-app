@@ -29,16 +29,22 @@ class JsonFormatter(logging.Formatter):
             "module": record.module,
             "function": record.funcName,
             "line": record.lineno,
+            "pathname": record.pathname,
         }
 
         if record.exc_info:
             log_entry["traceback"] = self.formatException(record.exc_info)
 
+        # Include any extra fields passed in 'extra={...}'
         for key, value in record.__dict__.items():
             if key not in _STANDARD_LOG_ATTRS and not key.startswith("_"):
                 log_entry[key] = value
 
-        return json.dumps(log_entry, default=str)
+        try:
+            return json.dumps(log_entry, default=str)
+        except Exception:
+            # Fallback if JSON serialization fails
+            return f"{log_entry['timestamp']} - {log_entry['level']} - {log_entry['message']}"
 
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)

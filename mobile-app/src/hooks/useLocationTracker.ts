@@ -3,6 +3,7 @@ import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
 
 import { GeoCoords } from "../types";
+import * as Sentry from "@sentry/react-native";
 
 export const useLocationTracker = () => {
   const [userLocation, setUserLocation] = useState<GeoCoords | null>(null);
@@ -49,8 +50,7 @@ export const useLocationTracker = () => {
       }
       setLoading(false);
     } catch (e) {
-      // Error tracked silently
-
+      Sentry.captureException(e, { extra: { context: "useLocationTracker:refreshLocation" } });
       setLoading(false);
       setShowLocationAlert(true);
     }
@@ -76,8 +76,7 @@ export const useLocationTracker = () => {
           },
         );
       } catch (err) {
-        // Error tracked silently
-
+        Sentry.captureException(err, { extra: { context: "useLocationTracker:startWatching" } });
       }
     };
 

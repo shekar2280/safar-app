@@ -1,5 +1,6 @@
 import os
 import httpx
+import sentry_sdk
 from typing import Optional, Dict, Any
 from app.logger import api_logger
 
@@ -33,6 +34,7 @@ class WeatherService:
                 })
                 return None
             except Exception as e:
+                sentry_sdk.capture_exception(e)
                 api_logger.error("Weather current fetch failed", extra={"error": str(e), "city": city})
                 return None
 
@@ -61,6 +63,7 @@ class WeatherService:
                 })
                 return None
             except Exception as e:
+                sentry_sdk.capture_exception(e)
                 api_logger.error("Weather forecast fetch failed", extra={"error": str(e), "city": city})
                 return None
 

@@ -6,6 +6,7 @@ export const JWT_KEY = "safar_jwt_token";
 export const USER_KEY = "safar_user";
 
 import { SafarUser } from "../types";
+import * as Sentry from "@sentry/react-native";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(JWT_KEY);
@@ -20,7 +21,10 @@ export async function syncUserWithBackend(firebaseIdToken: string): Promise<Safa
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to sync user: ${res.status}`);
+    const errorDetails = await res.json().catch(() => ({}));
+    const errorMessage = errorDetails.detail ?? `Failed to sync user: ${res.status}`;
+    Sentry.captureException(new Error(errorMessage));
+    throw new Error(errorMessage);
   }
 
   const data = await res.json();
@@ -33,9 +37,19 @@ export async function getMe(): Promise<SafarUser | null> {
   try {
     const headers = await getAuthHeaders();
     const res = await fetch(`${BASE_URL}/api/v1/auth/me`, { headers });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status !== 401) {
+        const err = await res.json().catch(() => ({}));
+        Sentry.captureMessage(`Profile fetch failed: ${res.status}`, {
+          level: "warning",
+          extra: { detail: err.detail }
+        });
+      }
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err);
     return null;
   }
 }

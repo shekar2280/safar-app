@@ -92,3 +92,4 @@ google-services.json
 SYSTEM_BRAIN.md
 
 resources
+.env.local
