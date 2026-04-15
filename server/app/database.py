@@ -1,23 +1,20 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
+from app.config import settings
 
-load_dotenv()
-
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://user:password@localhost:5432/safar"
-)
+SQLALCHEMY_DATABASE_URL = settings.database_url
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
+    pool_size=10,
+    max_overflow=20
 )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
-
 
 def get_db():
     db = SessionLocal()
