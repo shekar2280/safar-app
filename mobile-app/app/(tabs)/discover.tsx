@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useRouter } from "expo-router";
-import { DiscoverIdeasList } from "@/src/constants/travel-data";
+import { DiscoverIdeasList } from "@/src/constants";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";

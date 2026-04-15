@@ -15,7 +15,7 @@ import { useLocation } from "@/src/context/LocationContext";
 
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { LocationData, LocationPickerProps } from "@/src/types/interfaces";
+import { LocationData, LocationPickerProps } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
@@ -51,7 +51,8 @@ export default function LocationPicker({
         handleLocationSelect(newData);
       }
     } catch (e: any) {
-      console.log("detectCurrentLocation error:", e);
+      // Silent fail
+
     } finally {
       setLoading(false);
     }

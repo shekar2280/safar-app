@@ -273,10 +273,7 @@ async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
         final_prompt = body.itineraryPrompt + poi_context
         itinerary_text = await call_gemini_with_resilience(final_prompt)
         
-        print("\n" + "="*50)
-        print("📄 RAW RESPONSE FROM GEMINI:")
-        print(itinerary_text[:1000] + "..." if len(itinerary_text) > 1000 else itinerary_text)
-        print("="*50 + "\n")
+        api_logger.info("GEMINI ITINERARY GENERATED", extra={"location": body.locationName})
 
         image_urls = [
             "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80",

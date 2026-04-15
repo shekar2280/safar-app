@@ -5,7 +5,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_ROOT ?? "http://localhost:8000"
 export const JWT_KEY = "safar_jwt_token";
 export const USER_KEY = "safar_user";
 
-import { SafarUser } from "../types/interfaces";
+import { SafarUser } from "../types";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(JWT_KEY);

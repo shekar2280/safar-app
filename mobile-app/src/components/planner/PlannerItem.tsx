@@ -10,7 +10,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { Colors } from "@/src/constants/colors";
 import Button from "@/src/components/common/Button";
 
-import { JourneyItemProps, VisibilityState } from "@/src/types/interfaces";
+import { JourneyItemProps, VisibilityState } from "@/src/types";
 
 export const PlannerItem: React.FC<JourneyItemProps> = ({
   item,

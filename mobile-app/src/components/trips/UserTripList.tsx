@@ -1,7 +1,7 @@
 import React from "react";
 import { FlatList } from "react-native";
 import UserTripCard from "./UserTripCard";
-import { UserTripListProps } from "@/src/types/interfaces";
+import { UserTripListProps } from "@/src/types";
 
 export default function UserTripList({ userTrips, onDelete }: UserTripListProps) {
   return (

@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
-import { AIDisclaimerProps } from "@/src/types/interfaces";
+import { AIDisclaimerProps } from "@/src/types";
 
 export default function AIDisclaimer({ style }: AIDisclaimerProps) {
   const colors = useThemeColors();

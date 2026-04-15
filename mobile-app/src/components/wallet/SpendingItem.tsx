@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
-import { SpendingItemProps } from "@/src/types/interfaces";
+import { SpendingItemProps } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";

@@ -104,7 +104,8 @@ export default function Profile() {
       try {
         await apiDelete("/api/v1/auth/me");
       } catch (err) {
-        console.error("Backend wipe failed", err);
+        // Silent fail
+
         // We continue anyway to ensure Firebase is also cleared
       }
 
@@ -121,7 +122,8 @@ export default function Profile() {
       router.replace("auth/Login" as any);
 
     } catch (e) {
-      console.error("Deletion Error:", e);
+      // Silent fail
+
       showAlert("Verification Failed", "Incorrect password. Account termination aborted.", "error");
     } finally {
       setLoading(false);

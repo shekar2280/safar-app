@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Animated, View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { useThemeColors } from "@/src/constants/colors";
 import { TripType } from "@/src/types";
-import { TripTypeToggleProps } from "@/src/types/interfaces";
+import { TripTypeToggleProps } from "@/src/types";
 
 export default function TripTypeToggle({ selectedType, onSelectType }: TripTypeToggleProps) {
   const [containerWidth, setContainerWidth] = useState(0);

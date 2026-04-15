@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
-import { LocationContextValue, LocationData, AlertType } from "@/src/types/interfaces";
+import { LocationContextValue, LocationData, AlertType } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 
 const LocationContext = createContext<LocationContextValue | null>(null);
@@ -142,7 +142,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       await updateLocation(newData);
       return newData;
     } catch (error) {
-      console.log("refreshGPS error:", error);
+      // Silent fail
+
       return null;
     } finally {
       setLoading(false);

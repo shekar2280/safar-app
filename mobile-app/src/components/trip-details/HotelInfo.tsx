@@ -14,9 +14,9 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
-import { HotelOption, HotelInfoProps } from "@/src/types/interfaces";
+import { HotelOption, HotelInfoProps } from "@/src/types";
 import Button from "@/src/components/common/Button";
-import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
+import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 

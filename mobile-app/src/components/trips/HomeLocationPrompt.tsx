@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/src/context/UserContext";
 import { useLocation } from "@/src/context/LocationContext";
 import { updateUserProfile } from "@/src/lib/api";
-import { LocationData, NominatimResult } from "@/src/types/interfaces";
+import { LocationData, NominatimResult } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
@@ -80,7 +80,8 @@ export default function HomeLocationPrompt() {
         await saveLocation(formatted);
       }
     } catch (err) {
-      console.log("HomeLocationPrompt GPS error:", err);
+      // Silent fail
+
     } finally {
       setLoading(false);
     }

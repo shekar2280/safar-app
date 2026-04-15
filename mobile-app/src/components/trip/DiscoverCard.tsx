@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, Dimensions, StyleSheet } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
-import { trendingTripCardImages } from "@/src/constants/travel-data";
-import { DiscoverCardProps } from "@/src/types/interfaces";
+import { trendingTripCardImages } from "@/src/constants";
+import { DiscoverCardProps } from "@/src/types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";

@@ -30,7 +30,7 @@ import { useTrips } from "@/src/hooks/queries/useTrips";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { UserTrip } from "@/src/types/interfaces";
+import { UserTrip } from "@/src/types";
 import { apiPatch } from "@/src/lib/api";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -179,7 +179,8 @@ export default function SpendingsInput() {
       setNewBudgetInput("");
       setLoading(false);
     } catch (error) {
-      console.error(error);
+      // Silent fail
+
       setLoading(false);
       setAlertConfig({
         visible: true,
@@ -215,7 +216,8 @@ export default function SpendingsInput() {
       setIsSaving(false);
       setIsFormVisible(false);
     } catch (error) {
-      console.error(error);
+      // Silent fail
+
       setIsSaving(false);
     }
   };

@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors } from "@/src/constants/colors";
 
-import { ButtonProps } from "@/src/types/interfaces";
+import { ButtonProps } from "@/src/types";
 
 export default function Button({
   title,

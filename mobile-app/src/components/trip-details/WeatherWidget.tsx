@@ -4,12 +4,12 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
-import { WEATHER_CONFIG } from "@/src/constants/travel-data";
+import { WEATHER_CONFIG } from "@/src/constants";
 import { useWeather } from "@/src/hooks/queries/useWeather";
 
 const { width } = Dimensions.get("window");
 
-import { WeatherWidgetProps } from "@/src/types/interfaces";
+import { WeatherWidgetProps } from "@/src/types";
 
 export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const { data: weather, isLoading: loading } = useWeather(cityName);

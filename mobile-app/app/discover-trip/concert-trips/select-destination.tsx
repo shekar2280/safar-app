@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
-import { ConcertEvent } from "@/src/types/interfaces";
+import { ConcertEvent } from "@/src/types";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 

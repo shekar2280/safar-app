@@ -15,10 +15,10 @@ import { useRouter } from "expo-router";
 import { useTheme } from "@/src/context/ThemeContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { concertImages, fallbackImages } from "@/src/constants/travel-data";
+import { concertImages, fallbackImages } from "@/src/constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserTripCardProps } from "@/src/types/interfaces";
+import { UserTripCardProps } from "@/src/types";
 import { apiDelete } from "@/src/lib/api";
 
 const { width } = Dimensions.get("window");

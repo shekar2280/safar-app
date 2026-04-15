@@ -18,7 +18,7 @@ import { ThemeProvider, useTheme } from "@/src/context/ThemeContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
+import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ import {
   Inter_500Medium,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { TripData } from "@/src/types/interfaces";
+import { TripData } from "@/src/types";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -74,7 +74,8 @@ export default function RootLayout() {
       try {
         await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
       } catch (e) {
-        console.warn("Error caching images", e);
+        // Error tracked silently
+
       } finally {
         setAssetsLoaded(true);
       }

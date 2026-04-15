@@ -16,9 +16,9 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ImageBackground, ScrollView as RNScrollView } from "react-native";
 import dayjs from "dayjs";
-import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants/travel-data";
+import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants";
 
-import { FlightDeal, TransportData } from "@/src/types/interfaces";
+import { FlightDeal, TransportData } from "@/src/types";
 
 const TransportInfo = ({ transportData }: { transportData?: TransportData }) => {
   const colors = useThemeColors();
