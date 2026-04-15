@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     
     # Firebase
     firebase_service_account_path: str = "firebase-service-account.json"
+    firebase_service_account_json: str = "" # Full JSON string for production environments
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"

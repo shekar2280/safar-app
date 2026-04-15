@@ -1,5 +1,6 @@
 import os
 import datetime
+import json
 import firebase_admin
 from firebase_admin import credentials
 from fastapi import FastAPI, Request
@@ -32,14 +33,29 @@ if settings.sentry_dsn:
     api_logger.info("Sentry initialized for Backend")
 
 if not firebase_admin._apps:
-    fb_cred_path = settings.firebase_service_account_path
-    if os.path.exists(fb_cred_path):
-        cred = credentials.Certificate(fb_cred_path)
-        firebase_admin.initialize_app(cred)
-        auth_logger.info("Firebase Admin initialized with service account", extra={"path": fb_cred_path})
+    fb_cred = None
+    
+    # Priority 1: JSON string from environment variable
+    if settings.firebase_service_account_json:
+        try:
+            cred_dict = json.loads(settings.firebase_service_account_json)
+            fb_cred = credentials.Certificate(cred_dict)
+            auth_logger.info("Firebase Admin initialized with JSON string from configuration")
+        except json.JSONDecodeError:
+            auth_logger.error("Failed to parse firebase_service_account_json - invalid JSON")
+    
+    # Priority 2: Physical file path (legacy/local dev)
+    if not fb_cred:
+        fb_cred_path = settings.firebase_service_account_path
+        if os.path.exists(fb_cred_path):
+            fb_cred = credentials.Certificate(fb_cred_path)
+            auth_logger.info("Firebase Admin initialized with service account file", extra={"path": fb_cred_path})
+    
+    if fb_cred:
+        firebase_admin.initialize_app(fb_cred)
     else:
         firebase_admin.initialize_app()
-        auth_logger.warning("Firebase Admin initialized WITHOUT service account")
+        auth_logger.warning("Firebase Admin initialized WITHOUT service account (restricted access)")
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title=settings.app_name, debug=settings.debug)
