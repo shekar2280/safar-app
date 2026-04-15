@@ -28,11 +28,9 @@ export default function TrendingTrips() {
   const { isDark } = useTheme();
   const [selectedOption, setSelectedOption] = useState<any>(null);
 
-  // Derive country from user profile, fall back to India
   const country = userProfile?.homeLocation?.country || "India";
   const currentCity = userProfile?.homeLocation?.name || "Your Location";
 
-  // TanStack: 12-hour cache, per-country, with automatic image prefetching
   const { data: places = [], isLoading: loading } = useTrendingPlaces(country);
 
   const handleSelect = (item: any) => {

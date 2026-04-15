@@ -21,8 +21,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/src/lib/queryClient";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { queryClient, asyncStoragePersister } from "@/src/lib/queryClient";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -74,8 +74,6 @@ export default function RootLayout() {
       try {
         await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
       } catch (e) {
-        // Error tracked silently
-
       } finally {
         setAssetsLoaded(true);
       }
@@ -102,7 +100,10 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider 
+          client={queryClient}
+          persistOptions={{ persister: asyncStoragePersister }}
+        >
           <StatusBar style={theme === "dark" ? "light" : "dark"} />
           <LocationProvider>
             <UserProvider>
@@ -123,7 +124,7 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
               </CreateTripContext.Provider>
             </UserProvider>
           </LocationProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
