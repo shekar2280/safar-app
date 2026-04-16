@@ -10,24 +10,36 @@ import {
   Keyboard,
   StatusBar,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "@/src/components/trips/StartNewTripCard";
 import UserTripList from "@/src/components/trips/UserTripList";
 import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
+import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
 import NetInfo from "@react-native-community/netinfo";
-import { UserTrip } from "@/src/types/interfaces";
+import { UserTrip } from "@/src/types";
+import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
+import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
+import { useTheme } from "@/src/context/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function Mytrip() {
   const insets = useSafeAreaInsets();
-  const { userTrips, setUserTrips, userProfile, loading } = useUser();
+  const { userProfile, loading: authLoading } = useUser();
+  const { theme, toggleTheme, isDark } = useTheme();
+  const colors = useThemeColors();
+  const deleteTrip = useDeleteTrip();
+  const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
+  const loading = authLoading || tripsLoading;
+  
   const [isOffline, setIsOffline] = useState(false);
   const [showBackOnline, setShowBackOnline] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -67,7 +79,7 @@ export default function Mytrip() {
   };
 
   const handleDelete = (deletedId: string) => {
-    setUserTrips((prev: UserTrip[]) => prev.filter((t) => t.id !== deletedId));
+    deleteTrip.mutate(deletedId);
   };
 
   const filteredTrips = useMemo(() => {
@@ -77,11 +89,11 @@ export default function Mytrip() {
       const tripName = item?.concertData?.artist
         ? `${item.concertData.artist} Concert`
         : item?.tripPlan?.tripName ||
-          (item?.savedTripId ? item.savedTripId.split("-")[0] : "My Trip");
-      
+        (item?.savedTripId ? item.savedTripId.split("-")[0] : "My Trip");
+
       const tripLocation = (item as any)?.tripData?.locationInfo?.name || "";
       const discoverLocation = (item as any)?.discoverData?.locationInfo?.name || "";
-      
+
       return (
         tripName.toLowerCase().includes(q) ||
         tripLocation.toLowerCase().includes(q) ||
@@ -107,68 +119,81 @@ export default function Mytrip() {
         : "GOOD EVENING";
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.WHITE }}>
-      <StatusBar barStyle="dark-content" />
+    <View style={{ flex: 1, backgroundColor: colors.BACKGROUND }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
-        style={{ paddingTop: insets.top + 10 }}
-        contentContainerStyle={{
-          paddingHorizontal: width * 0.03,
-          paddingTop: 0,
-          paddingBottom: 160,
-          flexGrow: 1,
-        }}
+        style={[styles.container, { backgroundColor: colors.BACKGROUND }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { backgroundColor: colors.BACKGROUND, paddingTop: insets.top + 5 },
+        ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !loading}
+            onRefresh={refetch}
+            tintColor={colors.PRIMARY}
+            colors={[colors.PRIMARY]}
+          />
+        }
       >
-        {/* <GlobalLocationHeader /> */}
         <View style={styles.header}>
           {isSearching ? (
-            <View style={styles.searchBarWrapper}>
+            <View style={[styles.searchBarWrapper, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
               <Ionicons
                 name="search"
                 size={20}
-                color={Colors.GRAY}
+                color={colors.GRAY}
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.TEXT }]}
                 placeholder="Search journeys..."
-                placeholderTextColor={Colors.GRAY}
+                placeholderTextColor={colors.GRAY}
                 autoFocus={true}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
               <TouchableOpacity onPress={toggleSearch} style={styles.closeBtn}>
-                <Ionicons name="close-circle" size={22} color={Colors.GRAY} />
+                <Ionicons name="close-circle" size={22} color={colors.GRAY} />
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={styles.greetingWrapper}>
-                <Text style={styles.welcomeText}>{timeGreeting}</Text>
+                <Text style={[styles.welcomeText, { color: colors.MUTED_TEXT }]}>{timeGreeting}</Text>
                 <View style={styles.nameRow}>
-                  <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                  <Text
+                    style={[styles.title, { color: colors.TEXT }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {firstName}
                   </Text>
-                  <View style={styles.goldDot} />
+                  <View style={[styles.goldDot, { backgroundColor: colors.SECONDARY }]} />
                 </View>
               </View>
               <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
+                  activeOpacity={0.8}
+                  onPress={toggleTheme}
+                >
                   <Ionicons
-                    name="notifications-outline"
+                    name={isDark ? "sunny-outline" : "moon-outline"}
                     size={22}
-                    color={Colors.TEXT}
+                    color={colors.TEXT}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.iconButton}
+                  style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
                   activeOpacity={0.8}
                   onPress={toggleSearch}
                 >
                   <Ionicons
                     name="search-outline"
                     size={22}
-                    color={Colors.TEXT}
+                    color={colors.TEXT}
                   />
                 </TouchableOpacity>
               </View>
@@ -177,7 +202,7 @@ export default function Mytrip() {
         </View>
 
         {isOffline && (
-          <View style={[styles.banner, { backgroundColor: Colors.SECONDARY }]}>
+          <View style={[styles.banner, { backgroundColor: colors.SECONDARY }]}>
             <Text style={styles.bannerText}>Offline Mode</Text>
           </View>
         )}
@@ -185,7 +210,7 @@ export default function Mytrip() {
           <Animated.View
             style={[
               styles.banner,
-              { backgroundColor: Colors.ACCENT, opacity: fadeAnim },
+              { backgroundColor: colors.ACCENT, opacity: fadeAnim },
             ]}
           >
             <Text style={styles.bannerText}>Back Online</Text>
@@ -194,25 +219,25 @@ export default function Mytrip() {
 
         <HomeLocationPrompt />
 
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={Colors.PRIMARY}
-            style={{ marginTop: 50 }}
-          />
+        {loading || (isFetching && userTrips.length === 0) ? (
+          <View style={{ flex: 1 }}>
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+            <TripCardSkeleton />
+          </View>
         ) : filteredTrips?.length === 0 ? (
           searchQuery.trim() ? (
             <View style={styles.noResults}>
-              <View style={styles.noResultsIcon}>
+              <View style={[styles.noResultsIcon, { backgroundColor: colors.SURFACE }]}>
                 <Ionicons
                   name="search-outline"
                   size={42}
-                  color={Colors.TEXT}
+                  color={colors.TEXT}
                   style={{ opacity: 0.2 }}
                 />
               </View>
-              <Text style={styles.noResultsText}>NO JOURNEYS FOUND</Text>
-              <Text style={styles.noResultsSubtext}>
+              <Text style={[styles.noResultsText, { color: colors.TEXT }]}>NO JOURNEYS FOUND</Text>
+              <Text style={[styles.noResultsSubtext, { color: colors.MUTED_TEXT }]}>
                 We couldn't find any trips matching "{searchQuery}".
               </Text>
             </View>
@@ -228,6 +253,12 @@ export default function Mytrip() {
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: width * 0.03,
+    paddingBottom: 160,
+    flexGrow: 1,
+  },
   header: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -243,7 +274,6 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontFamily: "outfitMedium",
     fontSize: 11,
-    color: Colors.MUTED_TEXT,
     letterSpacing: 3,
     marginBottom: 0,
     textTransform: "uppercase",
@@ -256,14 +286,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "playfairBold",
     fontSize: 36,
-    color: Colors.TEXT,
-    lineHeight: 48,
+    lineHeight: 44,
   },
   goldDot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: Colors.SECONDARY,
     marginLeft: 2,
     marginBottom: 8,
   },

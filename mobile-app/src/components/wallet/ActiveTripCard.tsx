@@ -8,7 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -17,17 +18,26 @@ import { useUser } from "@/src/context/UserContext";
 import { apiPatch } from "@/src/lib/api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import { fallbackImages } from "@/src/constants/travel-data";
-import { ActiveTripCardProps } from "@/src/types/interfaces";
+import { fallbackImages } from "@/src/constants";
+import { ActiveTripCardProps } from "@/src/types";
 import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
+import * as Sentry from "@sentry/react-native";
 
 export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
-  const { refreshTrips } = useUser();
+  const queryClient = useQueryClient();
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveVisible, setArchiveVisible] = useState(false);
+  
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -93,34 +103,36 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       });
 
       if (spendingsToArchive.length > 0) {
-        await apiPatch(`/api/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
+        await apiPatch(`/api/v1/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
       }
 
-      await apiPatch(`/api/trips/${trip.id}/deactivate`, {});
+      await apiPatch(`/api/v1/trips/${trip.id}/deactivate`, {});
 
       if (spendingsToArchive.length > 0) {
         const batchDeletes = snapshot.docs.map(d => deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id, "transactions", d.id)));
         await Promise.all(batchDeletes);
       }
 
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setIsArchiving(false);
     } catch (error) {
-      console.error(error);
+      Sentry.captureException(error, { extra: { context: "ActiveTripCard:handleArchiveConfirmed", tripId: trip.id } });
       setIsArchiving(false);
-      Alert.alert("Error", "Failed to archive history.");
+      setErrorTitle("Archive Failed");
+      setErrorMessage("Something went wrong while finalizing your journey history. Please try again.");
+      setErrorVisible(true);
     }
   };
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
       <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner} disabled={isArchiving}>
         <Image source={tripImageSource} style={styles.bannerImage} transition={500} />
 
         <View style={styles.topRow}>
-          <BlurView intensity={75} tint="dark" style={styles.liveBadge}>
-            <View style={[styles.statusDot, trip.isFinished && { backgroundColor: "#94A3B8" }]} />
-            <Text style={styles.liveText}>
+          <BlurView intensity={75} tint={isDark ? "dark" : "light"} style={[styles.liveBadge, { borderColor: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.1)" }]}>
+            <View style={[styles.statusDot, trip.isFinished && { backgroundColor: colors.GRAY }]} />
+            <Text style={[styles.liveText, { color: isDark ? colors.WHITE : colors.TEXT }]}>
               {isArchiving ? "ARCHIVING..." : trip.isFinished ? "COMPLETED" : "ON JOURNEY"}
             </Text>
           </BlurView>
@@ -175,6 +187,16 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
         onConfirm={handleArchiveConfirmed}
         onCancel={() => setArchiveVisible(false)}
       />
+
+      <SafarAlert
+        visible={errorVisible}
+        title={errorTitle}
+        message={errorMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorVisible(false)}
+        onCancel={() => setErrorVisible(false)}
+      />
     </View>
   );
 }
@@ -182,7 +204,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 const styles = StyleSheet.create({
   cardContainer: {
     marginBottom: 12,
-    borderRadius: 30,
+    borderRadius: 20,
     backgroundColor: "white",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
@@ -192,7 +214,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.3,
     borderColor: Colors.WHITE,
   },
-  card: { height: 160, borderRadius: 30, overflow: "hidden", backgroundColor: "#F0F0F0" },
+  card: { height: 160, borderRadius: 20, overflow: "hidden", backgroundColor: "#F0F0F0" },
   bannerImage: { ...StyleSheet.absoluteFillObject },
   topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, alignItems: 'center' },
   liveBadge: {

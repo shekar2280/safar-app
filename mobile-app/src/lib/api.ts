@@ -1,19 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace("/api/generate", "") ?? "http://localhost:8000";
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_ROOT ?? "http://localhost:8000";
 
 export const JWT_KEY = "safar_jwt_token";
 export const USER_KEY = "safar_user";
 
-export interface SafarUser {
-  id: number;
-  firebase_uid: string;
-  email: string | null;
-  full_name: string | null;
-  photo_url: string | null;
-  created_at: string;
-  last_login: string | null;
-}
+import { SafarUser } from "../types";
+import * as Sentry from "@sentry/react-native";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(JWT_KEY);
@@ -21,14 +14,17 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 export async function syncUserWithBackend(firebaseIdToken: string): Promise<SafarUser> {
-  const res = await fetch(`${BASE_URL}/api/auth/sync-user`, {
+  const res = await fetch(`${BASE_URL}/api/v1/auth/sync-user`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to sync user: ${res.status}`);
+    const errorDetails = await res.json().catch(() => ({}));
+    const errorMessage = errorDetails.detail ?? `Failed to sync user: ${res.status}`;
+    Sentry.captureException(new Error(errorMessage));
+    throw new Error(errorMessage);
   }
 
   const data = await res.json();
@@ -40,10 +36,20 @@ export async function syncUserWithBackend(firebaseIdToken: string): Promise<Safa
 export async function getMe(): Promise<SafarUser | null> {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${BASE_URL}/api/auth/me`, { headers });
-    if (!res.ok) return null;
+    const res = await fetch(`${BASE_URL}/api/v1/auth/me`, { headers });
+    if (!res.ok) {
+      if (res.status !== 401) {
+        const err = await res.json().catch(() => ({}));
+        Sentry.captureMessage(`Profile fetch failed: ${res.status}`, {
+          level: "warning",
+          extra: { detail: err.detail }
+        });
+      }
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err);
     return null;
   }
 }
@@ -104,6 +110,6 @@ export async function apiDelete(endpoint: string): Promise<void> {
   }
 }
 
-export async function updateUserProfile(data: { home_location?: any }): Promise<void> {
-  await apiPatch("/api/auth/me", data);
+export async function updateUserProfile(data: { home_location?: any; full_name?: string }): Promise<any> {
+  return await apiPatch("/api/v1/auth/me", data);
 }

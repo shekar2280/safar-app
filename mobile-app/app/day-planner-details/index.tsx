@@ -3,63 +3,53 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   Linking,
-  ActivityIndicator,
   Dimensions,
   StatusBar,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Location from "expo-location";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
+import { useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { getDistance } from "@/src/utils/geoUtils";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { auth } from "@/src/lib/firebase";
 import { Image } from "expo-image";
-import { fallbackImages } from "@/src/constants/travel-data";
-import LocationPicker from "@/src/components/trip/LocationPicker";
-import { PlaceItem, LocalExperience, LocationData } from "@/src/types/interfaces";
+import { fallbackImages } from "@/src/constants";
+import { PlaceItem, LocalExperience, SightItem, ExperienceItem, JourneyItem, VisibilityState } from "@/src/types";
+import SafarAlert from "@/src/components/ui/SafarAlert";
+import { useLocationTracker } from "@/src/hooks/useLocationTracker";
+import { LocationStatus } from "@/src/components/planner/LocationStatus";
+import { PlannerItem } from "@/src/components/planner/PlannerItem";
+import { LockedSight } from "@/src/components/planner/LockedSight";
 
-const { width, height } = Dimensions.get("window");
-
-interface GeoCoords {
-  latitude: number;
-  longitude: number;
-}
-
-interface SightItem extends PlaceItem {
-  isLocation: boolean;
-  isDone: boolean;
-  distance: number | null;
-  originalIndex: number;
-}
-
-interface ExperienceItem extends LocalExperience {
-  placeName: string;
-  isDone: boolean;
-  isLocation: boolean;
-}
-
-interface JourneyItem extends SightItem {
-  activity: ExperienceItem | null;
-}
+const { height } = Dimensions.get("window");
 
 export default function DailyPlanner() {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
-  const { activeTrip, markAsDone } = useActiveTrip();
+  const { activeTrip, markAsDone, skipPlace, finalizeTrip } = useActiveTrip();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
-  const [userLocation, setUserLocation] = useState<GeoCoords | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    userLocation,
+    showLocationAlert,
+    isLocationBlocked,
+    loading,
+    refreshLocation,
+    setShowLocationAlert,
+  } = useLocationTracker();
+
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
+  const [concluding, setConcluding] = useState(false);
+  const [showConcludeAlert, setShowConcludeAlert] = useState(false);
+  const isFinished = activeTrip?.isFinished || false;
 
-  const [manualLocation, setManualLocation] = useState<GeoCoords | null>(null);
-  const [isManualMode, setIsManualMode] = useState(false);
-
-  const effectiveLocation = manualLocation || userLocation;
+  const effectiveLocation = userLocation;
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -81,16 +71,22 @@ export default function DailyPlanner() {
 
     const { dailyItinerary, recommendations } = activeTrip.tripPlan;
     const completedIndices = activeTrip.visitedIndices || [];
+    const skippedIndices = activeTrip.skipped_indices || [];
 
-    const itineraryArray: PlaceItem[] = Array.isArray(dailyItinerary)
+    const rawArray: any[] = Array.isArray(dailyItinerary)
       ? dailyItinerary
       : (dailyItinerary as any)?.places || [];
+
+    const itineraryArray: PlaceItem[] = (rawArray.length > 0 && rawArray[0].places)
+      ? rawArray.flatMap((day: any) => day.places || [])
+      : rawArray;
 
     const allSights: SightItem[] = itineraryArray.map((p, idx) => ({
       ...p,
       isLocation: true,
       originalIndex: idx,
       isDone: completedIndices.includes(idx),
+      isSkipped: skippedIndices.includes(idx),
       distance: (effectiveLocation && p.geoCoordinates)
         ? getDistance(
           effectiveLocation.latitude,
@@ -104,7 +100,7 @@ export default function DailyPlanner() {
     const allExps: ExperienceItem[] = (recommendations?.localExperiences || []).map((e, idx) => ({
       ...e,
       placeName: e.experienceName,
-      isDone: false, // Recommendations aren't part of the main visited_indices for now
+      isDone: false,
       isLocation: false,
     }));
 
@@ -117,296 +113,206 @@ export default function DailyPlanner() {
       activity: allExps[index] || null,
     }));
 
-    return {
-      active: mappedJourney.filter((item) => !item.isDone),
-      completed: mappedJourney.filter((item) => item.isDone),
-    };
-  }, [effectiveLocation, activeTrip?.visitedIndices, activeTrip?.tripPlan]);
-
-  const handleLocationChange = (loc: LocationData | null) => {
-    if (loc?.coordinates?.latitude && loc?.coordinates?.longitude) {
-      setManualLocation({
-        latitude: Number(loc.coordinates.latitude),
-        longitude: Number(loc.coordinates.longitude),
-      });
-      setIsManualMode(false);
-      setLoading(false);
+    const completed = mappedJourney.filter((item) => item.isDone);
+    
+    let active: JourneyItem[];
+    if (isFinished) {
+      active = [];
+    } else {
+      const unvisited = mappedJourney.filter((item) => !item.isDone);
+      const normal = unvisited.filter(item => !(item as any).isSkipped);
+      const postponed = unvisited.filter(item => (item as any).isSkipped);
+      active = [...normal, ...postponed];
     }
-  };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      const refresh = async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
+    return { active, completed };
+  }, [effectiveLocation, activeTrip?.visitedIndices, activeTrip?.skipped_indices, activeTrip?.tripPlan, isFinished]);
 
-          if (status !== "granted") {
-            setIsManualMode(true);
-            setLoading(false);
-            return;
-          }
+  const visibilityMap = useMemo((): VisibilityState[] => {
+    return sections.active.map((_, idx) => {
+      if (idx === 0) return 'full';
+      if (idx === 1) return 'teaser';
+      return 'locked';
+    });
+  }, [sections.active]);
 
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-
-          if (isActive) {
-            setUserLocation(loc.coords);
-            setLoading(false);
-          }
-        } catch (e) {
-          console.error("Location Error:", e);
-          setIsManualMode(true);
-          setLoading(false);
-        }
-      };
-
-      if (!manualLocation) refresh();
-
-      return () => {
-        isActive = false;
-      };
-    }, [manualLocation]),
+  const lockedCount = useMemo(
+    () => sections.active.filter((_, idx) => visibilityMap[idx] === 'locked').length,
+    [sections.active, visibilityMap]
   );
 
   const openNavigation = (placeName: string) => {
-    const query = encodeURIComponent(
-      `${placeName} ${activeTrip?.tripPlan?.tripName}`,
-    );
+    const query = encodeURIComponent(`${placeName} ${activeTrip?.tripPlan?.tripName}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     Linking.openURL(url);
   };
 
   const findNearbyFood = (placeName: string) => {
-    const searchQuery = encodeURIComponent(
-      `Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`,
-    );
+    const searchQuery = encodeURIComponent(`Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
     Linking.openURL(url);
   };
 
-  const renderItem = (item: JourneyItem, index: number, isCompleted = false) => {
-    const isFirst = index === 0 && !isCompleted;
-    const isLast = (isCompleted && index === sections.completed.length - 1) || (!isCompleted && index === sections.active.length - 1 && sections.completed.length === 0);
-
-    return (
-      <View
-        key={item.placeName}
-        style={[styles.itemWrapper, isCompleted && styles.completedWrapper]}
-      >
-        <View style={styles.timelineContainer}>
-          <View
-            style={[
-              styles.timelineDot,
-              isFirst && styles.activeDot,
-              isCompleted && styles.doneDot,
-            ]}
-          >
-            {isCompleted && <Feather name="check" size={10} color="white" />}
-          </View>
-          {!isLast && (
-            <View 
-              style={[
-                styles.timelineLine, 
-                isCompleted ? styles.doneLine : styles.plannedLine,
-                isFirst && { marginTop: 4 }
-              ]} 
-            />
-          )}
-        </View>
-
-        <View style={styles.contentBody}>
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.placeTitle, isCompleted && styles.doneText]}>
-                {item.placeName}
-              </Text>
-              {!isCompleted && (
-                <View style={styles.metaRow}>
-                  <Text style={styles.distanceText}>
-                    {item.distance?.toFixed(1) || "0.0"} km away from your location
-                  </Text>
-                  <View style={styles.timingContainer}>
-                    <Text style={styles.timingText}>
-                      Best time to visit: {" "}
-                      <Text style={styles.timeText}>
-                        {item.timeSlot || "Anytime"}
-                      </Text>
-                    </Text>
-                  </View>
-                  {item.vibe && (
-                    <View style={styles.vibeBadge}>
-                      <Text style={styles.vibeText}>{item.vibe.toUpperCase()}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-            {isFirst && (
-              <View style={styles.nowBadge}>
-                <Text style={styles.nowText}>NEXT UP</Text>
-              </View>
-            )}
-          </View>
-
-          {isCompleted && (
-            <View style={[styles.actionContainer, { marginTop: 5 }]}>
-              <TouchableOpacity
-                style={styles.undoBtn}
-                disabled={processingIndex !== null}
-                onPress={async () => {
-                  if (user && activeTrip) {
-                    setProcessingIndex(item.originalIndex);
-                    await markAsDone(item.placeName, user.uid, activeTrip.id, item.originalIndex);
-                    setProcessingIndex(null);
-                  }
-                }}
-              >
-                {processingIndex === item.originalIndex ? (
-                  <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                ) : (
-                  <>
-                    <Ionicons name="refresh-outline" size={16} color={Colors.PRIMARY} />
-                    <Text style={styles.undoBtnText}>Undo Visit</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!isCompleted && (
-            <>
-              <Text style={styles.descriptionText}>
-                {item.placeDetails}
-              </Text>
-              <View style={styles.actionContainer}>
-                <TouchableOpacity
-                  style={[styles.mainActionBtn, processingIndex === item.originalIndex && { opacity: 0.7 }]}
-                  disabled={processingIndex !== null}
-                  onPress={async () => {
-                    if (user && activeTrip) {
-                      setProcessingIndex(item.originalIndex);
-                      await markAsDone(item.placeName, user.uid, activeTrip.id, item.originalIndex);
-                      setProcessingIndex(null);
-                    }
-                  }}
-                >
-                  {processingIndex === item.originalIndex ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <Text style={styles.mainActionText}>Mark Visited</Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.iconActionPair}>
-                  <View style={styles.iconActionItem}>
-                    <Text style={styles.iconLabel}>MAP</Text>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => openNavigation(item.placeName)}
-                    >
-                      <Ionicons
-                        name="location-outline"
-                        size={20}
-                        color={Colors.PRIMARY}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.iconActionItem}>
-                    <Text style={styles.iconLabel}>FOOD</Text>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => findNearbyFood(item.placeName)}
-                    >
-                      <Ionicons
-                        name="restaurant-outline"
-                        size={20}
-                        color="#64748B"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </>
-          )}
-        </View>
-      </View>
-    );
+  const handleMarkAsDone = async (item: JourneyItem) => {
+    if (user && activeTrip) {
+      const idx = item.originalIndex;
+      const current = activeTrip.visitedIndices || [];
+      const newList = current.includes(idx) 
+        ? current.filter(i => i !== idx) 
+        : [...current, idx];
+      
+      setProcessingIndex(idx);
+      await markAsDone(activeTrip.id, newList);
+      setProcessingIndex(null);
+    }
   };
 
-  if (loading && sections.active.length === 0) {
+  const handleSkipPlace = async (item: JourneyItem) => {
+    if (user && activeTrip) {
+      const idx = item.originalIndex;
+      const current = activeTrip.skipped_indices || [];
+      const newList = current.includes(idx) 
+        ? current.filter(i => i !== idx) 
+        : [...current, idx];
+
+      setProcessingIndex(idx);
+      await skipPlace(activeTrip.id, newList);
+      setProcessingIndex(null);
+    }
+  };
+
+  const handleConcludeJourney = () => {
+    setShowConcludeAlert(true);
+  };
+
+  const handleConfirmConclude = async () => {
+    setShowConcludeAlert(false);
+    if (!activeTrip) return;
+    setConcluding(true);
+    await finalizeTrip(activeTrip.id);
+    setConcluding(false);
+  };
+
+  if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#D4AF37" />
+          <Text style={[styles.loadingTitle, { color: colors.TEXT }]}>Curating Your Journey</Text>
+          <Text style={[styles.loadingSubtitle, { color: colors.MUTED_TEXT }]}>
+            Handpicking the best sights for this moment...
+          </Text>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={[styles.skeletonRow, { opacity: 1 - i * 0.25 }]}>
+              <View style={[styles.skeletonDot, { backgroundColor: colors.BORDER }]} />
+              <View style={styles.skeletonLines}>
+                <View style={[styles.skeletonLine, { width: "70%", backgroundColor: colors.BORDER }]} />
+                <View style={[styles.skeletonLine, { width: "45%", backgroundColor: colors.BORDER, marginTop: 8 }]} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: "#FFF" }}
-      >
-        <Image
-          source={displayImage}
-          style={styles.headerImage}
-          contentFit="cover"
-          transition={500}
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <ScrollView showsVerticalScrollIndicator={false} style={{ backgroundColor: colors.BACKGROUND }}>
+        <Image source={displayImage} style={styles.headerImage} contentFit="cover" transition={500} />
+
+        <LocationStatus
+          effectiveLocation={effectiveLocation}
+          isFinished={isFinished}
+          isDark={isDark}
+          onRefresh={() => refreshLocation(true)}
         />
 
-        {isManualMode ? (
-          <View style={styles.pickerContainer}>
-            <LocationPicker
-              placeholder="Current Location"
-              onLocationChange={handleLocationChange}
-            />
-            <TouchableOpacity
-              onPress={() => setIsManualMode(false)}
-              style={styles.cancelLink}
-            >
-              <Text style={styles.cancelLinkText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.locationStatus}
-            onPress={() => setIsManualMode(true)}
-          >
-            <Ionicons name="navigate" size={16} color={Colors.PRIMARY} />
-            <Text style={styles.locationStatusText}>
-              {manualLocation ? "Manual Location Active" : "Using Live GPS"} •{" "}
-              {effectiveLocation ? "Distances Updated" : "Searching..."}
-            </Text>
-            <Text style={styles.editText}>Change</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.scrollContentContainer}>
+        <View style={[styles.scrollContentContainer, { backgroundColor: colors.BACKGROUND }]}>
           <View style={styles.mainHeader}>
-            <Text style={styles.welcomeText}>Daily Itinerary</Text>
-            <Text style={styles.tripNameText}>
-              {activeTrip?.tripPlan?.tripName}
-            </Text>
+            <View style={styles.headerTitleRow}>
+              <View style={styles.headerTitleTextBlock}>
+                <Text style={[styles.tripNameText, { color: colors.PRIMARY }, isFinished && { color: colors.MUTED_TEXT }]}>
+                  {activeTrip?.tripPlan?.tripName}
+                </Text>
+              </View>
+
+              {isFinished ? (
+                <View style={[styles.archivedBadge, { backgroundColor: isDark ? "#1A1A1A" : "#F1F5F9", borderColor: colors.BORDER }]}>
+                  <Text style={[styles.archivedBadgeText, { color: colors.MUTED_TEXT }]}>ARCHIVED</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.concludeBtn,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(212,175,55,0.12)"
+                        : "rgba(212,175,55,0.10)",
+                      borderColor: isDark
+                        ? "rgba(212,175,55,0.35)"
+                        : "rgba(212,175,55,0.4)",
+                    },
+                  ]}
+                  onPress={handleConcludeJourney}
+                  disabled={concluding}
+                  accessibilityLabel="Conclude Journey"
+                >
+                  <Ionicons
+                    name={concluding ? "hourglass-outline" : "flag-outline"}
+                    size={13}
+                    color="#D4AF37"
+                  />
+                  <Text style={styles.concludeBtnText}>
+                    {concluding ? "Saving…" : "Conclude"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={styles.pathLabelRow}>
-            <Text style={styles.sectionLabel}>PLANNED ROUTE</Text>
-            <View style={styles.divider} />
+            <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>PLANNED ROUTE</Text>
+            <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
           </View>
 
           {sections.active.length > 0 ? (
-            sections.active.map((item, index) => renderItem(item, index))
+            <>
+              {sections.active.map((item, index) => {
+                const vs = visibilityMap[index];
+                if (vs === 'locked') return null;
+                return (
+                  <PlannerItem
+                    key={`active-${item.originalIndex}`}
+                    item={item}
+                    index={index}
+                    isFinished={isFinished}
+                    isDark={isDark}
+                    colors={colors}
+                    sections={sections}
+                    processingIndex={processingIndex}
+                    visibilityState={vs}
+                    onMarkAsDone={handleMarkAsDone}
+                    onSkip={handleSkipPlace}
+                    onOpenNavigation={openNavigation}
+                    onFindFood={findNearbyFood}
+                  />
+                );
+              })}
+
+              {lockedCount > 0 && (
+                <LockedSight
+                  count={lockedCount}
+                  isDark={isDark}
+                  colors={colors}
+                />
+              )}
+            </>
           ) : (
             <View style={styles.emptyView}>
-              <Ionicons
-                name="checkmark-done-circle"
-                size={40}
-                color="#10B981"
-              />
+              <Ionicons name="checkmark-done-circle" size={40} color="#10B981" />
               <Text style={styles.emptyText}>All tasks completed for now!</Text>
             </View>
           )}
@@ -414,86 +320,132 @@ export default function DailyPlanner() {
           {sections.completed.length > 0 && (
             <>
               <View style={[styles.pathLabelRow, { marginTop: 40 }]}>
-                <Text style={styles.sectionLabel}>COMPLETED SIGHTS</Text>
-                <View style={styles.divider} />
+                <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>COMPLETED SIGHTS</Text>
+                <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
               </View>
-              {sections.completed.map((item, index) =>
-                renderItem(item, index, true),
-              )}
+              {sections.completed.map((item, index) => (
+                <PlannerItem
+                  key={`completed-${item.originalIndex}`}
+                  item={item}
+                  index={index}
+                  isCompleted
+                  isFinished={isFinished}
+                  isDark={isDark}
+                  colors={colors}
+                  sections={sections}
+                  processingIndex={processingIndex}
+                  onMarkAsDone={handleMarkAsDone}
+                  onOpenNavigation={openNavigation}
+                  onFindFood={findNearbyFood}
+                />
+              ))}
             </>
           )}
         </View>
       </ScrollView>
+
+      <SafarAlert
+        visible={showLocationAlert}
+        title={isLocationBlocked ? "Location Access Blocked" : "Enable Location"}
+        message={
+          isLocationBlocked
+            ? "You've disabled location access. Please enable it in your device settings to see distance to sights and use navigation."
+            : "Safar needs your location to calculate real-time distances to sights and provide navigation for your trip."
+        }
+        type={isLocationBlocked ? "error" : "confirm"}
+        confirmText={isLocationBlocked ? "Open Settings" : "Enable GPS"}
+        onConfirm={() => {
+          setShowLocationAlert(false);
+          if (isLocationBlocked) {
+            Linking.openSettings();
+          } else {
+            refreshLocation(true);
+          }
+        }}
+        onCancel={() => setShowLocationAlert(false)}
+      />
+
+      <SafarAlert
+        visible={showConcludeAlert}
+        title="Conclude Journey"
+        message="This will lock your itinerary and archive your progress. Unvisited sights will be removed from view. This cannot be undone."
+        type="confirm"
+        confirmText="Conclude"
+        cancelText="Not Yet"
+        onConfirm={handleConfirmConclude}
+        onCancel={() => setShowConcludeAlert(false)}
+      />
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingContainer: {
+    justifyContent: "center",
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+    gap: 0,
+  },
+  loadingTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 24,
+    marginTop: 20,
+    marginBottom: 6,
+  },
+  loadingSubtitle: {
+    fontFamily: "outfit",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 40,
+  },
+  skeletonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 24,
+    gap: 14,
+  },
+  skeletonDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  skeletonLines: {
+    flex: 1,
+  },
+  skeletonLine: {
+    height: 12,
+    borderRadius: 6,
+  },
   headerImage: { width: "100%", height: height * 0.4 },
   scrollContentContainer: {
     paddingHorizontal: 0,
-    backgroundColor: "#FFF",
     minHeight: height,
     marginTop: -5,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingBottom: 100,
   },
-  locationStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F1F5F9",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    marginHorizontal: 20,
-    marginTop: -20,
-    marginBottom: 10,
-    gap: 8,
-    zIndex: 5,
-  },
-  locationStatusText: {
-    flex: 1,
-    fontFamily: "outfit",
-    fontSize: 12,
-    color: "#475569",
-  },
-  editText: { fontFamily: "outfitBold", fontSize: 12, color: Colors.PRIMARY },
-  pickerContainer: {
-    padding: 15,
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 20,
-    marginTop: -25,
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    zIndex: 100,
-  },
-  cancelLink: { marginTop: 10, alignSelf: "center" },
-  cancelLinkText: { fontFamily: "outfit", color: "#EF4444", fontSize: 12 },
   mainHeader: { marginBottom: 20, paddingLeft: 16, paddingRight: 20 },
   welcomeText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: "#94A3B8",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   tripNameText: {
     fontFamily: "playfairBold",
     fontSize: 28,
-    color: Colors.PRIMARY,
   },
   sectionLabel: {
     fontFamily: "outfitBold",
     fontSize: 11,
-    color: "#94A3B8",
     letterSpacing: 2,
     marginRight: 12,
   },
@@ -504,173 +456,43 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 20,
   },
-  divider: { flex: 1, height: 1, backgroundColor: "#F1F5F9" },
-  itemWrapper: { flexDirection: "row" },
-  completedWrapper: { opacity: 0.5 },
-  timelineContainer: { width: 32, alignItems: "center" },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "white",
-    borderWidth: 2,
-    borderColor: "#CBD5E1",
-    zIndex: 2,
-    marginTop: 8,
-  },
-  activeDot: {
-    backgroundColor: Colors.PRIMARY,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 4,
-    borderColor: "white",
-    marginTop: 5,
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  doneDot: {
-    backgroundColor: Colors.GREEN,
-    borderColor: Colors.GREEN,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 7,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    position: "absolute",
-    top: 24,
-    bottom: -6,
-    left: "50%",
-    marginLeft: -1,
-  },
-  plannedLine: { 
-    backgroundColor: "transparent",
-    borderStyle: "dashed",
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    borderRadius: 1,
-  },
-  doneLine: { backgroundColor: Colors.GREEN, width: 2 },
-  contentBody: { flex: 1, paddingBottom: 40, marginLeft: 10, paddingRight: 20 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  placeTitle: { fontFamily: "playfairBold", fontSize: 20, color: "#1E293B" },
-  doneText: { textDecorationLine: "line-through", color: Colors.MUTED_TEXT },
-  distanceText: {
-    fontFamily: "outfitMedium",
-    fontSize: 12,
-    color: Colors.GREEN,
-  },
-  timingContainer: { marginTop: 4 },
-  timingText: {
-    fontFamily: "outfitMedium",
-    fontSize: 12,
-    color: "#64748B",
-  },
-  timeText: {
-    fontFamily: "outfitBold",
-    fontSize: 12,
-    color: Colors.PRIMARY,
-  },
-  metaRow: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    marginTop: 8,
-    gap: 8,
-  },
-  vibeBadge: {
-    backgroundColor: "rgba(235, 186, 73, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-    marginTop: 4,
-  },
-  vibeText: {
-    fontFamily: "outfitBold",
-    fontSize: 9,
-    color: Colors.SECONDARY,
-    letterSpacing: 0.5,
-  },
-  descriptionText: {
-    fontFamily: "outfit",
-    fontSize: 14,
-    color: "#64748B",
-    lineHeight: 22,
-    marginTop: 10,
-  },
-  actionContainer: { 
-    flexDirection: "row", 
-    marginTop: 15, 
-    gap: 12,
-    alignItems: "flex-end",
-  },
-  iconActionPair: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  iconActionItem: {
-    alignItems: "center",
-    gap: 6,
-  },
-  iconLabel: {
-    fontFamily: "outfitBold",
-    fontSize: 8,
-    color: "#94A3B8",
-    letterSpacing: 0.5,
-  },
-  mainActionBtn: {
-    flex: 1,
-    height: 48,
-    backgroundColor: "#0F172A",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mainActionText: { color: "#ffffff", fontFamily: "outfitBold", fontSize: 13 },
-  iconBtn: {
-    width: 48,
-    height: 48,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  nowBadge: {
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  nowText: { fontFamily: "outfitBold", fontSize: 9, color: "#475569" },
+  divider: { flex: 1, height: 1 },
   emptyView: { alignItems: "center", padding: 40 },
   emptyText: { fontFamily: "outfitMedium", color: "#94A3B8", marginTop: 10 },
-  undoBtn: {
+  headerTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 20,
+  },
+  headerTitleTextBlock: {
+    flex: 1,
+    marginRight: 12,
+  },
+  archivedBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  archivedBadgeText: {
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  concludeBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
+    gap: 5,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: Colors.BORDER,
-    alignSelf: "flex-start",
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  undoBtnText: {
+  concludeBtnText: {
     fontFamily: "outfitBold",
-    fontSize: 12,
-    color: Colors.PRIMARY,
+    fontSize: 11,
+    color: "#D4AF37",
+    letterSpacing: 0.5,
   },
 });

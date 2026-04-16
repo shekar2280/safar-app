@@ -10,18 +10,27 @@ import {
 import Autocomplete from "react-native-autocomplete-input";
 const AutocompleteInput = Autocomplete as any;
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
-import { DestinationData, DestinationPickerProps, NominatimResult } from "@/src/types/interfaces";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
+import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/types";
+import SafarAlert from "@/src/components/ui/SafarAlert";
+import * as Sentry from "@sentry/react-native";
 
 export default function DestinationPicker({
   onLocationSelect,
   placeholder = "Search destination...",
   value,
 }: DestinationPickerProps & { value?: DestinationData | null }) {
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [selected, setSelected] = useState<DestinationData | null>(value || null);
   const [loading, setLoading] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
     if (value) {
@@ -42,7 +51,10 @@ export default function DestinationPicker({
             }
             setLoading(false);
           })
-          .catch(() => setLoading(false));
+          .catch((err) => {
+            Sentry.captureException(err, { extra: { context: "DestinationPicker:initialHydrate" } });
+            setLoading(false);
+          });
       }
     } else {
       setQuery("");
@@ -71,7 +83,10 @@ export default function DestinationPicker({
           setResults(data);
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch((err) => {
+          Sentry.captureException(err, { extra: { context: "DestinationPicker:bgSearch" } });
+          setLoading(false);
+        });
     }, 400);
     return () => clearTimeout(timeout);
   }, [query, selected]);
@@ -109,7 +124,7 @@ export default function DestinationPicker({
     const finalName = cityAliases[cleanName.toLowerCase()] || cleanName;
 
     const locationInfo: DestinationData = {
-      name: item.display_name,
+      name: finalName,
       shortName: finalName,
       country: countryName,
       countryCode,
@@ -148,28 +163,28 @@ export default function DestinationPicker({
         inputContainerStyle={{ borderWidth: 0 }}
         listStyle={{ borderWidth: 0 }}
         renderTextInput={(props: any) => (
-          <View style={styles.inputCapsule}>
+          <View style={[styles.inputCapsule, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }]}>
             <View style={styles.labelSection}>
-              <Text style={styles.label}>TO</Text>
+              <Text style={[styles.label, { color: colors.GOLD }]}>TO</Text>
             </View>
             <TextInput
               {...props}
-              style={styles.inputStyle}
-              placeholderTextColor={Colors.GRAY}
-              selectionColor={Colors.SECONDARY}
+              style={[styles.inputStyle, { color: colors.TEXT }]}
+              placeholderTextColor={colors.MUTED_TEXT}
+              selectionColor={colors.GOLD}
             />
             <View style={styles.actionSection}>
               {loading ? (
-                <ActivityIndicator size="small" color={Colors.SECONDARY} />
+                <ActivityIndicator size="small" color={colors.GOLD} />
               ) : query.length > 0 ? (
                 <TouchableOpacity onPress={clearInput}>
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={[styles.clearText, { color: colors.MUTED_TEXT }]}>Clear</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
           </View>
         )}
-        listContainerStyle={styles.suggestionList}
+        listContainerStyle={[styles.suggestionList, { backgroundColor: colors.SURFACE }]}
         flatListProps={{
           scrollEnabled: false,
           nestedScrollEnabled: true,
@@ -179,16 +194,25 @@ export default function DestinationPicker({
             return (
               <TouchableOpacity
                 onPress={() => handleSelect(item)}
-                style={styles.suggestionItem}
+                style={[styles.suggestionItem, { backgroundColor: colors.SURFACE }]}
               >
                 <View style={styles.textWrap}>
-                  <Text style={styles.mainText} numberOfLines={1}>{mainName.trim()}</Text>
-                  <Text style={styles.subText} numberOfLines={1}>{rest.join(",").trim()}</Text>
+                  <Text style={[styles.mainText, { color: colors.TEXT }]} numberOfLines={1}>{mainName.trim()}</Text>
+                  <Text style={[styles.subText, { color: colors.MUTED_TEXT }]} numberOfLines={1}>{rest.join(",").trim()}</Text>
                 </View>
               </TouchableOpacity>
             );
           },
         }}
+      />
+      <SafarAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setAlertVisible(false)}
+        onCancel={() => setAlertVisible(false)}
       />
     </View>
   );
@@ -200,7 +224,6 @@ const styles = StyleSheet.create({
   inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.035)",
     height: 65,
     borderRadius: 22,
     paddingHorizontal: 20,
@@ -209,14 +232,12 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "outfitBold",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 1.5,
   },
   inputStyle: {
     flex: 1,
     fontFamily: "outfitBold",
     fontSize: 18,
-    color: Colors.PRIMARY,
     padding: 0,
     height: "100%",
     borderWidth: 0,
@@ -225,12 +246,10 @@ const styles = StyleSheet.create({
   clearText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: Colors.MUTED_TEXT,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   suggestionList: {
-    backgroundColor: Colors.WHITE,
     borderRadius: 24,
     marginTop: 10,
     maxHeight: 280,
@@ -246,7 +265,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: Colors.WHITE,
   },
   iconCircle: {
     width: 32,
@@ -261,12 +279,10 @@ const styles = StyleSheet.create({
   mainText: {
     fontFamily: "outfitBold",
     fontSize: 15,
-    color: Colors.PRIMARY,
   },
   subText: {
     fontFamily: "outfit",
     fontSize: 12,
-    color: Colors.MUTED_TEXT,
     marginTop: 1,
   },
 });

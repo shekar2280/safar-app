@@ -13,6 +13,7 @@ class UserProfile(BaseModel):
     updated_at: Optional[datetime.datetime] = None
     last_login: Optional[datetime.datetime] = None
     home_location: Optional[Any] = None
+    is_name_custom: bool = False
 
     class Config:
         from_attributes = True
@@ -39,6 +40,7 @@ class TokenData(BaseModel):
 
 class UserUpdate(BaseModel):
     home_location: Optional[Any] = None
+    full_name: Optional[str] = None
 
 class SavedTripOut(BaseModel):
     id: str
@@ -66,6 +68,7 @@ class UserTripOut(BaseModel):
     
     total_budget: float = 0.0
     visited_indices: List[int] = []
+    skipped_indices: List[int] = []
     archived_spendings: Optional[List[Any]] = None
     
     concert_data: Optional[Any] = None
@@ -102,6 +105,10 @@ class UpdateTripVisitedRequest(BaseModel):
     visited_indices: List[int]
 
 
+class UpdateTripSkippedRequest(BaseModel):
+    skipped_indices: List[int]
+
+
 class ArchiveSpendingsRequest(BaseModel):
     spendings: List[Any]
 
@@ -130,6 +137,8 @@ class TrendingPlace(BaseModel):
     desc: Optional[str] = None
     image: Optional[str] = None
     famous_landmark: Optional[str] = None
+    insight: Optional[str] = None
+    recommended_month: Optional[str] = None
 
 
 class TrendingPlacesResponse(BaseModel):
@@ -140,8 +149,6 @@ class WeatherResponse(BaseModel):
     forecast: Optional[Any] = None
 
 
-class InspirationResponse(BaseModel):
-    destinations: List[Any]
 
 
 class PlacesResponse(BaseModel):

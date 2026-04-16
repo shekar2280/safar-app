@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,65 +11,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import * as Location from "expo-location";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import { Ionicons } from "@expo/vector-icons";
-import { apiPost } from "@/src/lib/api";
+import { useUser } from "@/src/context/UserContext";
+import { useTrendingPlaces } from "@/src/hooks/queries/useTrendingPlaces";
 
 const { width, height } = Dimensions.get("window");
 
 export default function TrendingTrips() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [places, setPlaces] = useState<any[]>([]);
-  const [currentCity, setCurrentCity] = useState("Your Location");
+  const { userProfile } = useUser();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
+  const [selectedOption, setSelectedOption] = useState<any>(null);
 
-  useEffect(() => {
-    fetchTrending();
-  }, []);
+  const country = userProfile?.homeLocation?.country || "India";
+  const currentCity = userProfile?.homeLocation?.name || "Your Location";
 
-  const fetchTrending = async () => {
-    try {
-      setLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLoading(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const reverse = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      const city = reverse?.[0]?.city || reverse?.[0]?.region || "Mumbai";
-      const country = reverse?.[0]?.country || "India";
-      setCurrentCity(city);
-
-      const prompt = `Suggest a mix of 12 trending travel destinations (6 domestic within ${country} and 6 popular international spots) for someone currently in ${country}. 
-      Return the result as a raw JSON array of objects with these keys: "name", "title", "country", "desc", "image_search_query". No markdown, no extra text.`;
-
-      const res = (await apiPost("/api/trendingPlaces", { 
-        trendingPlacesPrompt: prompt,
-        country: country
-      })) as any;
-      
-      const placesData = res.trendingPlaces;
-      
-      setPlaces(placesData.map((p: any, idx: number) => ({
-        ...p,
-        id: idx + 1,
-      })));
-
-    } catch (error) {
-      console.error("Trending Fetch Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: places = [], isLoading: loading } = useTrendingPlaces(country);
 
   const handleSelect = (item: any) => {
     router.push({
@@ -77,50 +39,51 @@ export default function TrendingTrips() {
       params: {
         destName: item.name,
         destCountry: item.country,
+        destPhoto: item.image,
+        insight: item.insight,
+        recommendedMonth: item.recommended_month || item.recommendedMonth,
+        tripCategory: "TRENDING",
       },
     });
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <View style={[styles.header, { borderBottomColor: colors.BORDER }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={Colors.PRIMARY} />
+          <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.subtitle}>POPULAR NEAR {currentCity?.toUpperCase()}</Text>
-          <Text style={styles.title}>Trending Trips</Text>
+          <Text style={[styles.subtitle, { color: colors.GOLD }]}>POPULAR NEAR {currentCity?.toUpperCase()}</Text>
+          <Text style={[styles.title, { color: colors.TEXT }]}>Trending Trips</Text>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       {loading ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.SECONDARY} />
-          <Text style={styles.loaderText}>Mapping the world's pulse...</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.PRIMARY} />
+          <Text style={[styles.loadingText, { color: colors.MUTED_TEXT }]}>Finding trending spots...</Text>
         </View>
       ) : (
         <FlatList
           data={places}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <TouchableOpacity
-              activeOpacity={0.9}
               onPress={() => handleSelect(item)}
               style={styles.cardContainer}
             >
-              <DiscoverCard 
-                option={{
-                  ...item,
-                  title: item.name,
-                  desc: item.desc,
-                } as any} 
-                cardHeight={height * 0.22} 
+              <DiscoverCard
+                option={item}
+                cardHeight={height * 0.20}
+                hideTag={true}
               />
             </TouchableOpacity>
           )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -128,60 +91,47 @@ export default function TrendingTrips() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.WHITE,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    gap: 15,
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
   backBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "#F8FAFC",
-    alignItems: "center",
+    width: 40,
+    height: 40,
     justifyContent: "center",
   },
   subtitle: {
     fontFamily: "outfitMedium",
     fontSize: 10,
-    color: Colors.SECONDARY,
-    letterSpacing: 2.5,
+    letterSpacing: 2,
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 28,
-    color: Colors.PRIMARY,
-    marginTop: -2,
+    fontSize: 22,
   },
-  loaderContainer: {
+  loadingContainer: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    gap: 14,
   },
-  loaderText: {
+  loadingText: {
     fontFamily: "outfit",
-    fontSize: 14,
-    color: Colors.MUTED_TEXT,
-    marginTop: 15,
-    letterSpacing: 1,
+    fontSize: 15,
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
+    paddingTop: 12,
     paddingBottom: 40,
+    gap: 14,
   },
   cardContainer: {
-    marginVertical: 12,
     borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
+    overflow: "hidden",
   },
 });

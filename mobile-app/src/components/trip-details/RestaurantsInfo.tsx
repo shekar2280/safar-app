@@ -9,15 +9,17 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import {
   RESTAURANT_AND_LOCAL_IMAGES,
   INDIA_FOOD_COLLECTION,
   INTL_FOOD_COLLECTION,
-} from "@/src/constants/travel-data";
+} from "@/src/constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { Restaurant, LocalExperience } from "@/src/types/interfaces";
+import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types";
+import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");
 
@@ -26,15 +28,9 @@ const getTransformCloudinaryUrl = (url: string, w: number, h: number, gravity = 
   return url.replace("/upload/", `/upload/c_fill,g_${gravity},w_${w},h_${h},f_auto,q_auto/`);
 };
 
-interface RestaurantsInfoProps {
-  restaurantsInfo?: {
-    restaurants?: Restaurant[];
-    localExperiences?: LocalExperience[];
-  } | null;
-  cityName: string;
-}
-
 export default function RestaurantsInfo({ restaurantsInfo, cityName }: RestaurantsInfoProps) {
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const globalCloudinaryFood = RESTAURANT_AND_LOCAL_IMAGES.Food;
   const isIndia = cityName?.toUpperCase().includes("IND");
   const foodCollection = isIndia ? INDIA_FOOD_COLLECTION : INTL_FOOD_COLLECTION;
@@ -64,19 +60,19 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
       {localExperiences.length > 0 && (
         <View style={styles.sectionContainer}>
           <View style={styles.header}>
-            <Text style={styles.overline}>AUTHENTIC DISCOVERY</Text>
+            <Text style={[styles.overline, { color: colors.MUTED_TEXT }]}>AUTHENTIC DISCOVERY</Text>
             <View style={styles.titleRow}>
-              <Text style={styles.sectionTitle}>Local Vibes</Text>
-              <View style={styles.goldDot} />
+              <Text style={[styles.sectionTitle, { color: colors.TEXT }]}>Local Vibes</Text>
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
             </View>
           </View>
 
           <View style={styles.experienceList}>
             {localExperiences.map((item, idx) => (
-              <View key={idx} style={styles.experienceItem}>
+              <View key={idx} style={[styles.experienceItem, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.expListName}>{item.experienceName}</Text>
-                  <Text style={styles.expListDesc}>
+                  <Text style={[styles.expListName, { color: colors.TEXT }]}>{item.experienceName}</Text>
+                  <Text style={[styles.expListDesc, { color: colors.MUTED_TEXT }]}>
                     {item.description}
                   </Text>
                 </View>
@@ -93,10 +89,10 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
       {restaurants.length > 0 && (
         <View style={[styles.sectionContainer, { marginTop: localExperiences.length > 0 ? 0 : 40 }]}>
           <View style={styles.header}>
-            <Text style={styles.overline}>EPICUREAN SPOTLIGHT</Text>
+            <Text style={[styles.overline, { color: colors.MUTED_TEXT }]}>EPICUREAN SPOTLIGHT</Text>
             <View style={styles.titleRow}>
-              <Text style={styles.sectionTitle}>Elite Dining</Text>
-              <View style={styles.goldDot} />
+              <Text style={[styles.sectionTitle, { color: colors.TEXT }]}>Elite Dining</Text>
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
             </View>
           </View>
 
@@ -115,7 +111,7 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
               return (
                 <View
                   key={idx}
-                  style={styles.restaurantCard}
+                  style={[styles.restaurantCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
                 >
                   <View style={styles.imageContainer}>
                     <Image source={imageSource} style={styles.restaurantImage} contentFit="cover" />
@@ -124,38 +120,38 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
                       style={styles.imageOverlay}
                     />
                     <View style={styles.cardHeaderActions}>
-                      <View style={styles.priceBadge}>
-                        <Text style={styles.priceBadgeText}>{item.priceRange}</Text>
+                      <View style={[styles.priceBadge, { backgroundColor: isDark ? "#000" : "#ffffffff", borderColor: isDark ? "#333" : "#F1F5F9", borderWidth: 1 }]}>
+                        <Text style={[styles.priceBadgeText, { color: colors.TEXT }]}>{item.priceRange}</Text>
                       </View>
                     </View>
                     <TouchableOpacity
-                      style={styles.visitTextContainer}
+                      style={[styles.visitTextContainer, { backgroundColor: "rgba(0,0,0,0.6)", borderColor: "#444" }]}
                       onPress={() => openSearch(item.restaurantName)}
                       activeOpacity={0.7}
                     >
                       <Text style={styles.visitText}>VIEW ON MAPS</Text>
-                      <Ionicons name="arrow-forward" size={12} color={Colors.WHITE} style={{ marginLeft: 4 }} />
+                      <Ionicons name="arrow-forward" size={12} color="#FFF" style={{ marginLeft: 4 }} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.restaurantDetails}>
                     <View style={styles.nameRow}>
-                      <Text style={styles.restaurantName} numberOfLines={1}>{item.restaurantName}</Text>
+                      <Text style={[styles.restaurantName, { color: colors.TEXT }]} numberOfLines={1}>{item.restaurantName}</Text>
                       <Ionicons name="star" size={14} color={Colors.SECONDARY} style={{ marginLeft: 6 }} />
                     </View>
 
-                    <Text style={styles.restaurantDesc}>{item.description}</Text>
+                    <Text style={[styles.restaurantDesc, { color: colors.MUTED_TEXT }]}>{item.description}</Text>
 
                     {dishes.length > 0 && (
                       <View style={styles.dishesSection}>
                         <View style={styles.dishHeader}>
-                          <Ionicons name="restaurant-outline" size={12} color={Colors.SECONDARY} />
-                          <Text style={styles.dishLabel}>MUST TRY</Text>
+                          <Ionicons name="restaurant-outline" size={12} color={colors.GOLD} />
+                          <Text style={[styles.dishLabel, { color: colors.GOLD }]}>MUST TRY</Text>
                         </View>
                         <View style={styles.chipsContainer}>
-                          {dishes.map((dish, dIdx) => (
-                            <View key={dIdx} style={styles.dishChip}>
-                              <Text style={styles.dishChipText}>{dish.toUpperCase()}</Text>
+                          {dishes.map((dish: string, dIdx: number) => (
+                            <View key={dIdx} style={[styles.dishChip, { backgroundColor: colors.GOLD_MUTED, borderColor: colors.GOLD_MUTED }]}>
+                              <Text style={[styles.dishChipText, { color: colors.GOLD }]}>{dish.toUpperCase()}</Text>
                             </View>
                           ))}
                         </View>
@@ -168,10 +164,12 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
           </ScrollView>
 
           <View style={styles.ctaContainer}>
-            <TouchableOpacity activeOpacity={0.8} style={styles.searchButton} onPress={openGeneralRestaurantSearch}>
-              <Text style={styles.searchButtonText}>Explore More Authentic Dining</Text>
-              <Ionicons name="compass-outline" size={18} color={Colors.WHITE} style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
+            <Button
+              title="Explore More Authentic Dining"
+              onPress={openGeneralRestaurantSearch}
+              icon="compass-outline"
+              style={{ marginHorizontal: 10 }}
+            />
           </View>
         </View>
       )}
@@ -184,27 +182,25 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     width: width * 0.923,
-    marginLeft: width * 0.055,
+    marginLeft: width * 0.025,
     backgroundColor: "rgba(0,0,0,0.08)",
-    marginVertical: 20,
+    marginVertical: 15,
   },
   sectionContainer: {},
-  header: { paddingHorizontal: width * 0.03, marginBottom: 15 },
-  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 },
-  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
+  header: { paddingHorizontal: width * 0.03, marginBottom: 16 },
+  overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
+  titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
   sectionTitle: { fontSize: 28, fontFamily: "playfairBold", color: Colors.TEXT },
   goldDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.SECONDARY, marginLeft: 4, marginBottom: 6 },
 
   experienceList: { paddingHorizontal: width * 0.03 },
   experienceItem: {
     flexDirection: "row",
-    backgroundColor: Colors.WHITE,
     padding: 20,
     borderRadius: 24,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: Colors.BLACK,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -217,21 +213,19 @@ const styles = StyleSheet.create({
     marginRight: 16, marginTop: 2
   },
   expListName: { fontFamily: "playfairBold", fontSize: 18, color: Colors.TEXT, marginBottom: 6 },
-  expListDesc: { fontFamily: "inter", fontSize: 13, color: Colors.GRAY, lineHeight: 20 },
+  expListDesc: { fontFamily: "inter", fontSize: 13, color: "#94A3B8", lineHeight: 20 },
 
   restaurantScroll: { paddingHorizontal: width * 0.03, gap: 15, paddingBottom: 20 },
   restaurantCard: {
     width: width * 0.7,
-    backgroundColor: Colors.WHITE,
     borderRadius: 20,
     overflow: "hidden",
     elevation: 10,
-    shadowColor: Colors.BLACK,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.10,
     shadowRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.04)"
   },
   imageContainer: { height: 180, position: "relative" },
   restaurantImage: { width: "100%", height: "100%" },
@@ -284,8 +278,8 @@ const styles = StyleSheet.create({
   },
   restaurantDetails: { padding: 20 },
   nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  restaurantName: { flex: 1, fontFamily: "playfairBold", fontSize: 20, color: Colors.TEXT },
-  restaurantDesc: { fontFamily: "inter", fontSize: 13, color: Colors.GRAY, lineHeight: 20, marginBottom: 15 },
+  restaurantName: { flex: 1, fontFamily: "playfairBold", fontSize: 20 },
+  restaurantDesc: { fontFamily: "inter", fontSize: 13, lineHeight: 20, marginBottom: 15 },
 
   dishesSection: { marginTop: 5 },
   dishHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
@@ -302,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start"
   },
-  dishChipText: { fontFamily: "interBold", fontSize: 9, color: "#6D5E3D" },
+  dishChipText: { fontFamily: "interBold", fontSize: 9 },
 
   ctaContainer: { marginTop: 15, paddingHorizontal: 4 },
   searchButton: {

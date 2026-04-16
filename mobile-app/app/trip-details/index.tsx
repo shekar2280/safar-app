@@ -11,9 +11,12 @@ import {
   StatusBar,
 } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { BlurView } from "expo-blur";
+import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import dayjs from "dayjs";
 import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
@@ -21,16 +24,21 @@ import RestaurantsInfo from "@/src/components/trip-details/RestaurantsInfo";
 import TransportInfo from "@/src/components/trip-details/TransportInfo";
 import { auth } from "@/src/lib/firebase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { fallbackImages } from "@/src/constants/travel-data";
+import { fallbackImages } from "@/src/constants";
 import { Image } from "expo-image";
-import LottieView from "lottie-react-native";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
 import AIDisclaimer from "@/src/components/common/AIDisclaimer";
+import Button from "@/src/components/common/Button";
 import WeatherWidget from "@/src/components/trip-details/WeatherWidget";
-import { UserTrip } from "@/src/types/interfaces";
+import { UserTrip } from "@/src/types";
 import { apiGet, apiPatch } from "@/src/lib/api";
 import { useUser } from "@/src/context/UserContext";
+import { useTrips } from "@/src/hooks/queries/useTrips";
+import { useStaticItinerary } from "@/src/hooks/queries/useStaticItinerary";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
+import DetailsSkeleton from "@/src/components/skeleton/DetailsSkeleton";
 
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
@@ -40,12 +48,46 @@ export default function TripDetails() {
   const user = auth.currentUser;
   const router = useRouter();
   const navigation = useNavigation();
-  const { userTrips, refreshTrips } = useUser();
+  const { userProfile } = useUser();
+  const { data: userTrips = [] } = useTrips();
   const { trip, imageUrl } = useLocalSearchParams();
+  const queryClient = useQueryClient();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
-  const [tripDetails, setTripDetails] = useState<Partial<UserTrip>>({});
-  const [loadingStaticData, setLoadingStaticData] = useState(false);
-  const [flights, setFlights] = useState<any[]>([]);
+  const parsedTrip = useMemo(() => {
+    try {
+      return typeof trip === "string" ? JSON.parse(trip) : trip;
+    } catch (e) {
+      return {};
+    }
+  }, [trip]);
+
+  const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
+
+  const tripDetails = useMemo(() => {
+    const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
+    const base = latestFromCache || parsedTrip || {};
+
+    if (!staticData) return base;
+    return {
+      ...base,
+      tripPlan: staticData.trip_plan,
+      image_urls: (staticData.image_urls?.length > 0) ? staticData.image_urls : base.image_urls,
+    };
+  }, [parsedTrip, staticData, userTrips]);
+
+  const transportData = useMemo(
+    () => ({
+      tripType: tripDetails?.travelerMode || "travel",
+      departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
+      destinationIata: tripDetails?.tripPlan?.destinationIata,
+      bestTransport: tripDetails?.tripPlan?.bestTransport,
+      weatherInsight: tripDetails?.concertData ? undefined : tripDetails?.tripPlan?.weatherInsight,
+    }),
+    [tripDetails]
+  );
+
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -72,54 +114,12 @@ export default function TripDetails() {
     setActiveTripInContext(current || null);
   }, [userTrips]);
 
-  const parsedTrip = useMemo(() => {
-    try {
-      return typeof trip === "string" ? JSON.parse(trip) : trip;
-    } catch (e) {
-      return {};
-    }
-  }, [trip]);
-
   useEffect(() => {
-    setTripDetails(parsedTrip);
     navigation.setOptions({
       headerShown: false,
     });
+  }, [navigation]);
 
-    if (parsedTrip?.savedTripId && !parsedTrip?.tripPlan) {
-      fetchStaticItinerary(parsedTrip.savedTripId);
-    }
-    fetchFlightDeals();
-  }, [parsedTrip]);
-
-  const fetchStaticItinerary = async (savedTripKey: string) => {
-    setLoadingStaticData(true);
-    try {
-      const data = await apiGet<any>(`/api/trips/saved/${encodeURIComponent(savedTripKey)}`);
-      if (data) {
-        const imageUrls: string[] = data.image_urls ?? [];
-        setTripDetails((prev: any) => ({
-          ...prev,
-          tripPlan: data.trip_plan,
-          image_urls: imageUrls.length > 0 ? imageUrls : prev.image_urls,
-        }));
-      }
-    } catch {
-    } finally {
-      setLoadingStaticData(false);
-    }
-  };
-
-  const fetchFlightDeals = async () => {
-    try {
-      const res = await apiGet<any>("/api/discovery/inspiration");
-      if (res && res.destinations) {
-        setFlights(res.destinations);
-      }
-    } catch (error) {
-      console.warn("Could not fetch flight inspiration:", error);
-    }
-  };
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -159,9 +159,8 @@ export default function TripDetails() {
     setConfirmActivateVisible(false);
     try {
       setIsAnimating(true);
-      await apiPatch(`/api/trips/${tripDetails.id}/activate`, {});
-      await refreshTrips();
-      setTripDetails((prev) => ({ ...prev, isActive: true }));
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/activate`, {});
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setTimeout(() => {
         setIsAnimating(false);
         router.push({
@@ -186,9 +185,8 @@ export default function TripDetails() {
   const handleEndJourney = async () => {
     if (!tripDetails.id) return;
     try {
-      await apiPatch(`/api/trips/${tripDetails.id}/deactivate`, {});
-      await refreshTrips();
-      setTripDetails((prev) => ({ ...prev, isActive: false, isFinished: true }));
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/deactivate`, {});
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch {
       setAlertConfig({
         visible: true,
@@ -208,15 +206,12 @@ export default function TripDetails() {
       : [...currentVisited, index];
 
     try {
-      setTripDetails((prev) => ({ ...prev, visitedIndices: newVisited }));
-
-      await apiPatch(`/api/trips/${tripDetails.id}/visited-indices`, {
+      await apiPatch(`/api/v1/trips/${tripDetails.id}/visited-indices`, {
         visited_indices: newVisited,
       });
 
-      await refreshTrips();
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch {
-      setTripDetails((prev) => ({ ...prev, visitedIndices: currentVisited }));
       setAlertConfig({
         visible: true,
         title: "Sync Failed",
@@ -252,39 +247,23 @@ export default function TripDetails() {
   }, [tripDetails, imageUrl, randomFallback]);
 
   if (loadingStaticData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY} />
-      </View>
-    );
+    return <DetailsSkeleton />;
   }
-
-  const transportData = useMemo(
-    () => ({
-      travelerMode: tripDetails?.travelerMode,
-      departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
-      destinationIata: tripDetails?.tripPlan?.destinationIata,
-      bestTransport: tripDetails?.tripPlan?.bestTransport,
-      weatherInsight: tripDetails?.tripPlan?.weatherInsight,
-      flights: flights,
-    }),
-    [tripDetails?.id, (tripDetails?.tripPlan as any)?.departureIata, flights]
-  );
 
   return (
     <>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: Colors.WHITE }}
+        style={{ backgroundColor: colors.BACKGROUND }}
       >
         <View style={styles.slideshowContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={[styles.customBackBtn, { top: insets.top + 16 }]}
+            style={[styles.customBackBtn, { top: insets.top + 16, backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(255, 255, 255, 0.8)" }]}
           >
-            <Ionicons name="chevron-back" size={24} color={Colors.PRIMARY} />
+            <Ionicons name="chevron-back" size={24} color={colors.TEXT} />
           </TouchableOpacity>
 
           <ScrollView
@@ -320,78 +299,78 @@ export default function TripDetails() {
           )}
         </View>
 
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
           <View style={styles.headerBlock}>
             <View style={styles.titleRow}>
-              <Text 
-                style={[styles.title, { flexShrink: 1 }]} 
-                numberOfLines={1} 
-                adjustsFontSizeToFit 
+              <Text
+                style={[styles.title, { color: colors.TEXT, flexShrink: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
                 {tripDetails?.concertData?.artist
                   ? `${tripDetails?.concertData?.artist} Concert`
                   : tripDetails?.tripPlan?.tripName || "Trip Details"}
               </Text>
-              <View style={styles.goldDot} />
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
             </View>
-            <Text style={styles.dateText}>
+            <Text style={[styles.dateText, { color: colors.MUTED_TEXT }]}>
               {tripDetails.totalDays} {tripDetails.totalDays === 1 ? "DAY" : "DAYS"} CURATED JOURNEY
             </Text>
           </View>
 
           {tripDetails.isFinished ? (
-            <View style={styles.finishedBadge}>
-              <MaterialCommunityIcons name="flag-checkered" size={20} color="#64748B" />
-              <Text style={styles.finishedText}>JOURNEY COMPLETED</Text>
+            <View style={[styles.finishedBadge, { backgroundColor: isDark ? "rgba(212,175,55,0.05)" : "rgba(235, 186, 73, 0.05)", borderColor: isDark ? "rgba(212,175,55,0.2)" : "rgba(235, 186, 73, 0.2)", borderWidth: 1 }]}>
+              <MaterialCommunityIcons name="trophy-outline" size={20} color={colors.GOLD} />
+              <Text style={[styles.finishedText, { color: colors.GOLD }]}>JOURNEY COMPLETED</Text>
             </View>
           ) : tripDetails.isActive ? (
-            <TouchableOpacity
+            <Button
+              title="CONCLUDE JOURNEY"
               onPress={handleEndJourney}
-              style={[styles.activateButton, { backgroundColor: "#FFF", borderWidth: 1, borderColor: "#EF4444" }]}
-            >
-              <Text style={[styles.activateButtonText, { color: "#EF4444" }]}>
-                End Journey
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            !tripDetails?.concertData && (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity
-                  onPress={handleActivateTrip}
-                  style={styles.activateButton}
-                >
-                  <Text style={styles.activateButtonText}>
-                    🚀 Activate Trip & Open Wallet
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            )
-          )}
+              style={[
+                styles.activateButton,
+                {
+                  backgroundColor: isDark ? "rgba(248, 113, 113, 0.1)" : "rgba(239, 68, 68, 0.05)",
+                  borderColor: colors.RED,
+                  borderWidth: 1.5,
+                  elevation: 0,
+                  shadowOpacity: 0,
+                },
+              ]}
+              textStyle={{ color: colors.RED, letterSpacing: 1.5 }}
+              type="secondary"
+            />
+          ) : null}
 
           {tripDetails?.concertData && (
             <ConcertInfo concertDetails={tripDetails as any} />
           )}
 
-          <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || (tripDetails?.concertData?.artist ? `${tripDetails.concertData.artist} Concert` : "")} />
+          {!tripDetails?.concertData && (
+            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
+          )}
 
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <TransportInfo transportData={transportData as any} />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <HotelInfo
             cityName={tripDetails?.tripPlan?.tripName || ""}
             hotelData={tripDetails?.tripPlan?.hotelOptions}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <PlannedTrip
             itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
             cityName={tripDetails?.tripPlan?.tripName || ""}
             isActive={!!tripDetails?.isActive}
+            isFinished={!!tripDetails?.isFinished}
             visitedIndices={tripDetails.visitedIndices}
+            skippedIndices={tripDetails.skipped_indices}
             onToggleVisited={handleToggleVisited}
             onActivate={handleActivateTrip}
             onNavigateToActive={() => router.push({
@@ -400,7 +379,7 @@ export default function TripDetails() {
             })}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <RestaurantsInfo
             restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}
@@ -411,17 +390,64 @@ export default function TripDetails() {
         </View>
       </ScrollView>
 
-      {isAnimating && (
-        <View style={styles.animationOverlay}>
-          <LottieView
-            source={require("@/src/assets/animations/active.json")}
-            autoPlay
-            loop
-            style={{ width: width * 0.8, height: width * 0.8 }}
-          />
-          <Text style={styles.activatingText}>Setting up your trip...</Text>
-        </View>
-      )}
+      <AnimatePresence>
+        {isAnimating && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={StyleSheet.absoluteFill}
+          >
+            <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.animationOverlay}>
+              <View style={styles.animCenterContent}>
+                <MotiView
+                  from={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 12 }}
+                  style={[styles.pulsingHex, { borderColor: colors.GOLD }]}
+                >
+                  <MotiView
+                    from={{ scale: 1 }}
+                    animate={{ scale: 1.2 }}
+                    transition={{
+                      type: "timing",
+                      duration: 1000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                  >
+                    <Ionicons name="sparkles" size={60} color={colors.GOLD} />
+                  </MotiView>
+                </MotiView>
+
+                <MotiView
+                  from={{ translateX: -width }}
+                  animate={{ translateX: width }}
+                  transition={{
+                    type: "timing",
+                    duration: 1500,
+                    loop: true,
+                  }}
+                  style={[styles.scannerLine, { backgroundColor: colors.GOLD }]}
+                />
+
+                <View style={styles.statusContainer}>
+                  <MotiView
+                    key="animating-text"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", duration: 500 }}
+                  >
+                    <Text style={[styles.activatingText, { color: colors.TEXT }]}>
+                      Configuring Safar Intel...
+                    </Text>
+                  </MotiView>
+                </View>
+              </View>
+            </BlurView>
+          </MotiView>
+        )}
+      </AnimatePresence>
 
       <SafarAlert
         visible={confirmActivateVisible}
@@ -451,7 +477,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.WHITE,
   },
   slideshowContainer: {
     height: SLIDESHOW_HEIGHT,
@@ -464,7 +489,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 100,
@@ -486,43 +510,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
   },
-  activeDot: { width: 8, backgroundColor: Colors.WHITE },
+  activeDot: { width: 8, backgroundColor: "#FFF" },
   inactiveDot: { width: 8, backgroundColor: "rgba(255, 255, 255, 0.5)" },
   container: {
     paddingHorizontal: 12,
     paddingVertical: width * 0.05,
-    backgroundColor: Colors.WHITE,
     minHeight: height,
     marginTop: -35,
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
     paddingBottom: 100,
   },
-  headerBlock: { marginBottom: 10, paddingHorizontal: 0 },
+  headerBlock: { marginBottom: 20, paddingHorizontal: 0 },
   titleRow: {
     flexDirection: "row",
     alignItems: "baseline",
     marginBottom: 4,
   },
-  title: { fontSize: 32, fontFamily: "playfairBold", color: Colors.TEXT, lineHeight: 40 },
+  title: { fontSize: 32, fontFamily: "playfairBold", lineHeight: 40 },
   goldDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.SECONDARY,
     marginLeft: 2,
     marginBottom: 6,
   },
-  dateText: { fontFamily: "outfitMedium", fontSize: 14, color: Colors.GRAY, marginTop: 6 },
+  dateText: { fontFamily: "outfitMedium", fontSize: 14, marginTop: 6 },
   activateButton: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 18,
+    padding: 15,
     borderRadius: 15,
     marginVertical: 10,
     elevation: 5,
   },
   activateButtonText: {
-    color: Colors.WHITE,
     textAlign: "center",
     fontFamily: "interBold",
     fontSize: 16,
@@ -530,7 +550,6 @@ const styles = StyleSheet.create({
   animationOverlay: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
@@ -539,17 +558,41 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontFamily: "interBold",
     fontSize: 18,
-    color: Colors.PRIMARY,
+    textAlign: "center",
+  },
+  animCenterContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  pulsingHex: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  scannerLine: {
+    height: 2,
+    width: width * 0.8,
+    marginTop: 40,
+    opacity: 0.5,
+    borderRadius: 1,
+  },
+  statusContainer: {
+    marginTop: 40,
+    height: 30,
+    justifyContent: "center",
   },
   divider: {
     height: 1,
-    width: width * 0.923,
-    marginLeft: width * 0.025,
-    backgroundColor: "rgba(0,0,0,0.08)",
-    marginVertical: 20,
+    width: "95%",
+    alignSelf: "center",
+    marginVertical: 10,
   },
   finishedBadge: {
-    backgroundColor: "#F1F5F9",
     paddingVertical: 15,
     borderRadius: 15,
     flexDirection: "row",
@@ -561,7 +604,6 @@ const styles = StyleSheet.create({
   finishedText: {
     fontFamily: "outfitBold",
     fontSize: 14,
-    color: "#64748B",
     letterSpacing: 1,
   },
 });

@@ -5,23 +5,44 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  FlatList,
+  LayoutChangeEvent,
 } from "react-native";
 import moment from "moment";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/src/context/ThemeContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { concertImages, fallbackImages } from "@/src/constants/travel-data";
+import { concertImages, fallbackImages } from "@/src/constants";
 import { Image } from "expo-image";
-import { UserTripCardProps } from "@/src/types/interfaces";
+import { LinearGradient } from "expo-linear-gradient";
+import { UserTripCardProps } from "@/src/types";
 import { apiDelete } from "@/src/lib/api";
+import * as Sentry from "@sentry/react-native";
+import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
 export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
   const router = useRouter();
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
   const [deleteVisible, setDeleteVisible] = React.useState(false);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [cardWidth, setCardWidth] = React.useState(width - 40);
+  const flatListRef = React.useRef<FlatList>(null);
+
+  const [errorVisible, setErrorVisible] = React.useState(false);
+  const [errorTitle, setErrorTitle] = React.useState("");
+  const [errorMessage, setErrorMessage] = React.useState("");
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width } = e.nativeEvent.layout;
+    if (width > 0) setCardWidth(width);
+  };
 
   const tripData =
     trip?.concertData ||
@@ -37,13 +58,15 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     return keywords.some(k => searchStr.includes(k));
   }, [trip]);
 
-  const tripName = (trip?.concertData || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival)
-    ? `${trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival}${((trip?.concertData?.artist || trip?.savedTrip?.trip_plan?.festival || (trip as any)?.festival) as string).toLowerCase().includes("concert") ? "" : " Concert"}`
-    : isConcertLegacy 
-      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ( (trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
+  const isConcert = !!trip?.concertData || isConcertLegacy;
+
+  const tripName = trip?.concertData
+    ? `${trip?.concertData?.artist}${trip?.concertData?.artist?.toLowerCase().includes("concert") ? "" : " Concert"}`
+    : isConcertLegacy
+      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ((trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
       : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
         ? (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].charAt(0).toUpperCase() +
-          (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
+        (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
         : "My Trip";
 
   const randomFallback = useMemo(() => {
@@ -54,63 +77,163 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
     return concertImages[Math.floor(Math.random() * concertImages.length)];
   }, [trip?.id]);
 
-  const finalSource = useMemo(() => {
+  const imageSources = useMemo(() => {
+    let urls: string[] = [];
+
     const personalImages = trip?.concertData?.image_urls;
-    if (personalImages && Array.isArray(personalImages) && personalImages.length > 0) {
-      return { uri: personalImages[0] };
-    }
+    if (Array.isArray(personalImages)) urls.push(...personalImages);
 
     const legacyImg = (trip as any)?.imageUrl || (trip as any)?.image_urls;
-    if (Array.isArray(legacyImg) && legacyImg.length > 0) return { uri: legacyImg[0] };
-    if (typeof legacyImg === "string" && legacyImg.trim().length > 0) return { uri: legacyImg };
+    if (Array.isArray(legacyImg)) urls.push(...legacyImg);
+    else if (typeof legacyImg === "string" && legacyImg.trim()) urls.push(legacyImg);
 
-    if (trip?.savedTrip?.image_urls && trip.savedTrip.image_urls.length > 0) {
-      return { uri: trip.savedTrip.image_urls[0] };
+    if (Array.isArray(trip?.savedTrip?.image_urls)) {
+      urls.push(...trip.savedTrip.image_urls);
     }
 
-    if (trip?.concertData || isConcertLegacy) return { uri: concertFallback };
-    return { uri: randomFallback };
-  }, [trip, randomFallback, concertFallback, isConcertLegacy]);
+    const aiPlanImages = trip?.tripPlan?.imageUrl;
+    if (Array.isArray(aiPlanImages)) urls.push(...aiPlanImages);
+    else if (typeof aiPlanImages === "string" && aiPlanImages.trim()) urls.push(aiPlanImages);
+
+    const uniqueUrls = Array.from(new Set(urls))
+      .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+      .map(u => u.trim());
+
+    if (isConcert) {
+      if (uniqueUrls.length > 0) return [{ uri: uniqueUrls[0] }];
+      return [{ uri: concertFallback }];
+    }
+
+    if (uniqueUrls.length > 0) return uniqueUrls.map(u => ({ uri: u }));
+
+    return [{ uri: randomFallback }];
+  }, [trip, randomFallback, concertFallback, isConcert]);
+
+  React.useEffect(() => {
+    if (imageSources.length <= 1) return;
+
+    const interval = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % imageSources.length;
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setActiveIndex(nextIndex);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [activeIndex, imageSources.length]);
+
+  const onScroll = (event: any) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
+    if (index !== activeIndex && index >= 0 && index < imageSources.length) {
+      setActiveIndex(index);
+    }
+  };
+
+  const getItemLayout = (_: any, index: number) => ({
+    length: cardWidth,
+    offset: cardWidth * index,
+    index,
+  });
 
   const handleDeleteFinal = async () => {
     try {
-      await apiDelete(`/api/trips/${trip.id}`);
+      setIsDeleting(true);
+      await apiDelete(`/api/v1/trips/${trip.id}`);
       onDelete?.(trip.id);
+      setIsDeleting(false);
       setDeleteVisible(false);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { extra: { context: "UserTripCard:handleDeleteFinal", tripId: trip.id } });
+      setIsDeleting(false);
+      setDeleteVisible(false);
+      setErrorTitle("Delete Failed");
+      setErrorMessage("Something went wrong while trying to remove your journey. Please check your connection.");
+      setErrorVisible(true);
     }
   };
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}
+      onLayout={onLayout}
       onPress={() =>
         router.push({
           pathname: "/trip-details",
           params: {
             trip: JSON.stringify(trip),
-            imageUrl: finalSource.uri,
+            imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
           },
         } as any)
       }
     >
-      <Image source={finalSource} style={styles.bannerImage} transition={400} />
-      <View style={styles.overlay} />
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
+        <FlatList
+          ref={flatListRef}
+          data={imageSources}
+          horizontal
+          pagingEnabled
+          decelerationRate="fast"
+          snapToInterval={cardWidth}
+          snapToAlignment="center"
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          getItemLayout={getItemLayout}
+          keyExtractor={(_, index) => index.toString()}
+          initialNumToRender={5}
+          windowSize={2}
+          maxToRenderPerBatch={5}
+          removeClippedSubviews={false}
+          renderItem={({ item, index }) => (
+            <View style={{ width: cardWidth, height: 230 }}>
+              <Image
+                source={item}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                priority="high"
+                cachePolicy="disk"
+                placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
+                transition={200}
+                recyclingKey={trip.id + index}
+              />
+            </View>
+          )}
+        />
+      </View>
 
-      {(trip?.concertData || trip?.savedTrip?.trip_plan?.festival || isConcertLegacy) && (
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.85)"]}
+        style={styles.bottomGradient}
+      />
+
+      {imageSources.length > 1 && (
+        <View style={styles.paginationContainer}>
+          {imageSources.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                i === activeIndex && styles.activeDot
+              ]}
+            />
+          ))}
+        </View>
+      )}
+
+      {isConcert && (
         <View style={styles.badgeContainer}>
-          <View style={styles.eventBadge}>
-            <Text style={styles.badgeText}>LIVE EVENT</Text>
+          <View style={[styles.eventBadge, { backgroundColor: colors.SECONDARY }]}>
+            <Text style={[styles.badgeText, { color: Colors.BLACK }]}>CONCERT</Text>
           </View>
         </View>
       )}
 
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text 
-            style={styles.title} 
-            numberOfLines={1} 
-            adjustsFontSizeToFit 
+          <Text
+            style={styles.title}
+            numberOfLines={1}
+            adjustsFontSizeToFit
             minimumFontScale={0.7}
           >
             {tripName}
@@ -139,8 +262,19 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
         type="confirm"
         confirmText="Delete"
         cancelText="Keep Trip"
+        loading={isDeleting}
         onConfirm={handleDeleteFinal}
         onCancel={() => setDeleteVisible(false)}
+      />
+
+      <SafarAlert
+        visible={errorVisible}
+        title={errorTitle}
+        message={errorMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorVisible(false)}
+        onCancel={() => setErrorVisible(false)}
       />
     </TouchableOpacity>
   );
@@ -149,18 +283,21 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
 const styles = StyleSheet.create({
   card: {
     minHeight: 230,
-    borderRadius: Radius.lg,
+    borderRadius: 20,
     marginBottom: Spacing.lg,
     overflow: "hidden",
-    backgroundColor: Colors.SURFACE,
+    backgroundColor: Colors.WHITE,
     borderWidth: 1,
-    borderColor: Colors.BORDER,
-    ...Shadow.card,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   bannerImage: { ...StyleSheet.absoluteFillObject },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.32)",
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "100%",
+    opacity: 0.8,
   },
   content: {
     flex: 1,
@@ -208,5 +345,27 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.BLACK,
     letterSpacing: 2,
+  },
+  paginationContainer: {
+    position: 'absolute',
+    top: 15,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    zIndex: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  activeDot: {
+    backgroundColor: 'white',
+    width: 6,
   },
 });

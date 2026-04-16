@@ -14,20 +14,34 @@ import { TripProvider } from "@/src/context/CommonTripContext";
 import { UserProvider } from "@/src/context/UserContext";
 import { ActiveTripProvider } from "@/src/context/ActiveTripContext";
 import { LocationProvider } from "@/src/context/LocationContext";
+import { ThemeProvider, useTheme } from "@/src/context/ThemeContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LOCAL_HOTEL_IMAGES } from "@/src/constants/travel-data";
+import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { queryClient, asyncStoragePersister } from "@/src/lib/queryClient";
 import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { TripData } from "@/src/types/interfaces";
+import { TripData } from "@/src/types";
+import * as Sentry from '@sentry/react-native';
+import { ErrorScreen } from "@/src/components/ErrorScreen";
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: 'https://1464c657ef53845c8420b0a659df59e6@o4511224422924288.ingest.de.sentry.io/4511224429150288',
+  sendDefaultPii: true,
+  enableLogs: !__DEV__,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+});
+
+export default Sentry.wrap(function RootLayout() {
   const [fontsLoaded] = useFonts({
     inter: Inter_400Regular,
     interBold: Inter_700Bold,
@@ -71,7 +85,6 @@ export default function RootLayout() {
       try {
         await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
       } catch (e) {
-        console.warn("Error caching images", e);
       } finally {
         setAssetsLoaded(true);
       }
@@ -82,28 +95,49 @@ export default function RootLayout() {
   if (!fontsLoaded || !assetsLoaded) return null;
 
   return (
+    <Sentry.ErrorBoundary fallback={ErrorScreen}>
+      <ThemeProvider>
+        <ThemeAwareApp
+          isSignedIn={isSignedIn}
+          tripData={tripData}
+          setTripData={setTripData}
+        />
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
+  );
+});
+
+function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
+  const { theme } = useTheme();
+
+  return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="dark" />
-        <UserProvider>
-          <CreateTripContext.Provider value={{ tripData, setTripData }}>
-          <ConcertTripProvider>
-            <TripProvider>
-              <ActiveTripProvider>
-                <LocationProvider>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    {!isSignedIn ? (
-                      <Stack.Screen name="auth" />
-                    ) : (
-                      <Stack.Screen name="(tabs)" />
-                    )}
-                  </Stack>
-                </LocationProvider>
-              </ActiveTripProvider>
-            </TripProvider>
-          </ConcertTripProvider>
-        </CreateTripContext.Provider>
-      </UserProvider>
+        <PersistQueryClientProvider 
+          client={queryClient}
+          persistOptions={{ persister: asyncStoragePersister }}
+        >
+          <StatusBar style={theme === "dark" ? "light" : "dark"} />
+          <LocationProvider>
+            <UserProvider>
+              <CreateTripContext.Provider value={{ tripData, setTripData }}>
+                <ConcertTripProvider>
+                  <TripProvider>
+                    <ActiveTripProvider>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        {!isSignedIn ? (
+                          <Stack.Screen name="auth" />
+                        ) : (
+                          <Stack.Screen name="(tabs)" />
+                        )}
+                      </Stack>
+                    </ActiveTripProvider>
+                  </TripProvider>
+                </ConcertTripProvider>
+              </CreateTripContext.Provider>
+            </UserProvider>
+          </LocationProvider>
+        </PersistQueryClientProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

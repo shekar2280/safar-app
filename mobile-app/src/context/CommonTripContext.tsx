@@ -1,11 +1,12 @@
 import React, { createContext, useState, ReactNode } from "react";
 
-import { CommonTripContextValue, CommonTripDetails } from "@/src/types/interfaces";
+import { CommonTripContextValue, CommonTripDetails } from "@/src/types";
 
 const CommonTripContext = createContext<CommonTripContextValue | null>(null);
 
 const initialState: CommonTripDetails = {
   tripType: null,
+  travelerMode: null,
   departureInfo: null,
   destinationInfo: null,
   traveler: null,

@@ -1,18 +1,13 @@
-import React, { useRef, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  StyleSheet,
-} from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { useState, useRef, useEffect } from "react";
+import { Animated, View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { useThemeColors } from "@/src/constants/colors";
 import { TripType } from "@/src/types";
-import { TripTypeToggleProps } from "@/src/types/interfaces";
+import { TripTypeToggleProps } from "@/src/types";
 
 export default function TripTypeToggle({ selectedType, onSelectType }: TripTypeToggleProps) {
   const [containerWidth, setContainerWidth] = useState(0);
   const slideAnim = useRef(new Animated.Value(selectedType === TripType.Oneway ? 0 : 1)).current;
+  const colors = useThemeColors();
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -32,14 +27,14 @@ export default function TripTypeToggle({ selectedType, onSelectType }: TripTypeT
 
   return (
     <View
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.SURFACE_LIGHT }]}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
       {containerWidth > 0 && (
         <Animated.View
           style={[
             styles.indicator,
-            { width: buttonWidth, transform: [{ translateX }] },
+            { width: buttonWidth, transform: [{ translateX }], backgroundColor: colors.BACKGROUND, shadowColor: colors.BLACK },
           ]}
         />
       )}
@@ -51,6 +46,7 @@ export default function TripTypeToggle({ selectedType, onSelectType }: TripTypeT
         <Text
           style={[
             styles.text,
+            { color: selectedType === TripType.Oneway ? colors.TEXT : colors.MUTED_TEXT },
             selectedType === TripType.Oneway ? styles.textActive : styles.textInactive,
           ]}
         >
@@ -66,6 +62,7 @@ export default function TripTypeToggle({ selectedType, onSelectType }: TripTypeT
         <Text
           style={[
             styles.text,
+            { color: selectedType === TripType.Round ? colors.TEXT : colors.MUTED_TEXT },
             selectedType === TripType.Round ? styles.textActive : styles.textInactive,
           ]}
         >
@@ -80,7 +77,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     marginBottom: 25,
-    backgroundColor: "rgba(0,0,0,0.035)",
     borderRadius: 22,
     padding: 4,
     width: "100%",
@@ -93,11 +89,9 @@ const styles = StyleSheet.create({
     top: 4,
     left: 4,
     height: 57,
-    backgroundColor: Colors.WHITE,
     borderRadius: 18,
-    shadowColor: Colors.BLACK,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 4,
   },
@@ -109,6 +103,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   text: { fontSize: 14, letterSpacing: 0.5 },
-  textActive: { fontFamily: "outfitBold", color: Colors.PRIMARY },
-  textInactive: { fontFamily: "outfitMedium", color: Colors.MUTED_TEXT },
+  textActive: { fontFamily: "outfitBold" },
+  textInactive: { fontFamily: "outfitMedium" },
 });

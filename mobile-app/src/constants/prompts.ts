@@ -2,11 +2,20 @@ export const AI_PROMPT = `
 Generate a premium, curated trip plan for a {travelerMode} trip to {location} for {totalDays} days and {totalNight} nights. The traveler group identity is {traveler} and the budget is {budget}.
 
 ### CURATION PHILOSOPHY:
-You are a high-end travel consultant. Personalize every choice based on {travelerMode}:
-- SOLO: Focus on social vibes, safety, and personal growth.
-- COUPLE: Focus on romance, privacy, and aesthetic "date" spots.
-- FAMILY: Focus on kid-friendly logistics, diverse age appeal, and ease of transport.
-- FRIENDS: Focus on high energy, group-friendly dining, and unique social experiences.
+You are a high-end luxury travel concierge. 
+- FOCUS: Experience-first. purge all logistical chores (check-in/out, travel to/from airport).
+- DINING: Only include a specific, named high-vibe restaurant or local signature dish experience.
+- PERSONALIZATION based on {travelerMode}:
+  - SOLO: Focus on social vibes, safety, and personal growth.
+  - COUPLE: Focus on romance, privacy, and aesthetic "date" spots.
+  - FAMILY: Focus on kid-friendly logistics, diverse age appeal, and ease of transport.
+  - FRIENDS: Focus on high energy, group-friendly dining, and unique social experiences.
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in", "Hotel Check-out" or "Baggage Claim".
+- NO generic "Lunch" or "Dinner".
+- NO "Free time" or "Rest at hotel".
+- Every item MUST be a specific, named destination, landmark, or activity.
 
 ### INSTRUCTIONS:
 
@@ -14,25 +23,20 @@ You are a high-end travel consultant. Personalize every choice based on {travele
    At the top level, include:
    - "departureIata": "3-letter origin code"
    - "destinationIata": "3-letter destination code"
-   - "bestTransport": "Specific advice on the best way to move around this city (e.g., specific metro line vs. rickshaws)."
+   - "bestTransport": "Specific advice on the best way to move around this city (e.g., specific MRT lines vs taxis)."
    - "weatherInsight": "Short packing/weather tip for the current month."
 
 2. Hotel options (5-6):
-   - Each MUST include: hotelName, hotelAddress, pricePerNight (in ₹), rating (0–5), description.
-   - NEW FIELD: "suitabilityReason": A string explaining why this hotel is perfect for a {travelerMode} trip.
+   - Include: hotelName, hotelAddress, pricePerNight (in ₹), rating (0–5), description, suitabilityReason, and geoCoordinates {"latitude": number, "longitude": number}.
 
 3. Daily itinerary (Pool Logic):
    - Include exactly {totalPlaces} "places" objects in "dailyItinerary".
-   - Each MUST include: placeName, placeDetails, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot ("Morning", "Afternoon", "Evening"), geoCoordinates {"latitude": number, "longitude": number}.
-   - NEW FIELDS:
-     - "vibe": A short mood tag (e.g., "Relaxed", "Vibrant", "Historic").
-     - "searchKeyword": A specific search term for high-quality images (e.g., "Eiffel Tower Sunset").
+   - Each MUST include: placeName, placeDetails, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot ("Morning", "Afternoon", "Evening"), geoCoordinates {"latitude": number, "longitude": number}, vibe, and searchKeyword.
 
-3. Recommendations:
+4. Recommendations:
    - Use the key "recommendations".
-   - "restaurants": Exactly {totalRecs} options. Include: restaurantName, description, priceRange (one of: Cheap, Moderate, Luxury), address, approximateCost, geoCoordinates.
-   - NEW FIELD: "recommendedDishes": Array of 2-3 local delicacies to try at this specific spot.
-   - "localExperiences": Exactly {totalRecs} unique things to do.
+   - "restaurants": Exactly {totalRecs} options. Include: restaurantName, description, priceRange (one of: Cheap, Moderate, Luxury), address, approximateCost, geoCoordinates, and recommendedDishes (Array).
+   - "localExperiences": Exactly {totalRecs} unique things to do. Include: experienceName, description, ticketPricing, address, geoCoordinates, and vibe.
 
 5. Metadata:
    - "tripName": "City, CountryCode" (e.g., "Paris, FRA").
@@ -49,40 +53,45 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const HIDDEN_GEMS_AI_PROMPT = `
 Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights, focusing EXCLUSIVELY on "Hidden Gems" and off-the-beaten-path locations. The budget is {budget}.
 
-IMPORTANT: Avoid the top 10 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
+IMPORTANT: Avoid the top 20 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
+
+### STRICT EXCLUSIONS:
+- NO mainstream landmarks (e.g. if Paris, NO Eiffel Tower).
+- NO "Hotel Check-in/out".
+- NO generic "Lunch/Dinner/Fine Dining".
+- NO tourist traps. Every spot must feel like a "local's secret".
 
 Follow these instructions carefully:
 
-1. Hotel options (5-6):
-   - Focus on boutique stays, local homestays, or unique heritage properties.
-   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
+1. Transport & Weather (REQUIRED):
+   At the top level, include:
+   - "departureIata": "3-letter origin code"
+   - "destinationIata": "3-letter destination code"
+   - "bestTransport": "Specific advice on reaching these remote spots (e.g., local buses, bike rentals, or specific hiking paths)."
+   - "weatherInsight": "Short packing/weather tip for the current month."
 
-2. Daily itinerary (The "Pool" Logic):
+2. Hotel options (5-6):
+   - Focus on boutique stays, local homestays, or unique heritage properties.
+   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), description, and suitabilityReason.
+
+3. Daily itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
    - Provide a large collection of attractions that are NOT mainstream.
    - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
    - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
    - Ensure there are exactly {perSlot} places for EACH time slot.
-   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot.
+   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot, vibe, and searchKeyword.
 
-3. Recommendations:
+4. Recommendations:
    - Use the key "recommendations".
-   - "restaurants": Provide exactly {totalRecs} hole-in-the-wall or highly-rated local eateries. Include: restaurantName, description, priceRange (one of: Cheap, Moderate, Premium), address, approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
-   - "localExperiences": Provide exactly {totalRecs} unique experiences. Include: experienceName, description, priceRange (one of: Free, Affordable, Luxury), approximateCost, and geoCoordinates {"latitude": number, "longitude": number}.
+   - "restaurants": Provide exactly {totalRecs} hole-in-the-wall or highly-rated local eateries. Include: restaurantName, description, priceRange (one of: Cheap, Moderate, Premium), address, approximateCost, geoCoordinates {"latitude": number, "longitude": number}, and recommendedDishes (Array).
+   - "localExperiences": Provide exactly {totalRecs} unique experiences. Include: experienceName, description, ticketPricing, address, geoCoordinates, and vibe.
 
-4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Hampi, IND").
+5. Metadata:
+   - "tripName": "City, CountryCode" (e.g., "Hampi, IND").
+   - "tripDuration": "{totalDays} days, {totalNight} nights".
 
-5. Ensure the trip fits the provided budget and classify it as:
-   - "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
-
-6. Include a field called "tripDuration" formatted like "{totalDays} days, {totalNight} nights".
-
-7. Transport Metadata (REQUIRED):
-   Include these two specific fields at the VERY TOP of your JSON response:
-   - "departureIata": "3-letter origin code"
-   - "destinationIata": "3-letter destination code"
-
-8. JSON SYNTAX RULES (STRICT):
+6. JSON SYNTAX RULES (STRICT):
 - NO trailing commas. NO comments. NO extra text.
 - Every opening brace '{' MUST have a matching closing brace '}'.
 - Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
@@ -94,39 +103,45 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const FESTIVE_AI_PROMPT = `
 Generate a detailed, budget-conscious festive trip plan for {traveler} visiting {location} during the {festival} festival for {totalDays} days and {totalNight} nights. The budget is {budget}.
 
+### VISION: Focus on deep cultural participation and local rituals. 
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in/out".
+- NO generic dining entries. All dining must be festive-themed.
+- NO standard sightseeing; prioritize the {festival} heartland.
+
 Follow these instructions carefully to ensure the trip captures the cultural essence of {festival}:
 
-1. Hotel options (5-6):
-   - Must be centrally located with easy access to main festive events or temples.
-   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
+1. Transport & Weather (REQUIRED):
+   At the top level, include:
+   - "departureIata": "3-letter origin code"
+   - "destinationIata": "3-letter destination code"
+   - "bestTransport": "Specific advice for festive commute (e.g., local shuttles, walking zones, or avoiding specific busy routes)."
+   - "weatherInsight": "Short packing/weather tip for the current month."
 
-2. Daily itinerary (The "Pool" Logic):
+2. Hotel options (5-6):
+   - Must be centrally located with easy access to main festive events or temples.
+   - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), description, and suitabilityReason.
+
+3. Daily itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
    - Provide a large collection of attractions specifically curated for the {festival}.
    - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
    - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
    - Ensure there are exactly {perSlot} places for EACH time slot.
    - At least 50% of these places MUST be related to {festival}.
-   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot.
+   - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot, vibe, and searchKeyword.
 
-3. Recommendations:
+4. Recommendations:
    - Use the key "recommendations".
-   - "restaurants": Provide exactly {totalRecs} authentic restaurants nearby. Include restaurantName, description, priceRange (one of: Budget, Mid-range, Premium), address, approximateCost, and geoCoordinates.
-   - "localExperiences": Provide exactly {totalRecs} unique experiences related to {festival}. Include: experienceName, description, priceRange, approximateCost, and geoCoordinates.
+   - "restaurants": Provide exactly {totalRecs} authentic restaurants nearby. Include restaurantName, description, priceRange (one of: Budget, Mid-range, Premium), address, approximateCost, geoCoordinates, and recommendedDishes (Array).
+   - "localExperiences": Provide exactly {totalRecs} unique experiences related to {festival}. Include: experienceName, description, ticketPricing, address, geoCoordinates, and vibe.
 
-4. Include a top-level field called "tripName" formatted as "City, CountryCode" (e.g., "Varanasi, IND").
+5. Metadata:
+   - "tripName": "City, CountryCode" (e.g., "Varanasi, IND").
+   - "tripDuration": "{totalDays} days, {totalNight} nights".
 
-5. Ensure the trip fits the provided budget and classify it as:
-   - "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
-
-6. Include a field called "tripDuration" formatted like "{totalDays} days, {totalNight} nights".
-
-7. Transport Metadata (REQUIRED):
-   Include these two specific fields at the VERY TOP of your JSON response:
-   - "departureIata": "3-letter origin code"
-   - "destinationIata": "3-letter destination code"
-
-8. JSON SYNTAX RULES (STRICT):
+6. JSON SYNTAX RULES (STRICT):
 - NO trailing commas. NO comments. NO extra text.
 - Every opening brace '{' MUST have a matching closing brace '}'.
 - Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
@@ -136,18 +151,26 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 `;
 
 export const CONCERT_TRIP_AI_PROMPT = `
-Generate a detailed, budget-conscious travel plan for {travelers} attending a live concert by {artist} in {location}.
+Generate a boutique, experience-focused travel plan for {travelers} attending {artist} in {location}.
+
+### VISION: Focus on the fan community atmosphere and venue-vicinity vibes. 
+
+### STRICT EXCLUSIONS:
+- NO "Hotel Check-in/out" or "Travel to venue".
+- NO generic "Fine Dining".
+- NO non-music-related standard sightseeing unless it is a "must-see" near the venue.
 
 Travelers depart from {departure} for a fixed duration of 3 days and 2 nights. The budget is {budget}.
 
-1. Transport Metadata (REQUIRED):
+1. Transport (REQUIRED):
    Include these specific fields at the VERY TOP of your JSON response:
    - "departureIata": "3-letter origin code (e.g., BOM)"
    - "destinationIata": "3-letter destination code (e.g., LHR)"
+   - "bestTransport": "Specific advice for fans (e.g., shuttles to {venueName}, event-day metro passes, or walkable nearby zones)."
 
 2. Hotel Options (5–6):
    - Must be located near {venueName} or with easy transit to it.
-   - Include: hotelName, hotelAddress, pricePerNight (in ₹), hotelImageURL, geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), and a short description.
+   - Include: hotelName, hotelAddress, pricePerNight (in ₹), geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), description, and suitabilityReason.
 
 3. Daily Itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
@@ -155,17 +178,16 @@ Travelers depart from {departure} for a fixed duration of 3 days and 2 nights. T
    - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
    - Ensure there are exactly 3 places for EACH time slot.
    - Crucial: At least 2 of the "Evening" slots must focus on the concert event or pre-concert fan meetups.
-   - Each place must include: placeName, placeDetails, placeImageURL, geoCoordinates {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, and timeSlot.
+   - Each place must include: placeName, placeDetails, placeImageURL, geoCoordinates {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot, vibe, and searchKeyword.
 
 4. Recommendations:
    - Use the key "recommendations".
-   - "restaurants": 5 options. Include restaurantName, description, priceRange (one of: Budget, Mid-range, Premium), address, and approximateCost.
-   - "localExperiences": 3 options. Include experienceName, description, priceRange, approximateCost, and geoCoordinates.
+   - "restaurants": 5 options. Include restaurantName, description, priceRange (one of: Budget, Mid-range, Premium), address, approximateCost, geoCoordinates {"latitude": number, "longitude": number}, and recommendedDishes (Array).
+   - "localExperiences": 3 options. Include experienceName, description, ticketPricing, address, geoCoordinates, and vibe.
 
-5. Trip Metadata:
+5. Metadata:
    - "tripName": "{location}, CountryCode" (e.g., "London, GBR").
    - "tripDuration": "3 days, 2 nights".
-   - "budgetCategory": "Budget" (< ₹10,000), "Moderate" (₹10,000–₹25,000), or "Luxury" (> ₹25,000).
 
 6. JSON SYNTAX RULES (STRICT):
   - NO trailing commas after the last item in an array or object.

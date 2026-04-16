@@ -5,22 +5,31 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
-import { SpendingItemProps } from "@/src/types/interfaces";
+import { SpendingItemProps } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
+import { useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const SWIPE_LIMIT = -width * 0.2;
 
-export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
+export const SpendingItem = ({ item, tripId, isFinished }: SpendingItemProps) => {
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const translateX = useSharedValue(0);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-20, 20])
     .onUpdate((event) => {
+      if (isFinished) return;
       translateX.value = Math.max(SWIPE_LIMIT * 1.2, event.translationX);
     })
     .onEnd(() => {
+      if (isFinished) {
+        translateX.value = withSpring(0);
+        return;
+      }
       if (translateX.value < SWIPE_LIMIT / 1.5) {
         translateX.value = withSpring(SWIPE_LIMIT);
       } else {
@@ -72,15 +81,15 @@ export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
         </TouchableOpacity>
       </View>
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.content, animatedStyle]}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="card-outline" size={20} color="#666" />
+        <Animated.View style={[styles.content, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }, animatedStyle]}>
+          <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F0F0F0" }, isFinished && { opacity: 0.5 }]}>
+            <Ionicons name="card-outline" size={20} color={isFinished ? colors.GRAY : colors.MUTED_TEXT} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.date}>{item.date}</Text>
+            <Text style={[styles.name, { color: colors.TEXT }, isFinished && { color: colors.GRAY }]}>{item.name}</Text>
+            <Text style={[styles.date, { color: colors.MUTED_TEXT }]}>{item.date}</Text>
           </View>
-          <Text style={styles.amount}>₹{item.amount}</Text>
+          <Text style={[styles.amount, { color: colors.TEXT }, isFinished && { color: colors.GRAY }]}>₹{item.amount}</Text>
         </Animated.View>
       </GestureDetector>
 
@@ -100,7 +109,7 @@ export const SpendingItem = ({ item, tripId }: SpendingItemProps) => {
 
 const styles = StyleSheet.create({
   swipeBackground: {
-    backgroundColor: "#FFEBEE",
+    backgroundColor: "#FFEBEE20",
     marginBottom: 8,
     borderRadius: 12,
     overflow: "hidden",
@@ -108,12 +117,10 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "row",
     padding: 16,
-    backgroundColor: "white",
     alignItems: "center",
     gap: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#d7d7d7",
   },
   deleteAction: {
     position: "absolute",
@@ -136,11 +143,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F0F0F0",
     justifyContent: "center",
     alignItems: "center",
   },
-  name: { fontSize: 16, fontFamily: "outfitBold", color: "#1E293B" },
-  date: { fontSize: 12, fontFamily: "outfit", color: "#64748B", marginTop: 2 },
-  amount: { fontSize: 16, fontFamily: "outfitBold", color: "#0F172A" },
+  name: { fontSize: 16, fontFamily: "outfitBold" },
+  date: { fontSize: 12, fontFamily: "outfit", marginTop: 2 },
+  amount: { fontSize: 16, fontFamily: "outfitBold" },
 });

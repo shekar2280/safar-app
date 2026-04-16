@@ -10,15 +10,16 @@ import {
 } from "react-native";
 import { Colors } from "@/src/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { useUser } from "@/src/context/UserContext";
+import { useLocation } from "@/src/context/LocationContext";
 import { updateUserProfile } from "@/src/lib/api";
-import { LocationData, NominatimResult } from "@/src/types/interfaces";
+import { LocationData, NominatimResult } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
 export default function HomeLocationPrompt() {
   const { userProfile, setUserProfile } = useUser();
+  const { refreshGPS } = useLocation();
   const [loading, setLoading] = useState(false);
   const [isManual, setIsManual] = useState(false);
   const [query, setQuery] = useState("");
@@ -62,26 +63,25 @@ export default function HomeLocationPrompt() {
   const handleGPSDetect = async () => {
     try {
       setLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLoading(false);
-        return;
+      const newData = await refreshGPS();
+      if (newData) {
+        const latitude = newData.coordinates.latitude || newData.coordinates.lat;
+        const longitude = newData.coordinates.longitude || newData.coordinates.lon;
+        
+        if (latitude === undefined || longitude === undefined) return;
+
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+          { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        const formatted = formatLocationData(data, latitude, longitude);
+
+        await saveLocation(formatted);
       }
-
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const { latitude, longitude } = loc.coords;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-        { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
-      );
-      const data = await res.json();
-      const formatted = formatLocationData(data, latitude, longitude);
-
-      await saveLocation(formatted);
     } catch (err) {
+      // Silent fail
+
     } finally {
       setLoading(false);
     }

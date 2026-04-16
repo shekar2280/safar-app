@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
-import { ConcertEvent } from "@/src/types/interfaces";
+import { ConcertEvent } from "@/src/types";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -71,6 +71,7 @@ export default function SelectDestination() {
         concertTime: selected.concertTime,
         bookingUrl: selected.bookingUrl,
         priceRange: JSON.stringify(selected.priceRange),
+        tripCategory: "CONCERT",
       },
     });
   };
@@ -138,6 +139,15 @@ export default function SelectDestination() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
         />
+
+        <View style={styles.cautionContainer}>
+           <View style={styles.cautionBox}>
+             <Ionicons name="information-circle-outline" size={16} color={Colors.SECONDARY} />
+             <Text style={styles.cautionText}>
+                Double-check the concert date and venue with official sources before finalizing your trip details.
+             </Text>
+           </View>
+        </View>
 
         <View style={styles.footer}>
           <TouchableOpacity
@@ -242,6 +252,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
+  },
+  cautionContainer: {
+    paddingHorizontal: 25,
+    paddingVertical: 10,
+    backgroundColor: Colors.WHITE,
+  },
+  cautionBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(234, 179, 8, 0.05)",
+    padding: 12,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(234, 179, 8, 0.1)",
+  },
+  cautionText: {
+    flex: 1,
+    fontFamily: "outfit",
+    fontSize: 11,
+    color: "#854d0e",
+    lineHeight: 16,
   },
   continueButton: { 
     height: 65, 

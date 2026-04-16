@@ -8,19 +8,28 @@ import {
 } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth } from "@/src/lib/firebase";
+import { Ionicons } from "@expo/vector-icons";
 import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 import { jsonrepair } from "jsonrepair";
 import * as Haptics from "expo-haptics";
 import { CITY_TO_IATA } from "@/src/constants/iata";
-import { AI_PROMPT } from "@/src/constants/prompts";
+import { 
+  AI_PROMPT, 
+  HIDDEN_GEMS_AI_PROMPT, 
+  FESTIVE_AI_PROMPT, 
+  CONCERT_TRIP_AI_PROMPT 
+} from "@/src/constants/prompts";
 import { apiGet, apiPost, JWT_KEY, updateUserProfile } from "@/src/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/src/context/UserContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 
 const { width } = Dimensions.get("window");
@@ -34,9 +43,12 @@ export default function GenerateTrip() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const user = auth.currentUser;
-  const { refreshTrips, userProfile } = useUser();
+  const { userProfile } = useUser();
+  const queryClient = useQueryClient();
   const hasGenerated = useRef(false);
   const [retryCount, setRetryCount] = useState(0);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const isTripReady =
@@ -84,7 +96,6 @@ export default function GenerateTrip() {
     const maxAttempts = 2;
     let success = false;
 
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
     const normalizedKey = `${tripData.destinationInfo?.shortName?.toLowerCase()}-${tripData.totalDays}-${tripData.budget?.toLowerCase()}`;
     const localDepartureIata =
       (tripData.departureInfo as any)?.iataCode ||
@@ -98,13 +109,13 @@ export default function GenerateTrip() {
         setRetryCount(attempts);
         let cached: any = null;
         try {
-          cached = await apiGet(`/api/trips/saved/${encodeURIComponent(normalizedKey)}`);
+          cached = await apiGet(`/api/v1/trips/saved/${encodeURIComponent(normalizedKey)}`);
         } catch {
         }
 
         if (cached) {
           itineraryData = cached.trip_plan;
-          finalImageUrl = cached.image_url || "";
+          finalImageUrl = cached.image_urls || cached.image_url || [];
           destinationIata = cached.destination_iata || "N/A";
         } else {
           const days = parseInt(tripData.totalDays!.toString());
@@ -112,31 +123,46 @@ export default function GenerateTrip() {
           const perSlot = days;
           const totalRecs = days * 2;
 
-          const FINAL_ITINERARY_PROMPT = AI_PROMPT
+          let basePrompt = AI_PROMPT;
+          const category = tripData.tripCategory;
+
+          if (category === "HIDDEN_GEMS") {
+            basePrompt = HIDDEN_GEMS_AI_PROMPT;
+          } else if (category === "FESTIVE") {
+            basePrompt = FESTIVE_AI_PROMPT;
+          } else if (category === "CONCERT") {
+            basePrompt = CONCERT_TRIP_AI_PROMPT;
+          }
+
+          let FINAL_ITINERARY_PROMPT = basePrompt
             .replace(/{location}/g, tripData.destinationInfo?.name || "")
             .replace(/{totalDays}/g, tripData.totalDays!.toString())
             .replace(/{totalNight}/g, (days - 1).toString())
             .replace(/{traveler}/g, tripData.traveler?.title || "")
+            .replace(/{travelers}/g, tripData.traveler?.title || "") 
             .replace(/{budget}/g, tripData.budget || "")
             .replace(/{totalPlaces}/g, totalPlaces.toString())
             .replace(/{perSlot}/g, perSlot.toString())
             .replace(/{totalRecs}/g, totalRecs.toString())
-            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO");
+            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO")
+            .replace(/{departure}/g, tripData.departureInfo?.name || "current location")
+            .replace(/{venueName}/g, (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name || "");
 
-          const response = await fetch(API_BASE_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itineraryPrompt: FINAL_ITINERARY_PROMPT,
-              locationName: tripData.destinationInfo?.name,
-              tripCategory: "GENERAL",
-              latitude: tripData.destinationInfo?.coordinates?.lat,
-              longitude: tripData.destinationInfo?.coordinates?.lon,
-            }),
+          if ((tripData as any).festival) {
+            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{festival}/g, (tripData as any).festival);
+          }
+          
+          if (concertContext?.concertData?.artist) {
+            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, concertContext.concertData.artist);
+          }
+
+          const result = await apiPost<{ itinerary: string, imageUrl?: string, imageUrls?: string[] }>("/api/v1/discovery/generate", {
+            itineraryPrompt: FINAL_ITINERARY_PROMPT,
+            locationName: tripData.destinationInfo?.name,
+            tripCategory: category || "GENERAL",
+            latitude: tripData.destinationInfo?.coordinates?.lat,
+            longitude: tripData.destinationInfo?.coordinates?.lon,
           });
-
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || "Backend failed");
 
           const rawAiResponse = cleanAiResponse(result.itinerary);
           const repairedJson = jsonrepair(rawAiResponse);
@@ -152,27 +178,28 @@ export default function GenerateTrip() {
 
         const { icon: _icon, ...cleanTraveler } = (tripData.traveler as any) || {};
 
-        const isConcert = !!tripData.destinationInfo?.festival;
-
-        const festivalName = tripData.destinationInfo?.festival;
-        const artistFallback = festivalName ? festivalName.replace(" Concert", "") : "";
-        const finalArtist = concertContext?.concertData?.artist || artistFallback;
+        const isConcert = tripData.tripCategory === "CONCERT";
+        const festivalName = (tripData.destinationInfo as any)?.festival;
+        const finalArtist = (tripData.destinationInfo as any)?.artist || concertContext?.concertData?.artist;
 
         const concertPayload = isConcert ? {
           artist: finalArtist,
-          title: festivalName,
-          venueName: tripData.destinationInfo?.name,
+          title: festivalName || `${finalArtist} Concert`,
+          venueName: (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name,
           venueAddress: (tripData.destinationInfo as any)?.venueAddress,
-          concertDate: tripData.destinationInfo?.concertDate,
+          concertDate: (tripData as any).concertDate || (tripData.destinationInfo as any)?.concertDate,
           concertTime: (tripData.destinationInfo as any)?.concertTime,
           bookingUrl: (tripData.destinationInfo as any)?.bookingUrl,
           priceRange: (tripData.destinationInfo as any)?.priceRange,
-          image_urls: tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : []
+          image_urls: concertContext?.concertData?.artistImageUrl 
+            ? [concertContext.concertData.artistImageUrl] 
+            : (tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : [])
         } : null;
 
-        await apiPost("/api/trips", {
+        const newlyCreatedTrip = await apiPost<any>("/api/v1/trips", {
           normalized_key: normalizedKey,
           trip_plan: itineraryData,
+          image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
           destination_iata: destinationIata,
           total_days: tripData.totalDays,
           traveler: cleanTraveler,
@@ -182,19 +209,42 @@ export default function GenerateTrip() {
           concert_data: concertPayload,
         });
 
-        const userHome = userProfile?.homeLocation;
-        const currentDeparture = tripData.departureInfo;
-        
-        if (currentDeparture && JSON.stringify(currentDeparture) !== JSON.stringify(userHome)) {
-          updateUserProfile({ home_location: currentDeparture }).catch(e => 
-            console.error("Failed to update home location:", e)
-          );
-        }
+        const savedTrip = newlyCreatedTrip.saved_trip;
+        const imageUrls: string[] = savedTrip?.image_urls ?? [];
+        const mappedTrip = {
+          id: String(newlyCreatedTrip.id),
+          savedTripId: newlyCreatedTrip.normalized_key,
+          userEmail: "",
+          userId: String(newlyCreatedTrip.user_id ?? ""),
+          totalDays: newlyCreatedTrip.total_days ?? 1,
+          traveler: newlyCreatedTrip.traveler,
+          isInternational: newlyCreatedTrip.is_international,
+          departureIata: newlyCreatedTrip.departure_iata,
+          destinationIata: newlyCreatedTrip.destination_iata,
+          travelerMode: newlyCreatedTrip.traveler_mode,
+          isActive: newlyCreatedTrip.is_active,
+          isFinished: newlyCreatedTrip.is_finished,
+          totalBudget: newlyCreatedTrip.total_budget || 0,
+          visitedIndices: newlyCreatedTrip.visited_indices || [],
+          archivedSpendings: newlyCreatedTrip.archived_spendings || [],
+          activatedAt: newlyCreatedTrip.activated_at,
+          completedAt: newlyCreatedTrip.completed_at,
+          updatedAt: newlyCreatedTrip.updated_at,
+          createdAt: newlyCreatedTrip.created_at,
+          tripPlan: savedTrip?.trip_plan,
+          concertData: newlyCreatedTrip.concert_data,
+          imageUrl: newlyCreatedTrip.image_url || newlyCreatedTrip.imageUrl || (imageUrls.length > 0 ? imageUrls : undefined),
+        };
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         success = true;
+
+        queryClient.setQueryData(tripQueryKeys.lists(), (old: any) => {
+          return old ? [mappedTrip, ...old] : [mappedTrip];
+        });
+        
+        await queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
         setLoading(false);
-        await refreshTrips();
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {
         attempts++;
@@ -217,8 +267,8 @@ export default function GenerateTrip() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       {loading && (
         <View style={styles.loadingWrapper}>
           <LottieView
@@ -227,24 +277,37 @@ export default function GenerateTrip() {
             loop
             style={styles.lottie}
           />
-          <Text style={styles.loadingText}>{getLoadingMessage().toUpperCase()}</Text>
-          <Text style={styles.loadingSub}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
+          <Text style={[styles.loadingText, { color: colors.TEXT }]}>{getLoadingMessage().toUpperCase()}</Text>
+          <Text style={[styles.loadingSub, { color: colors.MUTED_TEXT }]}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
         </View>
       )}
 
       {error && (
         <View style={styles.errorWrapper}>
-          <Text style={styles.errorTitle}>INTERRUPTION</Text>
-          <Text style={styles.errorText}>{error.toUpperCase()}</Text>
+          <View style={styles.errorIconContainer}>
+             <Ionicons name="sparkles" size={40} color={colors.GOLD} style={styles.sparkleIcon} />
+             <Ionicons name="cloud-offline-outline" size={80} color={isDark ? "white" : "black"} />
+          </View>
+          
+          <Text style={[styles.errorTitle, { color: colors.TEXT }]}>SYSTEM OVERLOAD</Text>
+          
+          <Text style={[styles.errorText, { color: colors.MUTED_TEXT }]}>
+            Our travel engines are a bit overwhelmed. We couldn't map out your route this time.
+          </Text>
+
           <View style={styles.buttonStack}>
-            <TouchableOpacity onPress={generateAiTrip} style={styles.primaryButton}>
-              <Text style={styles.buttonText}>RETRY GENERATION</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.replace("/(tabs)/mytrip" as any)}
-              style={styles.secondaryButton}
+            <TouchableOpacity 
+              style={[styles.primaryButton, { backgroundColor: isDark ? "white" : "black" }]} 
+              onPress={generateAiTrip}
             >
-              <Text style={styles.secondaryButtonText}>RETURN TO HOME</Text>
+              <Text style={[styles.buttonText, { color: isDark ? "black" : "white" }]}>RETRY GENERATION</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.secondaryButton, { borderColor: colors.GOLD, backgroundColor: Colors.GOLD }]} 
+              onPress={() => router.replace("/(tabs)/mytrip" as any)}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.BLACK }]}>RETURN HOME</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -256,7 +319,6 @@ export default function GenerateTrip() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -272,7 +334,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
     letterSpacing: 4,
     textAlign: "center",
     marginTop: 20,
@@ -280,66 +341,71 @@ const styles = StyleSheet.create({
   loadingSub: {
     fontSize: 9,
     fontFamily: "outfitBold",
-    color: Colors.MUTED_TEXT,
     letterSpacing: 2,
     marginTop: 8,
   },
   errorWrapper: {
     alignItems: "center",
     width: "100%",
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
+  },
+  errorIconContainer: {
+    marginBottom: 30,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sparkleIcon: {
+    position: 'absolute',
+    top: -15,
+    right: -15,
   },
   errorTitle: {
-    fontSize: 12,
+    fontSize: 22,
     fontFamily: "outfitBold",
-    color: Colors.PRIMARY,
-    letterSpacing: 5,
-    marginBottom: 20,
-    opacity: 0.5,
+    letterSpacing: 2,
+    marginBottom: 12,
+    textAlign: 'center'
   },
   errorText: {
-    fontFamily: "outfitBold",
-    fontSize: 14,
-    color: Colors.PRIMARY,
+    fontFamily: "outfitMedium",
+    fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
-    letterSpacing: 1,
     marginBottom: 40,
+    paddingHorizontal: 10,
   },
   buttonStack: {
     width: "100%",
-    gap: 15,
+    gap: 12,
   },
   primaryButton: {
-    backgroundColor: Colors.PRIMARY,
-    height: 65,
-    borderRadius: 22,
+    width: '100%',
+    height: 60,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonText: {
-    color: Colors.WHITE,
     fontFamily: "outfitBold",
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
   },
   secondaryButton: {
-    height: 65,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: "#F1F5F9",
+    width: '100%',
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryButtonText: {
-    color: Colors.MUTED_TEXT,
     fontFamily: "outfitBold",
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
   },
 });

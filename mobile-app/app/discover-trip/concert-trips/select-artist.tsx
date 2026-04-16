@@ -18,9 +18,10 @@ import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
-import { singerOptions } from "@/src/constants/travel-data";
-import { ConcertEvent } from "@/src/types/interfaces";
+import { singerOptions } from "@/src/constants";
+import { ConcertEvent } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
+import { apiGet } from "@/src/lib/api";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,15 +42,17 @@ export default function ConcertTrip() {
 
   const fetchConcerts = async (artistName: string): Promise<ConcertEvent[]> => {
     try {
-      const CONCERT_FINDER_URL = process.env.EXPO_PUBLIC_CONCERT_FINDER_URL;
-      if (!CONCERT_FINDER_URL) return [];
+      const eventsRaw = await apiGet<any[]>("/api/v1/discovery/concert", { 
+        artistName 
+      });
 
-      const response = await fetch(
-        `${CONCERT_FINDER_URL}?artistName=${encodeURIComponent(artistName)}`,
-      );
-      const eventsRaw = await response.json();
+      if (!Array.isArray(eventsRaw)) {
+        // Silent fail
 
-      if (!eventsRaw || eventsRaw.length === 0) return [];
+        return [];
+      }
+
+      if (eventsRaw.length === 0) return [];
 
       const events: ConcertEvent[] = eventsRaw.map((event: any) => {
         const highResImage =
@@ -90,7 +93,8 @@ export default function ConcertTrip() {
 
       return events;
     } catch (err) {
-      console.error("Concert fetch error:", err);
+      // Silent fail
+
       return [];
     }
   };
@@ -154,7 +158,10 @@ export default function ConcertTrip() {
               onPress={() => onSelectArtist(item.title)}
             >
               <View style={styles.card}>
-                <Image source={item.image} style={styles.cardImage} />
+                <Image 
+                  source={typeof item.image === "string" ? { uri: item.image } : item.image} 
+                  style={styles.cardImage} 
+                />
                 <View style={styles.imageOverlay} />
                 <Text
                   style={[
@@ -168,6 +175,15 @@ export default function ConcertTrip() {
             </TouchableOpacity>
           )}
         />
+        
+        <View style={styles.cautionContainer}>
+           <View style={styles.cautionBox}>
+             <Ionicons name="information-circle-outline" size={16} color={Colors.SECONDARY} />
+             <Text style={styles.cautionText}>
+                Always cross-verify artist schedules and official tour dates.
+             </Text>
+           </View>
+        </View>
       </View>
 
       {artist.trim().length > 2 && (
@@ -307,4 +323,26 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   continueText: { color: Colors.WHITE, fontFamily: "outfitMedium", letterSpacing: 1 },
+  cautionContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: Colors.WHITE,
+  },
+  cautionBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(234, 179, 8, 0.05)",
+    padding: 12,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(234, 179, 8, 0.1)",
+  },
+  cautionText: {
+    flex: 1,
+    fontFamily: "outfit",
+    fontSize: 11,
+    color: "#854d0e",
+    lineHeight: 16,
+  },
 });
