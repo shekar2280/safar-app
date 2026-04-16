@@ -34,6 +34,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
 import { Colors, useThemeColors } from "@/src/constants/colors";
+import { LOGO } from "@/src/constants/images";
 import { useUser } from "@/src/context/UserContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -100,20 +101,14 @@ export default function Profile() {
       const deleteTripsPromises = snapshot.docs.map((d) => deleteDoc(d.ref));
       await Promise.all(deleteTripsPromises);
 
-      // 1. Wipe from our primary SQL backend 
       try {
         await apiDelete("/api/v1/auth/me");
       } catch (err) {
-        // Silent fail
-
-        // We continue anyway to ensure Firebase is also cleared
       }
 
-      // 2. Clear Firebase Firestore
       await deleteDoc(doc(db, "UserTrips", user.uid));
       await deleteDoc(doc(db, "users", user.uid));
       
-      // 3. Delete Firebase Auth User
       await deleteUser(user);
 
       await AsyncStorage.removeItem("seenLogin");
@@ -122,8 +117,6 @@ export default function Profile() {
       router.replace("auth/Login" as any);
 
     } catch (e) {
-      // Silent fail
-
       showAlert("Verification Failed", "Incorrect password. Account termination aborted.", "error");
     } finally {
       setLoading(false);
@@ -158,9 +151,9 @@ export default function Profile() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} bounces={true}>
         <View style={[styles.minimalHeader, { backgroundColor: isDark ? colors.BACKGROUND : colors.BACKGROUND, paddingTop: insets.top + 20 }]}>
-          <View style={[styles.logoGlassFrame, { borderColor: colors.GOLD, backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)" }]}>
+          <View style={[styles.logoGlassFrame, { borderColor: colors.BLACK, backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)" }]}>
             <Image
-              source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775573387/new_logo5_tnguhv.png" }}
+              source={LOGO}
               style={styles.logoImage}
               contentFit="cover"
             />
@@ -295,22 +288,21 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   logoGlassFrame: {
-    width: 100,
-    height: 100,
-    borderRadius: 54,
+    width: 120,
+    height: 120,
+    borderRadius: 65,
     backgroundColor: "rgba(255, 255, 255, 0.03)",
-    borderWidth: 2,
+    borderWidth: 3,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     overflow: "hidden",
   },
   logoImage: {
-    width: 130,
-    height: 130,
+    width: 160,
+    height: 160,
   },
   appNameLarge: {
     fontFamily: "playfairBold",
@@ -470,7 +462,7 @@ const styles = StyleSheet.create({
   },
   versionContainer: {
     alignItems: "center",
-    paddingTop: 30,
+    paddingTop: 20,
   },
   versionText: {
     fontFamily: "outfitBold",

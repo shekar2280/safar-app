@@ -43,7 +43,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarInactiveTintColor: "rgba(255,255,255,0.4)",
+        tabBarInactiveTintColor: colors.TAB_INACTIVE,
         tabBarActiveTintColor: colors.GOLD,
         tabBarStyle: {
           position: "absolute",
@@ -53,10 +53,10 @@ export default function TabLayout() {
           height: 65,
           margin: 10,
           borderRadius: 44,
-          backgroundColor: "#111111",
+          backgroundColor: colors.TAB_BAR_BG,
           borderTopWidth: 0,
           borderWidth: 1,
-          borderColor: "#222222",
+          borderColor: colors.TAB_BAR_BORDER,
           paddingBottom: 22,
           paddingTop: 5,
           paddingLeft: 5,
@@ -106,10 +106,10 @@ export default function TabLayout() {
             >
               <Animated.View style={[
                 styles.createIconWrapper,
-                { backgroundColor: colors.SECONDARY },
+                { backgroundColor: colors.GOLD },
                 animatedStyle
               ]}>
-                <Ionicons name="navigate" size={createIconSize} color="#000000" />
+                <Ionicons name="navigate" size={createIconSize} color={colors.BLACK} />
               </Animated.View>
             </TouchableOpacity>
           ),
@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 40,
-    backgroundColor: Colors.GOLD,
     justifyContent: "center",
     alignItems: "center",
     elevation: 6,

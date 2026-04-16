@@ -149,9 +149,9 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
                           <Text style={[styles.dishLabel, { color: colors.GOLD }]}>MUST TRY</Text>
                         </View>
                         <View style={styles.chipsContainer}>
-                          {dishes.map((dish, dIdx) => (
-                            <View key={dIdx} style={[styles.dishChip, { backgroundColor: isDark ? "rgba(212,175,55,0.05)" : "rgba(235, 186, 73, 0.08)", borderColor: isDark ? "rgba(212,175,55,0.15)" : "rgba(235, 186, 73, 0.15)" }]}>
-                              <Text style={[styles.dishChipText, { color: isDark ? "#D4AF37" : "#6D5E3D" }]}>{dish.toUpperCase()}</Text>
+                          {dishes.map((dish: string, dIdx: number) => (
+                            <View key={dIdx} style={[styles.dishChip, { backgroundColor: colors.GOLD_MUTED, borderColor: colors.GOLD_MUTED }]}>
+                              <Text style={[styles.dishChipText, { color: colors.GOLD }]}>{dish.toUpperCase()}</Text>
                             </View>
                           ))}
                         </View>
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     marginRight: 16, marginTop: 2
   },
   expListName: { fontFamily: "playfairBold", fontSize: 18, color: Colors.TEXT, marginBottom: 6 },
-  expListDesc: { fontFamily: "inter", fontSize: 13, color: Colors.GRAY, lineHeight: 20 },
+  expListDesc: { fontFamily: "inter", fontSize: 13, color: "#94A3B8", lineHeight: 20 },
 
   restaurantScroll: { paddingHorizontal: width * 0.03, gap: 15, paddingBottom: 20 },
   restaurantCard: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start"
   },
-  dishChipText: { fontFamily: "interBold", fontSize: 9, color: "#6D5E3D" },
+  dishChipText: { fontFamily: "interBold", fontSize: 9 },
 
   ctaContainer: { marginTop: 15, paddingHorizontal: 4 },
   searchButton: {

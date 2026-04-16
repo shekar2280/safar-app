@@ -35,9 +35,7 @@ export default function PlannedTrip({
     
     const normal = unvisited.filter(p => !skippedIndices.includes(p.originalIndex));
     const postponed = unvisited.filter(p => skippedIndices.includes(p.originalIndex));
-    
-    // Always show the next available stop as the first item, even if it was skipped 
-    // unless there are non-skipped items. This keeps the summary clean.
+
     const activeOrdered = [...normal, ...postponed];
     
     const completed = raw.map((p, idx) => ({ ...p, originalIndex: idx }))
@@ -74,9 +72,9 @@ export default function PlannedTrip({
 
           <View style={styles.vibeRow}>
             {item.vibe && (
-              <View style={[styles.vibeBadge, { backgroundColor: isDark ? "rgba(212,175,55,0.05)" : "rgba(235, 186, 73, 0.08)", borderColor: isDark ? "rgba(212,175,55,0.15)" : "rgba(235, 186, 73, 0.15)" }]}>
+              <View style={[styles.vibeBadge, { backgroundColor: colors.GOLD_MUTED, borderColor: colors.GOLD_MUTED }]}>
                 <Ionicons name="sparkles" size={10} color={colors.GOLD} style={{ marginRight: 4 }} />
-                <Text style={[styles.vibeText, { color: isDark ? "#D4AF37" : "#6D5E3D" }]} numberOfLines={1}>{item.vibe.toUpperCase()}</Text>
+                <Text style={[styles.vibeText, { color: colors.GOLD }]} numberOfLines={1}>{item.vibe.toUpperCase()}</Text>
               </View>
             )}
             <View style={styles.timeBadge}>
@@ -102,8 +100,8 @@ export default function PlannedTrip({
       <View style={[styles.placeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER, flex: 1, overflow: 'hidden' }]}>
         <View style={styles.vibeRow}>
           <Text style={[styles.placeName, { color: colors.MUTED_TEXT, opacity: 0.7 }]} numberOfLines={1}>{item.placeName}</Text>
-          <View style={[styles.teaserBadge, { backgroundColor: isDark ? 'rgba(212,175,55,0.10)' : 'rgba(212,175,55,0.08)' }]}>
-            <Text style={[styles.teaserBadgeText, { color: '#D4AF37' }]}>COMING UP</Text>
+          <View style={[styles.teaserBadge, { backgroundColor: colors.GOLD_MUTED }]}>
+            <Text style={[styles.teaserBadgeText, { color: colors.GOLD }]}>COMING UP</Text>
           </View>
         </View>
         <View style={[styles.teaserOverlay, { backgroundColor: isDark ? 'rgba(18,18,28,0.7)' : 'rgba(248,248,252,0.78)' }]} pointerEvents="none">
@@ -120,7 +118,7 @@ export default function PlannedTrip({
         <View style={[styles.timelineDot, { backgroundColor: 'transparent', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.BORDER, opacity: 0.4 }]} />
       </View>
       <View style={[styles.lockedSummaryCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
-        <Ionicons name="lock-closed" size={16} color="#D4AF37" />
+        <Ionicons name="lock-closed" size={16} color={colors.GOLD} />
         <Text style={[styles.lockedSummaryText, { color: colors.MUTED_TEXT }]}>
           {count === 1 ? '1 more hidden sight ahead' : `${count} more hidden sights ahead`}
         </Text>

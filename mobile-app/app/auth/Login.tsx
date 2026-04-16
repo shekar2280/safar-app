@@ -13,6 +13,7 @@ import {
 import { Image } from "expo-image";
 import React, { useState, useEffect } from "react";
 import { Colors } from "@/src/constants/colors";
+import { LOGO } from "@/src/constants/images";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -109,7 +110,7 @@ export default function Login() {
             <View style={styles.centerHeroSection}>
               <View style={styles.logoGlassFrame}>
                 <Image
-                  source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775573387/new_logo5_tnguhv.png" }}
+                  source={LOGO}
                   style={styles.logoImage}
                   contentFit="cover"
                 />
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     letterSpacing: 1,
   },
-  logoGlassFrame: {
+   logoGlassFrame: {
     width: 150,
     height: 150,
     borderRadius: 75,

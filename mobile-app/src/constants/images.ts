@@ -79,3 +79,5 @@ export const WEATHER_CONFIG = {
     color: "#E2E8F0",
   },
 } as const;
+
+export const LOGO = require("../../assets/images/icon.png");

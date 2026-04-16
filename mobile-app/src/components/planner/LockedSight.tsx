@@ -40,7 +40,7 @@ export const LockedSight: React.FC<LockedSightProps> = ({ count, isDark, colors 
 
   const cardBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
   const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
-  const lockBg = isDark ? "rgba(212,175,55,0.12)" : "rgba(212,175,55,0.10)";
+  const lockBg = colors.GOLD_MUTED;
 
   return (
     <View style={styles.wrapper}>
@@ -60,7 +60,7 @@ export const LockedSight: React.FC<LockedSightProps> = ({ count, isDark, colors 
         ]}
       >
         <View style={[styles.lockCircle, { backgroundColor: lockBg }]}>
-          <Ionicons name="lock-closed" size={18} color="#D4AF37" />
+          <Ionicons name="lock-closed" size={18} color={colors.GOLD} />
         </View>
 
         <View style={styles.textBlock}>

@@ -188,13 +188,11 @@ export const PlannerItem: React.FC<JourneyItemProps> = ({
               style={[
                 styles.nowBadge,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(212,175,55,0.12)"
-                    : "rgba(212,175,55,0.10)",
+                  backgroundColor: colors.GOLD_MUTED,
                 },
               ]}
             >
-              <Text style={[styles.nowText, { color: "#D4AF37" }]}>
+              <Text style={[styles.nowText, { color: colors.GOLD }]}>
                 COMING UP
               </Text>
             </View>
@@ -232,9 +230,7 @@ export const PlannerItem: React.FC<JourneyItemProps> = ({
                   style={[
                     styles.vibeBadge,
                     {
-                      backgroundColor: isDark
-                        ? "rgba(212,175,55,0.1)"
-                        : "rgba(235, 186, 73, 0.1)",
+                      backgroundColor: colors.GOLD_MUTED,
                     },
                   ]}
                 >
@@ -386,7 +382,6 @@ const styles = StyleSheet.create({
   teaserDot: {
     backgroundColor: "transparent",
     borderStyle: "dashed",
-    borderColor: "#D4AF37",
     opacity: 0.6,
   },
   timelineLine: {
