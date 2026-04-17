@@ -42,7 +42,6 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     };
     initLocation();
 
-    // Periodically check GPS status
     const interval = setInterval(async () => {
       const isEnabled = await Location.hasServicesEnabledAsync();
       setGpsEnabled(isEnabled);
@@ -61,7 +60,6 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const showAlert = (title: string, message: string, type: AlertType = "info") => {
-    // Small timeout to ensure OS permission dialog is closed
     setTimeout(() => {
       setAlertTitle(title);
       setAlertMessage(message);
@@ -74,23 +72,21 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      let { status } = await Location.getForegroundPermissionsAsync();
       
       if (status !== "granted") {
-        if (rejectionCount === 0) {
-          showAlert(
-            "Location Access",
-            "Safar needs your location to provide better recommendations and detect your starting city automatically.",
-            "info"
-          );
-          setRejectionCount(1);
-          return null;
-        } else {
-          return null;
-        }
+        const request = await Location.requestForegroundPermissionsAsync();
+        status = request.status;
       }
-
-      setRejectionCount(0);
+      
+      if (status !== "granted") {
+        showAlert(
+          "Permission Required",
+          "Location access is needed to detect your city. Please enable it in your device settings.",
+          "error"
+        );
+        return null;
+      }
 
       const isEnabled = await Location.hasServicesEnabledAsync();
       setGpsEnabled(isEnabled);
@@ -107,7 +103,6 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         accuracy: Location.Accuracy.Balanced,
       });
 
-      // Centralized Geocoding
       const [address] = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,

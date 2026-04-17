@@ -121,6 +121,10 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
               ))}
             </View>
           )}
+
+          <View style={styles.attributionRow}>
+            <Text style={styles.attributionText}>WEATHER POWERED BY OPENWEATHERMAP</Text>
+          </View>
         </View>
       </ImageBackground>
     </MotiView>
@@ -225,5 +229,16 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 16,
     color: "#FFF",
+  },
+  attributionRow: {
+    marginTop: 15,
+    paddingTop: 8,
+    alignItems: "center",
+  },
+  attributionText: {
+    fontFamily: "interMedium",
+    fontSize: 8,
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1,
   },
 });

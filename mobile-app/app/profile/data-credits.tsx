@@ -31,24 +31,8 @@ export default function DataCredits() {
         <View style={styles.headerInfo}>
           <Text style={[styles.mainTitle, { color: colors.TEXT }]}>DATA CREDITS</Text>
           <Text style={[styles.description, { color: colors.MUTED_TEXT }]}>
-            Safar relies on several world-class data providers to bring you the best travel experiences. In accordance with their licensing terms, we attribute the following:
+            Safar uses world-class data and creative resources to curate your travel experiences. We attribution our providers as follows:
           </Text>
-        </View>
-
-
-        <View style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
-                <Ionicons name="cloud-outline" size={20} color={colors.TEXT} />
-            </View>
-            <Text style={[styles.cardTitle, { color: colors.TEXT }]}>WeatherAPI.com</Text>
-          </View>
-          <Text style={[styles.cardText, { color: colors.MUTED_TEXT }]}>
-            Weather data and forecasts are provided by WeatherAPI.com.
-          </Text>
-          <TouchableOpacity onPress={() => openLink("https://www.weatherapi.com/")}>
-            <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Powered by WeatherAPI.com</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
@@ -56,16 +40,34 @@ export default function DataCredits() {
             <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
                 <Ionicons name="map-outline" size={20} color={colors.TEXT} />
             </View>
-            <Text style={[styles.cardTitle, { color: colors.TEXT }]}>OpenTripMap</Text>
+            <Text style={[styles.cardTitle, { color: colors.TEXT }]}>Discovery & Events</Text>
           </View>
           <Text style={[styles.cardText, { color: colors.MUTED_TEXT }]}>
-            Places of interest and local sights data are provided via OpenTripMap API under the ODbL license.
+            Local sights and points of interest are sourced from OpenTripMap under the Open Database License (ODbL). Event data and Ticket listings are provided by Ticketmaster.
           </Text>
-          <TouchableOpacity onPress={() => openLink("https://opentripmap.io/")}>
-            <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Explore OpenTripMap</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => openLink("https://opendatacommons.org/licenses/odbl/")} style={{ marginTop: 10 }}>
-            <Text style={[styles.licenseText, { color: colors.GOLD }]}>License: ODbL 1.0</Text>
+          <View style={styles.linkRow}>
+            <TouchableOpacity onPress={() => openLink("https://opentripmap.com/en/")}>
+              <Text style={[styles.linkText, { color: colors.PRIMARY }]}>OpenTripMap</Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.MUTED_TEXT, opacity: 0.5 }}>|</Text>
+            <TouchableOpacity onPress={() => openLink("https://www.ticketmaster.com/")}>
+              <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Ticketmaster</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
+                <Ionicons name="sunny-outline" size={20} color={colors.TEXT} />
+            </View>
+            <Text style={[styles.cardTitle, { color: colors.TEXT }]}>Weather & Environment</Text>
+          </View>
+          <Text style={[styles.cardText, { color: colors.MUTED_TEXT }]}>
+            Real-time weather updates and localized forecasts are powered by OpenWeatherMap.
+          </Text>
+          <TouchableOpacity onPress={() => openLink("https://openweathermap.org/")}>
+            <Text style={[styles.linkText, { color: colors.PRIMARY }]}>OpenWeatherMap</Text>
           </TouchableOpacity>
         </View>
 
@@ -77,25 +79,22 @@ export default function DataCredits() {
             <Text style={[styles.cardTitle, { color: colors.TEXT }]}>Photography</Text>
           </View>
           <Text style={[styles.cardText, { color: colors.MUTED_TEXT }]}>
-            Beautiful imagery provided by talented photographers on Unsplash. Special thanks to:
+            Beautiful imagery throughout the app is provided by the talented photographers and generous communities of:
           </Text>
-          
-          <View style={styles.photographerList}>
-            <TouchableOpacity onPress={() => openLink("https://unsplash.com/@sam")}>
-              <Text style={[styles.creditItem, { color: colors.PRIMARY }]}>• Sam Schooler (Cloudy Sky)</Text>
+          <View style={styles.linkRow}>
+            <TouchableOpacity onPress={() => openLink("https://unsplash.com/")}>
+              <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Unsplash</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => openLink("https://unsplash.com/@ashkya")}>
-              <Text style={[styles.creditItem, { color: colors.PRIMARY }]}>• Robert Tudor (Train Station)</Text>
+            <Text style={{ color: colors.MUTED_TEXT, opacity: 0.5 }}>|</Text>
+            <TouchableOpacity onPress={() => openLink("https://www.pexels.com/")}>
+              <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Pexels</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => openLink("https://unsplash.com/")} style={{ marginTop: 10 }}>
-            <Text style={[styles.linkText, { color: colors.PRIMARY }]}>Explore Unsplash License</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.MUTED_TEXT }]}>
-            Safar is committed to open data and transparent sourcing.
+            Safar v1.0.0 • Building on Open Data
           </Text>
         </View>
       </ScrollView>
@@ -105,13 +104,13 @@ export default function DataCredits() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingVertical: 25, paddingHorizontal: 10, paddingBottom: 60 },
+  scrollContent: { paddingVertical: 25, paddingHorizontal: 16, paddingBottom: 60 },
   headerInfo: { marginBottom: 30 },
   mainTitle: {
     fontFamily: "playfairBold",
-    fontSize: 26,
+    fontSize: 28,
     letterSpacing: 2,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   description: {
     fontFamily: "outfit",
@@ -136,9 +135,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -149,35 +148,28 @@ const styles = StyleSheet.create({
   cardText: {
     fontFamily: "outfit",
     fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 15,
+    lineHeight: 21,
+    marginBottom: 18,
   },
   linkText: {
     fontFamily: "outfitBold",
     fontSize: 14,
     textDecorationLine: "underline",
   },
-  licenseText: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    opacity: 0.7,
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   footer: {
-    marginTop: 20,
+    marginTop: 30,
     alignItems: "center",
   },
   footerText: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  photographerList: {
-    marginBottom: 15,
-    gap: 8,
-  },
-  creditItem: {
-    fontFamily: "outfit",
-    fontSize: 14,
-    textDecorationLine: "underline",
+    fontFamily: "outfitBold",
+    fontSize: 10,
+    letterSpacing: 2,
+    opacity: 0.5,
+    textTransform: "uppercase",
   },
 });

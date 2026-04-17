@@ -3,7 +3,7 @@ import { User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
 import { UserContextValue, UserProfile, AlertType } from "@/src/types";
-import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile } from "@/src/lib/api";
+import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile, getMe } from "@/src/lib/api";
 import { useLocation } from "@/src/context/LocationContext";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
@@ -37,21 +37,28 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
         const cachedUser = await AsyncStorage.getItem(USER_KEY);
         if (cachedUser) {
-          try { 
-            setUserProfile(mapBackendUser(JSON.parse(cachedUser))); 
+          try {
+            setUserProfile(mapBackendUser(JSON.parse(cachedUser)));
           } catch (err) {
             Sentry.addBreadcrumb({
-              category: 'auth',
-              message: 'Failed to parse cached user profile',
-              level: 'warning',
+              category: "auth",
+              message: "Failed to parse cached user profile",
+              level: "warning",
             });
           }
         }
 
-        const jwt = await AsyncStorage.getItem(JWT_KEY);
-        if (!jwt) { setLoading(false); return; }
-
-        setLoading(false);
+        try {
+          const profile = await getMe();
+          if (profile) {
+            setUserProfile(mapBackendUser(profile));
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+          }
+        } catch (err) {
+          Sentry.captureException(err, { extra: { context: "UserContext:fetchMe" } });
+        } finally {
+          setLoading(false);
+        }
       } else {
         setUserProfile(null);
         setLoading(false);
