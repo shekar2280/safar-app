@@ -2,11 +2,11 @@ import "dotenv/config";
 
 export default {
   expo: {
-    name: "sanchari",
+    name: "Safar",
     slug: "safar",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/app_logo.png",
     scheme: "safar",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -17,8 +17,8 @@ export default {
       package: "com.shekarsafar.safar",
       googleServicesFile: "./google-services.json",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
-        backgroundColor: "#ffffff",
+        foregroundImage: "./assets/images/app_logo.png",
+        backgroundColor: "#000000",
       },
       edgeToEdgeEnabled: true,
     },
@@ -41,13 +41,6 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#000000",
-        },
-      ],
-      [
-        "expo-image-picker",
-        {
-          photosPermission:
-            "The app accesses your photos to let you share them with your friends.",
         },
       ],
       [
