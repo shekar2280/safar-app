@@ -18,14 +18,14 @@ import { LocationData, NominatimResult } from "@/src/types";
 const { width } = Dimensions.get("window");
 
 export default function HomeLocationPrompt() {
-  const { userProfile, setUserProfile } = useUser();
+  const { userProfile, setUserProfile, loading: authLoading } = useUser();
   const { refreshGPS } = useLocation();
   const [loading, setLoading] = useState(false);
   const [isManual, setIsManual] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimResult[]>([]);
 
-  if (userProfile?.homeLocation) return null;
+  if (authLoading || userProfile?.homeLocation) return null;
 
   const formatLocationData = (data: NominatimResult, lat: number, lon: number): LocationData => {
     const address = data.address || {};
@@ -65,22 +65,9 @@ export default function HomeLocationPrompt() {
       setLoading(true);
       const newData = await refreshGPS();
       if (newData) {
-        const latitude = newData.coordinates.latitude || newData.coordinates.lat;
-        const longitude = newData.coordinates.longitude || newData.coordinates.lon;
-        
-        if (latitude === undefined || longitude === undefined) return;
-
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-          { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
-        );
-        const data = await res.json();
-        const formatted = formatLocationData(data, latitude, longitude);
-
-        await saveLocation(formatted);
+        await saveLocation(newData);
       }
     } catch (err) {
-      // Silent fail
 
     } finally {
       setLoading(false);
