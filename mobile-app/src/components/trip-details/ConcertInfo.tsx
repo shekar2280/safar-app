@@ -140,6 +140,11 @@ export default function ConcertInfo({ concertDetails }: { concertDetails?: any }
           />
         )}
       </View>
+      <View style={styles.attributionContainer}>
+        <Text style={[styles.attributionText, { color: colors.MUTED_TEXT }]}>
+          EVENT CONTENT BY TICKETMASTER
+        </Text>
+      </View>
     </View>
   );
 }
@@ -164,4 +169,14 @@ const styles = StyleSheet.create({
   value: { fontFamily: "outfitBold", fontSize: 15, lineHeight: 20 },
   bookButton: { margin: 24, marginTop: 0, paddingVertical: 16, borderRadius: 16, flexDirection: "row", justifyContent: "center", alignItems: "center", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 12 },
   bookButtonText: { fontFamily: "outfitBold", fontSize: 16 },
+  attributionContainer: {
+    marginTop: 15,
+    alignItems: "center",
+    opacity: 0.5,
+  },
+  attributionText: {
+    fontFamily: "interMedium",
+    fontSize: 8,
+    letterSpacing: 1.5,
+  },
 });

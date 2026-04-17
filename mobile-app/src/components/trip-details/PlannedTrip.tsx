@@ -215,6 +215,11 @@ export default function PlannedTrip({
           </View>
         )}
       </View>
+      <View style={styles.attributionContainer}>
+        <Text style={[styles.attributionText, { color: colors.MUTED_TEXT }]}>
+          LOCATIONS PROVIDED BY OPENTRIPMAP
+        </Text>
+      </View>
     </View>
   );
 }
@@ -442,5 +447,15 @@ const styles = StyleSheet.create({
   lockedSummaryText: {
     fontFamily: 'outfitMedium',
     fontSize: 13,
+  },
+  attributionContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    opacity: 0.4,
+  },
+  attributionText: {
+    fontFamily: 'outfitBold',
+    fontSize: 8,
+    letterSpacing: 1.5,
   },
 });
