@@ -1,3 +1,6 @@
+from fastapi.responses import JSONResponse
+from app.tasks import process_test_task
+
 import os
 import datetime
 import json
@@ -10,8 +13,12 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-import redis.asyncio as aioredis
 import sentry_sdk
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+import redis.asyncio as aioredis
+import asyncio
+from app.websocket_manager import manager
 
 from app import models, schemas, auth_utils
 from app.database import engine, Base
@@ -34,8 +41,7 @@ if settings.sentry_dsn:
 
 if not firebase_admin._apps:
     fb_cred = None
-    
-    # Priority 1: JSON string from environment variable
+
     if settings.firebase_service_account_json:
         try:
             cred_dict = json.loads(settings.firebase_service_account_json)
@@ -44,7 +50,6 @@ if not firebase_admin._apps:
         except json.JSONDecodeError:
             auth_logger.error("Failed to parse firebase_service_account_json - invalid JSON")
     
-    # Priority 2: Physical file path (legacy/local dev)
     if not fb_cred:
         fb_cred_path = settings.firebase_service_account_path
         if os.path.exists(fb_cred_path):
@@ -83,10 +88,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
         exc_info=True
     )
-    return {
-        "detail": "Internal Server Error. Our team has been notified.",
-        "status_code": 500
-    }
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error. Our team has been notified."}
+    )
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -105,6 +111,29 @@ async def log_requests(request: Request, call_next):
         )
     return response
 
+async def redis_pubsub_listener():
+    redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("safar_notifications")
+    
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    data = json.loads(message["data"])
+                    user_id = data.get("user_id")
+                    if user_id:
+                        await manager.send_personal_message(data, user_id)
+                    else:
+                        await manager.broadcast(data)
+                except Exception as e:
+                    api_logger.error(f"WebSocket bridge: Failed to parse/send message: {str(e)}")
+    except Exception as e:
+        api_logger.error(f"WebSocket bridge: Redis connection lost: {str(e)}")
+    finally:
+        await pubsub.unsubscribe("safar_notifications")
+        await redis.close()
+
 @app.on_event("startup")
 async def startup():
     redis_url = settings.redis_url
@@ -112,9 +141,32 @@ async def startup():
         r = aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
         FastAPICache.init(RedisBackend(r), prefix="safar-cache")
         api_logger.info("Safar API started with Redis cache", extra={"redis": redis_url.split("@")[-1]})
+        asyncio.create_task(redis_pubsub_listener())
     except Exception as e:
         api_logger.warning("Redis cache initialization failed, falling back to memory", extra={"error": str(e)})
         FastAPICache.init(RedisBackend(None), prefix="safar-cache")
+
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await manager.connect(client_id, websocket)
+    api_logger.info(f"WebSocket: Client {client_id} connected")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_personal_message({"status": "received", "echo": data}, client_id)
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
+        api_logger.info(f"WebSocket: Client {client_id} disconnected")
+
+@app.post("/api/test-event")
+async def trigger_test_event(data: str):
+    task = process_test_task.delay(data) 
+    return {
+        "message": "Event triggered successfully!",
+        "task_id": task.id,
+        "status": "Processing in background..."
+    }
+
 
 from app.api.v1.router import api_router
 app.include_router(api_router, prefix="/api/v1")
