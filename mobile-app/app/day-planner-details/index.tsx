@@ -163,6 +163,9 @@ export default function DailyPlanner() {
       
       setProcessingIndex(idx);
       await markAsDone(activeTrip.id, newList);
+
+      refreshLocation(true);
+      
       setProcessingIndex(null);
     }
   };
@@ -177,6 +180,7 @@ export default function DailyPlanner() {
 
       setProcessingIndex(idx);
       await skipPlace(activeTrip.id, newList);
+      refreshLocation(true);
       setProcessingIndex(null);
     }
   };

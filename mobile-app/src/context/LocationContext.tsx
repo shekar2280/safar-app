@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 import * as Location from "expo-location";
 import { LocationContextValue, LocationData, AlertType } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -27,27 +28,20 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         if (cached) {
           setCurrentLocation(JSON.parse(cached));
         }
-        
         const isEnabled = await Location.hasServicesEnabledAsync();
         setGpsEnabled(isEnabled);
       } catch (err) {
         Sentry.addBreadcrumb({
-          category: 'location',
-          message: 'Failed to initialize location cache',
-          level: 'warning',
+          category: "location",
+          message: "Failed to initialize location cache",
+          level: "warning",
         });
       } finally {
         setLoading(false);
       }
     };
+
     initLocation();
-
-    const interval = setInterval(async () => {
-      const isEnabled = await Location.hasServicesEnabledAsync();
-      setGpsEnabled(isEnabled);
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const updateLocation = async (locationData: LocationData | null): Promise<void> => {
