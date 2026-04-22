@@ -16,3 +16,5 @@ pydantic-settings
 python-multipart
 jinja2
 sentry-sdk[fastapi]
+celery
+amqp

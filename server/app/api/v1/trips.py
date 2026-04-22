@@ -9,13 +9,13 @@ from app import models, schemas
 from app.database import get_db
 from app.logger import trip_logger
 from app.api.dependencies import get_current_user
+from app.tasks import update_trip_weather
 
 router = APIRouter()
 
 
 @router.get("/saved/{normalized_key}", response_model=schemas.SavedTripOut)
 async def get_saved_trip(normalized_key: str, db: Session = Depends(get_db)):
-    """Return a cached shared itinerary plan if one exists for this destination+days+budget."""
     trip = db.query(models.SavedTrip).filter(models.SavedTrip.normalized_key == normalized_key).first()
     if not trip:
         trip_logger.info("CACHE MISS", extra={"normalized_key": normalized_key})
@@ -30,7 +30,6 @@ async def save_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Upsert the shared trip plan and create a new user trip record."""
     saved = db.query(models.SavedTrip).filter(models.SavedTrip.normalized_key == body.normalized_key).first()
     if not saved:
         saved = models.SavedTrip(
@@ -62,6 +61,11 @@ async def save_trip(
     db.commit()
     db.refresh(user_trip)
     trip_logger.info("Trip saved", extra={"user_id": current_user.id, "trip_id": user_trip.id})
+
+    if body.destination_iata:
+        update_trip_weather.delay(body.destination_iata, user_id=current_user.id)
+        trip_logger.info("BACKGROUND: triggered weather update task", extra={"destination": body.destination_iata, "user_id": current_user.id})
+
     return user_trip
 
 
@@ -70,7 +74,6 @@ async def get_user_trips(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Fetch all non-deleted trips for the currently authenticated user."""
     trips = (
         db.query(models.UserTrip)
         .options(joinedload(models.UserTrip.saved_trip))
@@ -89,7 +92,6 @@ async def activate_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Mark a trip as active and deactivate all other trips for this user."""
     trip = db.query(models.UserTrip).filter(
         models.UserTrip.id == trip_id,
         models.UserTrip.user_id == current_user.id,
@@ -128,7 +130,6 @@ async def deactivate_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Mark a specific trip as inactive."""
     trip = db.query(models.UserTrip).filter(
         models.UserTrip.id == trip_id,
         models.UserTrip.user_id == current_user.id,
@@ -221,7 +222,6 @@ async def finalize_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Conclude the active journey: mark as finished, deactivate, and freeze the record."""
     trip = db.query(models.UserTrip).filter(
         models.UserTrip.id == trip_id,
         models.UserTrip.user_id == current_user.id,
