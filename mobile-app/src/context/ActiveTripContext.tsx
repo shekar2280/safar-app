@@ -28,11 +28,12 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       try {
         const cached = await AsyncStorage.getItem(`${PROGRESS_CACHE_PREFIX}${activeTrip.id}`);
         if (cached) {
-          const { visited, skipped } = JSON.parse(cached);
+          const { visited, skipped, totalBudget } = JSON.parse(cached);
           setActiveTrip(prev => prev ? { 
             ...prev, 
             visitedIndices: visited || prev.visitedIndices,
-            skipped_indices: skipped || prev.skipped_indices 
+            skipped_indices: skipped || prev.skipped_indices,
+            totalBudget: totalBudget || prev.totalBudget
           } : prev);
         }
       } catch (e) {
@@ -54,11 +55,20 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     setLastRefreshed(null);
   };
 
-  const saveLocally = async (tripId: string, visited: number[], skipped: number[]) => {
+  const saveLocally = async (tripId: string, visited: number[], skipped: number[], totalBudget?: number) => {
     try {
+      const current = await AsyncStorage.getItem(`${PROGRESS_CACHE_PREFIX}${tripId}`);
+      const data = current ? JSON.parse(current) : {};
+      
       await AsyncStorage.setItem(
         `${PROGRESS_CACHE_PREFIX}${tripId}`,
-        JSON.stringify({ visited, skipped, updatedAt: new Date().toISOString() })
+        JSON.stringify({ 
+          ...data,
+          visited, 
+          skipped, 
+          totalBudget: totalBudget ?? data.totalBudget,
+          updatedAt: new Date().toISOString() 
+        })
       );
     } catch (e) {
       Sentry.captureException(e);
@@ -88,7 +98,6 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, skipped_indices: skippedIndices } : prev);
       await saveLocally(tripId, visited, skippedIndices);
-
       await apiPatch(`/api/v1/trips/${tripId}/skipped-indices`, {
         skipped_indices: skippedIndices,
       });
@@ -97,6 +106,23 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       Sentry.addBreadcrumb({
         category: "sync",
         message: "Offline: Skip saved locally, server sync pending",
+        level: "info",
+      });
+    }
+  };
+
+  const updateTripBudget = async (tripId: string, totalBudget: number): Promise<void> => {
+    const visited = activeTrip?.visitedIndices || [];
+    const skipped = activeTrip?.skipped_indices || [];
+    try {
+      setActiveTrip((prev) => prev ? { ...prev, totalBudget } : prev);
+      await saveLocally(tripId, visited, skipped, totalBudget);
+      await apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: totalBudget });
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+    } catch (error) {
+      Sentry.addBreadcrumb({
+        category: "sync",
+        message: "Offline: Budget saved locally, server sync pending",
         level: "info",
       });
     }
@@ -112,6 +138,7 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
         setLastRefreshed,
         markAsDone,
         skipPlace,
+        updateTripBudget,
         finalizeTrip: async (tripId: string) => {
           try {
             await apiPatch(`/api/v1/trips/${tripId}/finalize`, {});

@@ -28,6 +28,7 @@ export interface ActiveTripContextValue {
   setLastRefreshed: (date: Date | null) => void;
   markAsDone: (tripId: string, visitedIndices: number[]) => Promise<void>;
   skipPlace: (tripId: string, skippedIndices: number[]) => Promise<void>;
+  updateTripBudget: (tripId: string, totalBudget: number) => Promise<void>;
   finalizeTrip: (tripId: string) => Promise<void>;
 }
 

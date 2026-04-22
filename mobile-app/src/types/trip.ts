@@ -59,6 +59,8 @@ export interface ActiveTripData {
   completedPlaceIds?: string[];
   visitedIndices?: number[];
   skipped_indices?: number[];
+  totalBudget?: number;
+  archivedSpendings?: any[];
   tripPlan?: TripPlan;
   imageUrl?: string | string[];
   isActive?: boolean;

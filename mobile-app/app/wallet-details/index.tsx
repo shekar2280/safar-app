@@ -31,7 +31,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { UserTrip } from "@/src/types";
-import { apiPatch } from "@/src/lib/api";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,6 +38,7 @@ import SafarAlert from "@/src/components/ui/SafarAlert";
 import WalletSkeleton from "@/src/components/skeleton/WalletSkeleton";
 import { useTheme } from "@/src/context/ThemeContext";
 import Button from "@/src/components/common/Button";
+import { useActiveTrip } from "@/src/context/ActiveTripContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -46,6 +46,7 @@ export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { userProfile } = useUser();
   const { data: userTrips = [] } = useTrips();
+  const { activeTrip, updateTripBudget } = useActiveTrip();
   const queryClient = useQueryClient();
   const user = auth.currentUser;
   const router = useRouter();
@@ -93,8 +94,9 @@ export default function SpendingsInput() {
   };
 
   const currentTrip = useMemo(() => {
+    if (activeTrip?.id === tripId) return activeTrip;
     return userTrips?.find((t: UserTrip) => t.id === tripId);
-  }, [userTrips, tripId]);
+  }, [userTrips, tripId, activeTrip]);
 
   const isFinished = currentTrip?.isFinished || false;
 
@@ -174,13 +176,10 @@ export default function SpendingsInput() {
 
     try {
       setLoading(true);
-      await apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: newBudget });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      await updateTripBudget(tripId, newBudget);
       setNewBudgetInput("");
       setLoading(false);
     } catch (error) {
-      // Silent fail
-
       setLoading(false);
       setAlertConfig({
         visible: true,
@@ -190,6 +189,7 @@ export default function SpendingsInput() {
       });
     }
   };
+
   const recordSpending = async () => {
     if (!tripId || !user) return;
     const amount = parseFloat(amountInput);
@@ -216,8 +216,6 @@ export default function SpendingsInput() {
       setIsSaving(false);
       setIsFormVisible(false);
     } catch (error) {
-      // Silent fail
-
       setIsSaving(false);
     }
   };
