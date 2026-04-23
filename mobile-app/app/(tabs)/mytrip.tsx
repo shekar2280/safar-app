@@ -10,9 +10,8 @@ import {
   Keyboard,
   StatusBar,
   StyleSheet,
-  RefreshControl,
 } from "react-native";
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -23,7 +22,6 @@ import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
-import NetInfo from "@react-native-community/netinfo";
 import { UserTrip } from "@/src/types";
 import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
@@ -40,43 +38,9 @@ export default function Mytrip() {
   const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
   const loading = authLoading || tripsLoading;
   
-  const [isOffline, setIsOffline] = useState(false);
-  const [showBackOnline, setShowBackOnline] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const fadeAnim = useRef(new Animated.Value(0)).current;
   const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
-
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const offline = !state.isConnected;
-      if (offline) {
-        setIsOffline(true);
-        setShowBackOnline(false);
-      } else if (isOffline) {
-        setShowBackOnline(true);
-        setIsOffline(false);
-        triggerOnlineAnimation();
-      }
-    });
-    return () => unsubscribe();
-  }, [isOffline]);
-
-  const triggerOnlineAnimation = () => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.delay(2000),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setShowBackOnline(false));
-  };
 
   const handleDelete = (deletedId: string) => {
     deleteTrip.mutate(deletedId);
@@ -118,136 +82,118 @@ export default function Mytrip() {
         ? "GOOD AFTERNOON"
         : "GOOD EVENING";
 
+  const renderHeader = () => (
+    <View style={{ paddingTop: insets.top + 5 }}>
+      <View style={styles.header}>
+        {isSearching ? (
+          <View style={[styles.searchBarWrapper, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={colors.GRAY}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: colors.TEXT }]}
+              placeholder="Search journeys..."
+              placeholderTextColor={colors.GRAY}
+              autoFocus={true}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            <TouchableOpacity onPress={toggleSearch} style={styles.closeBtn}>
+              <Ionicons name="close-circle" size={22} color={colors.GRAY} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.greetingWrapper}>
+              <Text style={[styles.welcomeText, { color: colors.MUTED_TEXT }]}>{timeGreeting}</Text>
+              <View style={styles.nameRow}>
+                <Text
+                  style={[styles.title, { color: colors.TEXT }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {firstName}
+                </Text>
+                <View style={[styles.goldDot, { backgroundColor: colors.SECONDARY }]} />
+              </View>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
+                activeOpacity={0.8}
+                onPress={toggleTheme}
+              >
+                <Ionicons
+                  name={isDark ? "sunny-outline" : "moon-outline"}
+                  size={22}
+                  color={colors.TEXT}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
+                activeOpacity={0.8}
+                onPress={toggleSearch}
+              >
+                <Ionicons
+                  name="search-outline"
+                  size={22}
+                  color={colors.TEXT}
+                />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+      <HomeLocationPrompt />
+      {(loading || (isFetching && userTrips.length === 0)) ? (
+        <View style={{ flex: 1 }}>
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const renderEmpty = () => {
+    if (loading || (isFetching && userTrips.length === 0)) return null;
+    
+    if (searchQuery.trim()) {
+      return (
+        <View style={styles.noResults}>
+          <View style={[styles.noResultsIcon, { backgroundColor: colors.SURFACE }]}>
+            <Ionicons
+              name="search-outline"
+              size={42}
+              color={colors.TEXT}
+              style={{ opacity: 0.2 }}
+            />
+          </View>
+          <Text style={[styles.noResultsText, { color: colors.TEXT }]}>NO JOURNEYS FOUND</Text>
+          <Text style={[styles.noResultsSubtext, { color: colors.MUTED_TEXT }]}>
+            We couldn't find any trips matching "{searchQuery}".
+          </Text>
+        </View>
+      );
+    }
+    return <StartNewTripCard />;
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.BACKGROUND }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <ScrollView
-        style={[styles.container, { backgroundColor: colors.BACKGROUND }]}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { backgroundColor: colors.BACKGROUND, paddingTop: insets.top + 5 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !loading}
-            onRefresh={refetch}
-            tintColor={colors.PRIMARY}
-            colors={[colors.PRIMARY]}
-          />
-        }
-      >
-        <View style={styles.header}>
-          {isSearching ? (
-            <View style={[styles.searchBarWrapper, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
-              <Ionicons
-                name="search"
-                size={20}
-                color={colors.GRAY}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={[styles.searchInput, { color: colors.TEXT }]}
-                placeholder="Search journeys..."
-                placeholderTextColor={colors.GRAY}
-                autoFocus={true}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <TouchableOpacity onPress={toggleSearch} style={styles.closeBtn}>
-                <Ionicons name="close-circle" size={22} color={colors.GRAY} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.greetingWrapper}>
-                <Text style={[styles.welcomeText, { color: colors.MUTED_TEXT }]}>{timeGreeting}</Text>
-                <View style={styles.nameRow}>
-                  <Text
-                    style={[styles.title, { color: colors.TEXT }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {firstName}
-                  </Text>
-                  <View style={[styles.goldDot, { backgroundColor: colors.SECONDARY }]} />
-                </View>
-              </View>
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-                  activeOpacity={0.8}
-                  onPress={toggleTheme}
-                >
-                  <Ionicons
-                    name={isDark ? "sunny-outline" : "moon-outline"}
-                    size={22}
-                    color={colors.TEXT}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconButton, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-                  activeOpacity={0.8}
-                  onPress={toggleSearch}
-                >
-                  <Ionicons
-                    name="search-outline"
-                    size={22}
-                    color={colors.TEXT}
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-
-        {isOffline && (
-          <View style={[styles.banner, { backgroundColor: colors.SECONDARY }]}>
-            <Text style={styles.bannerText}>Offline Mode</Text>
-          </View>
-        )}
-        {showBackOnline && (
-          <Animated.View
-            style={[
-              styles.banner,
-              { backgroundColor: colors.ACCENT, opacity: fadeAnim },
-            ]}
-          >
-            <Text style={styles.bannerText}>Back Online</Text>
-          </Animated.View>
-        )}
-
-        <HomeLocationPrompt />
-
-        {loading || (isFetching && userTrips.length === 0) ? (
-          <View style={{ flex: 1 }}>
-            <TripCardSkeleton />
-            <TripCardSkeleton />
-            <TripCardSkeleton />
-          </View>
-        ) : filteredTrips?.length === 0 ? (
-          searchQuery.trim() ? (
-            <View style={styles.noResults}>
-              <View style={[styles.noResultsIcon, { backgroundColor: colors.SURFACE }]}>
-                <Ionicons
-                  name="search-outline"
-                  size={42}
-                  color={colors.TEXT}
-                  style={{ opacity: 0.2 }}
-                />
-              </View>
-              <Text style={[styles.noResultsText, { color: colors.TEXT }]}>NO JOURNEYS FOUND</Text>
-              <Text style={[styles.noResultsSubtext, { color: colors.MUTED_TEXT }]}>
-                We couldn't find any trips matching "{searchQuery}".
-              </Text>
-            </View>
-          ) : (
-            <StartNewTripCard />
-          )
-        ) : (
-          <UserTripList userTrips={filteredTrips} onDelete={handleDelete} />
-        )}
-      </ScrollView>
+      <UserTripList 
+        userTrips={filteredTrips} 
+        onDelete={handleDelete}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={{ backgroundColor: colors.BACKGROUND }}
+        refreshing={isFetching && !loading}
+        onRefresh={refetch}
+      />
     </View>
   );
 }
