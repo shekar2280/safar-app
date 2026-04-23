@@ -66,7 +66,7 @@ export const LocationStatus: React.FC<LocationStatusProps> = ({
           <View style={styles.textContainer}>
             <Text style={[styles.locationStatusText, { color: colors.TEXT }]}>
               {isFinished
-                ? "Journey History: Offline Mode"
+                ? "Journey History"
                 : effectiveLocation
                 ? "Using Live GPS"
                 : "Searching Location..."}

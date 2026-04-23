@@ -31,7 +31,7 @@ const { height } = Dimensions.get("window");
 export default function DailyPlanner() {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
-  const { activeTrip, markAsDone, skipPlace, finalizeTrip } = useActiveTrip();
+  const { activeTrip, toggleVisited, toggleSkipped, finalizeTrip } = useActiveTrip();
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
@@ -156,16 +156,9 @@ export default function DailyPlanner() {
   const handleMarkAsDone = async (item: JourneyItem) => {
     if (user && activeTrip) {
       const idx = item.originalIndex;
-      const current = activeTrip.visitedIndices || [];
-      const newList = current.includes(idx) 
-        ? current.filter(i => i !== idx) 
-        : [...current, idx];
-      
       setProcessingIndex(idx);
-      await markAsDone(activeTrip.id, newList);
-
+      await toggleVisited(activeTrip.id, idx);
       refreshLocation(true);
-      
       setProcessingIndex(null);
     }
   };
@@ -173,13 +166,8 @@ export default function DailyPlanner() {
   const handleSkipPlace = async (item: JourneyItem) => {
     if (user && activeTrip) {
       const idx = item.originalIndex;
-      const current = activeTrip.skipped_indices || [];
-      const newList = current.includes(idx) 
-        ? current.filter(i => i !== idx) 
-        : [...current, idx];
-
       setProcessingIndex(idx);
-      await skipPlace(activeTrip.id, newList);
+      await toggleSkipped(activeTrip.id, idx);
       refreshLocation(true);
       setProcessingIndex(null);
     }

@@ -13,19 +13,12 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  collection,
-  serverTimestamp,
-  onSnapshot,
-  query,
-  where,
-  addDoc,
-} from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
+import { Spending } from "@/src/types";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { SpendingForm } from "@/src/components/wallet/SpendingForm";
 import { SpendingItem } from "@/src/components/wallet/SpendingItem";
 import { useUser } from "@/src/context/UserContext";
+import { formatSpendingDate } from "@/src/utils/dateFormatter";
 import { useTrips } from "@/src/hooks/queries/useTrips";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
@@ -39,6 +32,7 @@ import WalletSkeleton from "@/src/components/skeleton/WalletSkeleton";
 import { useTheme } from "@/src/context/ThemeContext";
 import Button from "@/src/components/common/Button";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
+import NetInfo from "@react-native-community/netinfo";
 
 const { width, height } = Dimensions.get("window");
 
@@ -46,16 +40,15 @@ export default function SpendingsInput() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { userProfile } = useUser();
   const { data: userTrips = [] } = useTrips();
-  const { activeTrip, updateTripBudget } = useActiveTrip();
+  const { activeTrip, updateTripBudget, ...useActiveTripContext } = useActiveTrip();
   const queryClient = useQueryClient();
-  const user = auth.currentUser;
+  const user = userProfile;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
   const [loading, setLoading] = useState(false);
-  const [activeSpendings, setActiveSpendings] = useState<any[]>([]);
   const [spendingName, setSpendingName] = useState("");
   const [amountInput, setAmountInput] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -93,6 +86,15 @@ export default function SpendingsInput() {
     setHasSeenSwipeTip(true);
   };
 
+  useEffect(() => {
+    if (!activeTrip && tripId && userTrips.length > 0) {
+      const trip = userTrips.find((t: UserTrip) => t.id === tripId);
+      if (trip) {
+        useActiveTripContext.setActiveTrip(trip);
+      }
+    }
+  }, [activeTrip, tripId, userTrips]);
+
   const currentTrip = useMemo(() => {
     if (activeTrip?.id === tripId) return activeTrip;
     return userTrips?.find((t: UserTrip) => t.id === tripId);
@@ -109,57 +111,21 @@ export default function SpendingsInput() {
   const allSpendings = useMemo(() => {
     const archived = (currentTrip?.archivedSpendings || []).map(s => ({
       ...s,
-      date: new Date(s.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' +
-        new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+      date: s.date && !s.date.includes('T') ? s.date : formatSpendingDate(s.timestamp)
     }));
-    const combined = [...activeSpendings, ...archived];
 
-    return combined.sort((a, b) => {
+    return archived.sort((a, b) => {
       return sortOrder === "desc"
         ? b.timestamp - a.timestamp
         : a.timestamp - b.timestamp;
     });
-  }, [activeSpendings, currentTrip?.archivedSpendings, sortOrder]);
+  }, [currentTrip?.archivedSpendings, sortOrder]);
 
   const totalSpent = useMemo(() => {
     return allSpendings.reduce((sum, item) => sum + item.amount, 0);
   }, [allSpendings]);
 
   const remBudget = useMemo(() => totalBudget - totalSpent, [totalBudget, totalSpent]);
-
-  useEffect(() => {
-    if (!tripId || !user) return;
-
-    const transactionsRef = collection(
-      db,
-      "UserTrips",
-      user.uid,
-      "trips",
-      tripId,
-      "transactions"
-    );
-    const q = query(transactionsRef, where("tripId", "==", tripId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const firestoreSpendings = snapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          const dateObject = data.date?.toDate() || new Date();
-          return {
-            id: doc.id,
-            ...data,
-            timestamp: dateObject.getTime(),
-            date: dateObject.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' +
-              dateObject.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-            isArchived: false,
-          };
-        });
-
-      setActiveSpendings(firestoreSpendings);
-    });
-
-    return () => unsubscribe();
-  }, [tripId]);
 
   const handleSetBudget = async () => {
     if (isFinished) return;
@@ -174,6 +140,16 @@ export default function SpendingsInput() {
       });
     }
 
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected && totalBudget <= 0) {
+      return setAlertConfig({
+        visible: true,
+        title: "Connection Required",
+        message: "You need to be connected to a network to set your initial trip budget. Please connect and try again.",
+        type: "info",
+      });
+    }
+
     try {
       setLoading(true);
       await updateTripBudget(tripId, newBudget);
@@ -183,9 +159,9 @@ export default function SpendingsInput() {
       setLoading(false);
       setAlertConfig({
         visible: true,
-        title: "Connectivity Error",
-        message: "We're having trouble syncing your budget with our servers. Please check your network connection and try again.",
-        type: "error",
+        title: "Sync Pending",
+        message: "Your budget has been saved locally, but we couldn't sync it with the server. It will sync automatically when you're back online.",
+        type: "info",
       });
     }
   };
@@ -197,20 +173,9 @@ export default function SpendingsInput() {
       return Alert.alert("Error", "Fill all details.");
     try {
       setIsSaving(true);
-      const ref = collection(
-        db,
-        "UserTrips",
-        user.uid,
-        "trips",
-        tripId,
-        "transactions"
-      );
-      await addDoc(ref, {
-        tripId,
-        userId: user.uid,
+      await useActiveTripContext.recordSpending(tripId, {
         name: spendingName.trim(),
         amount,
-        date: serverTimestamp(),
       });
       clearAll();
       setIsSaving(false);
@@ -346,21 +311,21 @@ export default function SpendingsInput() {
 
             {allSpendings.length > 0 && !hasSeenSwipeTip && (
               <View style={[
-                styles.swipeTipBox, 
-                { 
-                  backgroundColor: isDark ? "rgba(225, 193, 110, 0.05)" : "rgba(235, 245, 255, 0.9)", 
-                  borderColor: isDark ? "rgba(225, 193, 110, 0.2)" : "rgba(14, 165, 233, 0.2)" 
+                styles.swipeTipBox,
+                {
+                  backgroundColor: isDark ? "rgba(225, 193, 110, 0.05)" : "rgba(235, 245, 255, 0.9)",
+                  borderColor: isDark ? "rgba(225, 193, 110, 0.2)" : "rgba(14, 165, 233, 0.2)"
                 }
               ]}>
                 <Ionicons name="information-circle" size={24} color={colors.PRIMARY} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.swipeTipText, { color: colors.TEXT }]}>
-                    Tip: Drag a log to the left to delete a transaction.
+                    Tip: Drag a log to the left to see delete button.
                   </Text>
                 </View>
-                <TouchableOpacity 
-                   onPress={dismissSwipeTip} 
-                   style={[styles.swipeTipBtn, { backgroundColor: isDark ? colors.GOLD : colors.PRIMARY }]}
+                <TouchableOpacity
+                  onPress={dismissSwipeTip}
+                  style={[styles.swipeTipBtn, { backgroundColor: isDark ? colors.GOLD : colors.PRIMARY }]}
                 >
                   <Text style={[styles.swipeTipBtnText, { color: isDark ? colors.BLACK : colors.WHITE }]}>OK, GOT IT</Text>
                 </TouchableOpacity>

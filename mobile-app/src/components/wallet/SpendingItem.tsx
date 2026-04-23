@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, Dimensions, Alert, TouchableOpacity } from "rea
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { deleteDoc, doc } from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
 import { SpendingItemProps } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
+import { useActiveTrip } from "@/src/context/ActiveTripContext";
 
 const { width } = Dimensions.get("window");
 const SWIPE_LIMIT = -width * 0.2;
@@ -45,21 +44,11 @@ export const SpendingItem = ({ item, tripId, isFinished }: SpendingItemProps) =>
     setDeleteVisible(true);
   };
 
+  const { removeSpending } = useActiveTrip();
+
   const handleDeleteConfirmed = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      await deleteDoc(
-        doc(
-          db,
-          "UserTrips",
-          user.uid,
-          "trips",
-          tripId,
-          "transactions",
-          item.id
-        )
-      );
+      await removeSpending(tripId, item.id);
       setDeleteVisible(false);
     } catch (error) {
        setDeleteVisible(false);

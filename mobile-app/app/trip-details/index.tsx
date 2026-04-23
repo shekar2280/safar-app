@@ -37,8 +37,9 @@ import { useTrips } from "@/src/hooks/queries/useTrips";
 import { useStaticItinerary } from "@/src/hooks/queries/useStaticItinerary";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
-import SafarAlert from "@/src/components/ui/SafarAlert";
+import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import DetailsSkeleton from "@/src/components/skeleton/DetailsSkeleton";
+import SafarAlert from "@/src/components/ui/SafarAlert";
 
 const { width, height } = Dimensions.get("window");
 const SLIDESHOW_HEIGHT = height * 0.52;
@@ -51,6 +52,7 @@ export default function TripDetails() {
   const { userProfile } = useUser();
   const { data: userTrips = [] } = useTrips();
   const { trip, imageUrl } = useLocalSearchParams();
+  const { toggleVisited, deactivateTrip } = useActiveTrip();
   const queryClient = useQueryClient();
   const colors = useThemeColors();
   const { isDark } = useTheme();
@@ -120,7 +122,6 @@ export default function TripDetails() {
     });
   }, [navigation]);
 
-
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / width);
@@ -184,41 +185,12 @@ export default function TripDetails() {
 
   const handleEndJourney = async () => {
     if (!tripDetails.id) return;
-    try {
-      await apiPatch(`/api/v1/trips/${tripDetails.id}/deactivate`, {});
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
-    } catch {
-      setAlertConfig({
-        visible: true,
-        title: "Update Failed",
-        message: "We couldn't finalize your session changes. Please check your connection and retry.",
-        type: "error",
-      });
-    }
+    await deactivateTrip(tripDetails.id);
   };
 
   const handleToggleVisited = async (index: number) => {
     if (!tripDetails.id) return;
-
-    const currentVisited = tripDetails.visitedIndices || [];
-    const newVisited = currentVisited.includes(index)
-      ? currentVisited.filter((i: number) => i !== index)
-      : [...currentVisited, index];
-
-    try {
-      await apiPatch(`/api/v1/trips/${tripDetails.id}/visited-indices`, {
-        visited_indices: newVisited,
-      });
-
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
-    } catch {
-      setAlertConfig({
-        visible: true,
-        title: "Sync Failed",
-        message: "We were unable to secure your progress. Please check your connection to ensure your itinerary is up to date.",
-        type: "error",
-      });
-    }
+    await toggleVisited(tripDetails.id, index);
   };
 
   const randomFallback = useMemo(
