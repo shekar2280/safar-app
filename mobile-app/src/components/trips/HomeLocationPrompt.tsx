@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 15,
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)", // Subtle Gold border
+    borderColor: "rgba(212, 175, 55, 0.2)",
     shadowColor: Colors.SECONDARY,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,

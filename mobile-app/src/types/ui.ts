@@ -68,18 +68,18 @@ export interface ActiveTripCardProps {
 }
 
 export interface DestinationPickerProps {
-  onLocationSelect: (location: any | null) => void; // Using any to avoid circularity if needed, but should be DestinationData
+  onLocationSelect: (location: any | null) => void;
   placeholder?: string;
 }
 
 export interface LocationPickerProps {
-  onLocationChange: (location: any | null) => void; // Should be LocationData
+  onLocationChange: (location: any | null) => void;
   placeholder?: string;
   title?: string;
 }
 
 export interface HotelInfoProps {
-  hotelData?: any[]; // Should be HotelOption[]
+  hotelData?: any[];
   cityName?: string;
 }
 

@@ -17,6 +17,12 @@ export interface TravelerGroup {
   desc: string;
   people: string;
 }
+export interface BudgetOption {
+  id: number;
+  title: string;
+  desc: string;
+  icon: string;
+}
 
 export interface TripData {
   departureInfo: LocationData | null;

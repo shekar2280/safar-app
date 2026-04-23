@@ -14,12 +14,43 @@ import NetInfo from "@react-native-community/netinfo";
 const ActiveTripContext = createContext<ActiveTripContextValue | null>(null);
 
 const PROGRESS_CACHE_PREFIX = "trip_progress_";
+const ACTIVE_TRIP_ID_KEY = "safar_active_trip_id";
 
 export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
   const [activeTrip, setActiveTrip] = useState<ActiveTripData | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const queryClient = useQueryClient();
   const isSyncing = useRef(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadActiveId = async () => {
+      const savedId = await AsyncStorage.getItem(ACTIVE_TRIP_ID_KEY);
+      if (savedId) {
+        setActiveId(savedId);
+      }
+    };
+    loadActiveId();
+  }, []);
+
+  useEffect(() => {
+    if (activeId && !activeTrip) {
+      const trips = queryClient.getQueryData<any[]>(tripQueryKeys.lists());
+      if (trips) {
+        const found = trips.find(t => String(t.id) === activeId);
+        if (found) {
+          setActiveTrip(found);
+        }
+      }
+    }
+  }, [activeId, activeTrip, queryClient]);
+
+  useEffect(() => {
+    if (activeTrip?.id) {
+      AsyncStorage.setItem(ACTIVE_TRIP_ID_KEY, activeTrip.id);
+      setActiveId(activeTrip.id);
+    }
+  }, [activeTrip?.id]);
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -103,9 +134,11 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     setAlertVisible(true);
   };
 
-  const clearActiveTrip = () => {
+  const clearActiveTrip = async () => {
     setActiveTrip(null);
+    setActiveId(null);
     setLastRefreshed(null);
+    await AsyncStorage.removeItem(ACTIVE_TRIP_ID_KEY);
   };
 
   const saveLocally = async (
@@ -261,6 +294,10 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
   const deactivateTrip = async (tripId: string): Promise<void> => {
     try {
       setActiveTrip(prev => prev?.id === tripId ? null : prev);
+      if (activeId === tripId) {
+        setActiveId(null);
+        await AsyncStorage.removeItem(ACTIVE_TRIP_ID_KEY);
+      }
       await apiPatch(`/api/v1/trips/${tripId}/deactivate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {

@@ -1,5 +1,4 @@
 export const singerOptions = [
-  // --- Global Icons ---
   {
     id: 1,
     title: "Taylor Swift",
@@ -56,7 +55,6 @@ export const singerOptions = [
     image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717764/sabrina_hlyp1p.jpg",
   },
 
-  // --- Indian / Desi Gems ---
   {
     id: 12,
     title: "Diljit Dosanjh",
@@ -88,7 +86,6 @@ export const singerOptions = [
     image: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto/f_auto/v1775717766/shreya_anegxp.jpg",
   },
 
-  // --- Pop & Legends ---
   {
     id: 18,
     title: "Ariana Grande",

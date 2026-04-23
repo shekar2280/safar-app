@@ -61,7 +61,7 @@ export default function Login() {
   const onContinueWithGoogle = async () => {
     const GoogleSignin = getGoogleSignin();
     if (!GoogleSignin) {
-      showToast("Google Sign-In requires a dev build. Rebuild the app (expo prebuild + run:android).");
+      showToast("Google Sign-In is currently unavailable in this version.");
       return;
     }
     try {
