@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActiveTripContextValue, ActiveTripData } from "@/src/types";
 import { apiPatch } from "@/src/lib/api";
@@ -7,6 +7,9 @@ import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
 import { AlertType } from "@/src/types";
+import { Spending } from "@/src/types";
+import { formatSpendingDate } from "../utils/dateFormatter";
+import NetInfo from "@react-native-community/netinfo";
 
 const ActiveTripContext = createContext<ActiveTripContextValue | null>(null);
 
@@ -16,6 +19,7 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
   const [activeTrip, setActiveTrip] = useState<ActiveTripData | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const queryClient = useQueryClient();
+  const isSyncing = useRef(false);
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -24,23 +28,72 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const syncOfflineProgress = async () => {
-      if (!activeTrip?.id) return;
+      if (!activeTrip?.id || isSyncing.current) return;
+      
+      const cached = await AsyncStorage.getItem(`${PROGRESS_CACHE_PREFIX}${activeTrip.id}`);
+      if (!cached) return;
+
+      isSyncing.current = true;
       try {
-        const cached = await AsyncStorage.getItem(`${PROGRESS_CACHE_PREFIX}${activeTrip.id}`);
-        if (cached) {
-          const { visited, skipped, totalBudget } = JSON.parse(cached);
-          setActiveTrip(prev => prev ? { 
+        const { visited, skipped, totalBudget, localSpendings } = JSON.parse(cached);
+        
+        setActiveTrip(prev => {
+          if (!prev) return prev;
+          return { 
             ...prev, 
             visitedIndices: visited || prev.visitedIndices,
             skipped_indices: skipped || prev.skipped_indices,
-            totalBudget: totalBudget || prev.totalBudget
-          } : prev);
+            totalBudget: totalBudget || prev.totalBudget,
+            archivedSpendings: localSpendings || prev.archivedSpendings
+          };
+        });
+
+        const state = await NetInfo.fetch();
+        if (state.isConnected) {
+          if (localSpendings && localSpendings.length > (activeTrip.archivedSpendings?.length || 0)) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/archive-spendings`, { spendings: localSpendings });
+            queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+          }
+          
+          if (visited.length > (activeTrip.visitedIndices?.length || 0)) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/visited-indices`, { visited_indices: visited });
+          }
+
+          if (skipped.length > (activeTrip.skipped_indices?.length || 0)) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/skipped-indices`, { skipped_indices: skipped });
+          }
+
+          if (totalBudget && totalBudget !== activeTrip.totalBudget) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/budget`, { total_budget: totalBudget });
+          }
+
+          if (JSON.parse(cached).isPendingFinalize) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/finalize`, {});
+            await saveLocally(activeTrip.id, visited, skipped, totalBudget, localSpendings, false);
+          }
+
+          if (JSON.parse(cached).isPendingDeactivate) {
+            await apiPatch(`/api/v1/trips/${activeTrip.id}/deactivate`, {});
+            await saveLocally(activeTrip.id, visited, skipped, totalBudget, localSpendings, false, false);
+            queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+          }
         }
-      } catch (e) {
-        console.warn("Failed to sync offline progress", e);
+      } catch (error) {
+        Sentry.captureException(error);
+      } finally {
+        isSyncing.current = false;
       }
     };
+
     syncOfflineProgress();
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        syncOfflineProgress();
+      }
+    });
+
+    return () => unsubscribe();
   }, [activeTrip?.id]);
 
   const showAlert = (title: string, message: string, type: AlertType = "info") => {
@@ -55,7 +108,15 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     setLastRefreshed(null);
   };
 
-  const saveLocally = async (tripId: string, visited: number[], skipped: number[], totalBudget?: number) => {
+  const saveLocally = async (
+    tripId: string, 
+    visited: number[], 
+    skipped: number[], 
+    totalBudget?: number, 
+    localSpendings?: Spending[],
+    isPendingFinalize?: boolean,
+    isPendingDeactivate?: boolean
+  ) => {
     try {
       const current = await AsyncStorage.getItem(`${PROGRESS_CACHE_PREFIX}${tripId}`);
       const data = current ? JSON.parse(current) : {};
@@ -67,6 +128,9 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
           visited, 
           skipped, 
           totalBudget: totalBudget ?? data.totalBudget,
+          localSpendings: localSpendings ?? data.localSpendings,
+          isPendingFinalize: isPendingFinalize ?? data.isPendingFinalize ?? false,
+          isPendingDeactivate: isPendingDeactivate ?? data.isPendingDeactivate ?? false,
           updatedAt: new Date().toISOString() 
         })
       );
@@ -85,11 +149,6 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       });
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
-      Sentry.addBreadcrumb({
-        category: "sync",
-        message: "Offline: Progress saved locally, server sync pending",
-        level: "info",
-      });
     }
   };
 
@@ -103,11 +162,6 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       });
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
-      Sentry.addBreadcrumb({
-        category: "sync",
-        message: "Offline: Skip saved locally, server sync pending",
-        level: "info",
-      });
     }
   };
 
@@ -120,11 +174,101 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
       await apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: totalBudget });
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
-      Sentry.addBreadcrumb({
-        category: "sync",
-        message: "Offline: Budget saved locally, server sync pending",
-        level: "info",
-      });
+    }
+  };
+
+  const recordSpending = async (tripId: string, spending: { name: string, amount: number }): Promise<void> => {
+    const generatedId = Math.random().toString(36).substr(2, 9);
+
+    const newSpending: Spending = {
+      id: generatedId,
+      name: spending.name,
+      amount: spending.amount,
+      timestamp: Date.now(),
+      date: formatSpendingDate(new Date()),
+      isLocal: false, 
+    };
+
+    let updatedList: Spending[] = [];
+
+    setActiveTrip(prev => {
+      if (!prev) return prev;
+      const currentSpendings = prev.archivedSpendings || [];
+      updatedList = [newSpending, ...currentSpendings];
+      
+      saveLocally(
+        tripId, 
+        prev.visitedIndices || [], 
+        prev.skipped_indices || [], 
+        prev.totalBudget, 
+        updatedList
+      );
+      
+      return { ...prev, archivedSpendings: updatedList };
+    });
+
+    try {
+      await apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList });
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+    } catch (error) {
+    }
+  };
+
+  const removeSpending = async (tripId: string, spendingId: string): Promise<void> => {
+    let updatedList: Spending[] = [];
+
+    setActiveTrip(prev => {
+      if (!prev) return prev;
+      const currentSpendings = prev.archivedSpendings || [];
+      updatedList = currentSpendings.filter(s => s.id !== spendingId);
+      
+      saveLocally(
+        tripId, 
+        prev.visitedIndices || [], 
+        prev.skipped_indices || [], 
+        prev.totalBudget, 
+        updatedList
+      );
+      
+      return { ...prev, archivedSpendings: updatedList };
+    });
+
+    try {
+      await apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList });
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+    } catch (error) {
+    }
+  };
+
+  const toggleVisited = async (tripId: string, index: number): Promise<void> => {
+    const currentVisited = activeTrip?.visitedIndices || [];
+    const newVisited = currentVisited.includes(index)
+      ? currentVisited.filter((i) => i !== index)
+      : [...currentVisited, index];
+    
+    await markAsDone(tripId, newVisited);
+  };
+
+  const toggleSkipped = async (tripId: string, index: number): Promise<void> => {
+    const currentSkipped = activeTrip?.skipped_indices || [];
+    const newSkipped = currentSkipped.includes(index)
+      ? currentSkipped.filter((i) => i !== index)
+      : [...currentSkipped, index];
+    
+    await skipPlace(tripId, newSkipped);
+  };
+
+  const deactivateTrip = async (tripId: string): Promise<void> => {
+    try {
+      setActiveTrip(prev => prev?.id === tripId ? null : prev);
+      await apiPatch(`/api/v1/trips/${tripId}/deactivate`, {});
+      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+    } catch (error) {
+      const current = activeTrip?.visitedIndices || [];
+      const skipped = activeTrip?.skipped_indices || [];
+      await saveLocally(tripId, current, skipped, activeTrip?.totalBudget, activeTrip?.archivedSpendings, false, true);
+      
+      setActiveTrip(prev => prev?.id === tripId ? null : prev);
     }
   };
 
@@ -138,15 +282,30 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
         setLastRefreshed,
         markAsDone,
         skipPlace,
+        toggleVisited,
+        toggleSkipped,
         updateTripBudget,
+        recordSpending,
+        removeSpending,
+        deactivateTrip,
         finalizeTrip: async (tripId: string) => {
           try {
             await apiPatch(`/api/v1/trips/${tripId}/finalize`, {});
             setActiveTrip(prev => prev ? { ...prev, isFinished: true } : prev);
             queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
           } catch (error) {
-            Sentry.captureException(error);
-            showAlert("Connection Needed", "We need a signal to finalize and archive your trip permanently.", "info");
+            const current = activeTrip?.visitedIndices || [];
+            const skipped = activeTrip?.skipped_indices || [];
+            await saveLocally(
+              tripId, 
+              current, 
+              skipped, 
+              activeTrip?.totalBudget, 
+              activeTrip?.archivedSpendings, 
+              true
+            );
+            
+            setActiveTrip(prev => prev ? { ...prev, isFinished: true } : prev);
           }
         }
       }}

@@ -18,7 +18,7 @@ export function useUserProfile() {
     queryKey: userProfileQueryKeys.me(),
     queryFn: fetchUserProfile,
     staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    gcTime: 7 * 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
 }

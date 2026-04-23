@@ -2,6 +2,15 @@ import { TravelerMode, TripCategory, TripType } from "./base";
 import { LocationData, DestinationData } from "./location";
 import { TripPlan } from "./itinerary";
 
+export interface Spending {
+  id: string;
+  name: string;
+  amount: number;
+  timestamp: number;
+  date: string;
+  isLocal?: boolean;
+}
+
 export interface TravelerGroup {
   id: number;
   title: string;
@@ -42,7 +51,7 @@ export interface UserTrip {
   totalBudget: number;
   visitedIndices: number[];
   skipped_indices?: number[];
-  archivedSpendings?: any[];
+  archivedSpendings?: Spending[];
   concertData?: any;
   imageUrl?: string[] | string;
   savedTrip?: {
@@ -60,7 +69,7 @@ export interface ActiveTripData {
   visitedIndices?: number[];
   skipped_indices?: number[];
   totalBudget?: number;
-  archivedSpendings?: any[];
+  archivedSpendings?: Spending[];
   tripPlan?: TripPlan;
   imageUrl?: string | string[];
   isActive?: boolean;

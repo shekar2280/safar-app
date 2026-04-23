@@ -57,7 +57,20 @@ export function useActivateTrip() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (tripId: string) => apiPatch(`/api/v1/trips/${tripId}/activate`, {}),
-    onSuccess: () => {
+    onMutate: async (tripId: string) => {
+      await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
+      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
+        old?.map((t) => (t.id === tripId ? { ...t, isActive: true } : t))
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tripQueryKeys.lists(), context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },
   });
@@ -91,7 +104,20 @@ export function useUpdateTripBudget() {
   return useMutation({
     mutationFn: ({ tripId, total_budget }: { tripId: string; total_budget: number }) =>
       apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget }),
-    onSuccess: () => {
+    onMutate: async ({ tripId, total_budget }) => {
+      await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
+      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
+        old?.map((t) => (t.id === tripId ? { ...t, totalBudget: total_budget } : t))
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tripQueryKeys.lists(), context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },
   });
@@ -102,7 +128,20 @@ export function useUpdateVisitedIndices() {
   return useMutation({
     mutationFn: ({ tripId, visited_indices }: { tripId: string; visited_indices: number[] }) =>
       apiPatch(`/api/v1/trips/${tripId}/visited-indices`, { visited_indices }),
-    onSuccess: () => {
+    onMutate: async ({ tripId, visited_indices }) => {
+      await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
+      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
+        old?.map((t) => (t.id === tripId ? { ...t, visitedIndices: visited_indices } : t))
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tripQueryKeys.lists(), context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     },
   });

@@ -15,7 +15,13 @@ export const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: true,
       staleTime: 5 * 60 * 1000,
-      gcTime: 24 * 60 * 60 * 1000,
+      gcTime: 7 * 24 * 60 * 60 * 1000,
+      networkMode: 'offlineFirst',
+    },
+    mutations: {
+      networkMode: 'offlineFirst',
+      retry: 3,
+      retryDelay: (attempt) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000),
     },
   },
 });
