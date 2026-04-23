@@ -14,9 +14,11 @@ import { useRouter } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "@/src/context/UserContext";
 import { useTrendingPlaces } from "@/src/hooks/queries/useTrendingPlaces";
+import { useNetInfo } from "@react-native-community/netinfo";
+import Button from "@/src/components/common/Button";
 
 const { width, height } = Dimensions.get("window");
 
@@ -32,6 +34,7 @@ export default function TrendingTrips() {
   const currentCity = userProfile?.homeLocation?.name || "Your Location";
 
   const { data: places = [], isLoading: loading } = useTrendingPlaces(country);
+  const { isConnected } = useNetInfo();
 
   const handleSelect = (item: any) => {
     router.push({
@@ -46,6 +49,36 @@ export default function TrendingTrips() {
       },
     });
   };
+
+  if (isConnected === false && places.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <View style={[styles.header, { borderBottomColor: colors.BORDER }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
+          </TouchableOpacity>
+          <View>
+            <Text style={[styles.subtitle, { color: colors.GOLD }]}>OFFLINE MODE</Text>
+            <Text style={[styles.title, { color: colors.TEXT }]}>Trending Trips</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <MaterialCommunityIcons name="wifi-off" size={60} color={colors.MUTED_TEXT} />
+          <Text style={[styles.errorTitle, { color: colors.TEXT }]}>Connection Required</Text>
+          <Text style={[styles.errorDesc, { color: colors.MUTED_TEXT }]}>
+            Trending destinations are tailored to your current country and require an internet connection to load.
+          </Text>
+          <Button 
+            title="GO BACK" 
+            onPress={() => router.back()} 
+            style={{ width: width * 0.6, marginTop: 20 }}
+          />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
@@ -123,6 +156,19 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: "outfit",
     fontSize: 15,
+  },
+  errorTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 24,
+    marginTop: 10,
+  },
+  errorDesc: {
+    fontFamily: "outfit",
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 40,
+    marginTop: 10,
+    lineHeight: 20,
   },
   listContent: {
     paddingHorizontal: 15,

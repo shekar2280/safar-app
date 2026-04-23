@@ -25,7 +25,7 @@ import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
-export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
+const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
   const router = useRouter();
   const colors = useThemeColors();
   const { isDark } = useTheme();
@@ -278,7 +278,9 @@ export default function UserTripCard({ trip, onDelete }: UserTripCardProps) {
       />
     </TouchableOpacity>
   );
-}
+});
+
+export default UserTripCard;
 
 const styles = StyleSheet.create({
   card: {
