@@ -82,12 +82,12 @@ export default function Login() {
       const firebaseToken = await userCredential.user.getIdToken();
       await AsyncStorage.setItem("seenLogin", "true");
       await syncUserWithBackend(firebaseToken);
-      router.replace("/mytrip" as any);
+      router.replace("/(tabs)/mytrip" as any);
     } catch (error: any) {
       const msg =
         error?.code === "auth/invalid-credential"
-          ? "Invalid credentials"
-          : error?.message ?? "Google Sign-In failed.";
+          ? "Hmm, those details don't look right. Please try again."
+          : "We couldn't sign you in with Google. Please try again in a moment.";
       showToast(msg);
     } finally {
       setGoogleLoading(false);

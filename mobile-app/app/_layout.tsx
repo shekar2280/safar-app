@@ -55,15 +55,10 @@ export default Sentry.wrap(function RootLayout() {
   });
 
   const [tripData, setTripData] = useState<Partial<TripData>>({});
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
-    const checkStatus = async () => {
-      await AsyncStorage.getItem("seenLogin");
-    };
-    checkStatus();
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsSignedIn(!!user);
     });
@@ -97,7 +92,7 @@ export default Sentry.wrap(function RootLayout() {
     loadAssets();
   }, []);
 
-  if (!fontsLoaded || !assetsLoaded) return null;
+  if (!fontsLoaded || !assetsLoaded || isSignedIn === null) return null;
 
   return (
     <Sentry.ErrorBoundary fallback={ErrorScreen}>
@@ -130,6 +125,7 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
                   <TripProvider>
                     <ActiveTripProvider>
                       <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="index" />
                         {!isSignedIn ? (
                           <Stack.Screen name="auth" />
                         ) : (

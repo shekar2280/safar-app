@@ -81,7 +81,9 @@ export default function SignIn() {
       await syncUserWithBackend(firebaseToken);
       router.replace("/mytrip" as any);
     } catch (error: any) {
-      const msg = error?.code === "auth/invalid-credential" ? "Invalid credentials" : "Google Sign-In failed.";
+      const msg = error?.code === "auth/invalid-credential" 
+        ? "Hmm, those details don't look right. Please try again." 
+        : "We couldn't sign you in with Google. Please try again in a moment.";
       showToast(msg);
     } finally {
       setGoogleLoading(false);
@@ -106,8 +108,8 @@ export default function SignIn() {
         setLoading(false);
         const msg =
           error.code === "auth/invalid-credential"
-            ? "Invalid Credentials"
-            : "Login Failed";
+            ? "Hmm, that email or password doesn't look right."
+            : "We couldn't sign you in. Please check your connection and try again.";
         showToast(msg);
       });
   };

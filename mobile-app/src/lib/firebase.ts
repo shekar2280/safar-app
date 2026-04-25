@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app";
 import * as FirebaseAuth from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
+  getFirestore,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -12,20 +14,25 @@ const firebaseConfig = {
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN as string,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID as string,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET as string,
-  messagingSenderId: process.env
-    .EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID as string,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID as string,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID as string,
   measurementId: process.env.EXPO_PUBLIC_MEASUREMENT_ID as string,
 };
 
 export const app = initializeApp(firebaseConfig);
 
-export const auth = (FirebaseAuth as any).initializeAuth(app, {
-  persistence: (FirebaseAuth as any).getReactNativePersistence(AsyncStorage),
-});
+export const auth =
+  Platform.OS === "web"
+    ? FirebaseAuth.getAuth(app)
+    : (FirebaseAuth as any).initializeAuth(app, {
+        persistence: (FirebaseAuth as any).getReactNativePersistence(AsyncStorage),
+      });
 
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+export const db =
+  Platform.OS === "web"
+    ? getFirestore(app)
+    : initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
