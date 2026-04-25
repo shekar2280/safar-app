@@ -10,6 +10,12 @@ export default {
     scheme: "safar",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    updates: {
+      url: "https://u.expo.dev/2420fa32-7cf7-49db-8529-22802ad9c805",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     ios: {
       supportsTablet: true,
     },

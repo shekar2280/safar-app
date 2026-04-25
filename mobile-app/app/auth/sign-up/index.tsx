@@ -68,11 +68,11 @@ export default function SignUp() {
       .catch((error: any) => {
         setLoading(false);
         if (error.code === "auth/email-already-in-use") {
-          showToast("Email already in use");
+          showToast("It looks like that email is already part of the Safar family! Try signing in instead.");
         } else if (error.code === "auth/weak-password") {
-          showToast("Password should be at least 6 characters");
+          showToast("That password is a bit too easy to guess. Try making it at least 8 characters!");
         } else {
-          showToast("Something went wrong");
+          showToast("Oops! We ran into a little trouble creating your account. Please try again.");
         }
       });
   };

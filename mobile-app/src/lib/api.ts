@@ -22,9 +22,9 @@ export async function syncUserWithBackend(firebaseIdToken: string): Promise<Safa
 
   if (!res.ok) {
     const errorDetails = await res.json().catch(() => ({}));
-    const errorMessage = errorDetails.detail ?? `Failed to sync user: ${res.status}`;
-    Sentry.captureException(new Error(errorMessage));
-    throw new Error(errorMessage);
+    const technicalError = errorDetails.detail ?? `Status: ${res.status}`;
+    Sentry.captureException(new Error(`Sync Failed: ${technicalError}`));
+    throw new Error("We're having trouble syncing your profile. Please try again in a moment.");
   }
 
   const data = await res.json();
@@ -106,7 +106,8 @@ export async function apiDelete(endpoint: string): Promise<void> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
+    Sentry.captureMessage(`API Error: ${err.detail ?? res.status}`);
+    throw new Error("Something went wrong on our end. Please try again in a moment.");
   }
 }
 

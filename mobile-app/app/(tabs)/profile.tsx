@@ -78,7 +78,7 @@ export default function Profile() {
       await signOut(auth);
       await AsyncStorage.removeItem("seenLogin");
       setUserProfile(null);
-      router.replace("auth/Login" as any);
+      router.replace("/auth/Login" as any);
     } catch (e: any) {
       showAlert("Logout Failed", e.message, "error");
     }
@@ -114,7 +114,7 @@ export default function Profile() {
       await AsyncStorage.removeItem("seenLogin");
       setUserProfile(null);
       setActiveModal("none");
-      router.replace("auth/Login" as any);
+      router.replace("/auth/Login" as any);
 
     } catch (e) {
       showAlert("Verification Failed", "Incorrect password. Account termination aborted.", "error");
