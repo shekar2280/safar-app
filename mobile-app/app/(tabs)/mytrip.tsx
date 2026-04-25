@@ -148,8 +148,8 @@ export default function Mytrip() {
         )}
       </View>
       <HomeLocationPrompt />
-      {(loading || (isFetching && userTrips.length === 0)) ? (
-        <View style={{ flex: 1 }}>
+      {(userTrips.length === 0 && (loading || isFetching)) ? (
+        <View style={{ flex: 1, paddingHorizontal: 15 }}>
           <TripCardSkeleton />
           <TripCardSkeleton />
           <TripCardSkeleton />
