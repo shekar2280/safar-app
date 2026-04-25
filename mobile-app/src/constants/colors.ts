@@ -1,7 +1,6 @@
 import { useTheme } from "./../context/ThemeContext";
 
 const palette = {
-  // Light Mode (High Contrast Premium)
   light: {
     background: "#FFFFFF",
     surface: "#F8FAFC",
@@ -26,7 +25,6 @@ const palette = {
     tabInactive: "rgba(255,255,255,0.4)",
     green: "#10B981",
   },
-  // Dark Mode (High Contrast Premium)
   dark: {
     background: "#000000",
     surface: "#111111",
@@ -53,7 +51,6 @@ const palette = {
   },
 } as const;
 
-// Legacy Static Colors (Mostly Light)
 export const Colors = {
   BACKGROUND: palette.light.background,
   SURFACE: palette.light.surface,

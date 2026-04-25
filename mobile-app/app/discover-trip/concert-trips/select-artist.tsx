@@ -47,8 +47,6 @@ export default function ConcertTrip() {
       });
 
       if (!Array.isArray(eventsRaw)) {
-        // Silent fail
-
         return [];
       }
 
@@ -93,8 +91,6 @@ export default function ConcertTrip() {
 
       return events;
     } catch (err) {
-      // Silent fail
-
       return [];
     }
   };

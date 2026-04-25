@@ -3,7 +3,7 @@ import { User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
 import { UserContextValue, UserProfile, AlertType } from "@/src/types";
-import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile, getMe } from "@/src/lib/api";
+import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile, getMe, syncUserWithBackend } from "@/src/lib/api";
 import { useLocation } from "@/src/context/LocationContext";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
@@ -53,9 +53,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           if (profile) {
             setUserProfile(mapBackendUser(profile));
             await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+          } else {
+            const idToken = await user.getIdToken();
+            const syncedUser = await syncUserWithBackend(idToken);
+            setUserProfile(mapBackendUser(syncedUser));
           }
         } catch (err) {
-          Sentry.captureException(err, { extra: { context: "UserContext:fetchMe" } });
+          Sentry.captureException(err, { extra: { context: "UserContext:fetchOrSync" } });
         } finally {
           setLoading(false);
         }

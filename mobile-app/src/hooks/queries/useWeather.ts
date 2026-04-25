@@ -15,7 +15,7 @@ export function useWeather(city: string) {
     queryKey: weatherQueryKeys.byCity(city),
     queryFn: () => fetchWeather(city),
     staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     enabled: !!city,
   });
 }

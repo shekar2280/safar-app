@@ -1,9 +1,25 @@
 import React from "react";
-import { FlatList } from "react-native";
+import { FlatList, StyleSheet, Dimensions } from "react-native";
 import UserTripCard from "./UserTripCard";
 import { UserTripListProps } from "@/src/types";
 
-export default function UserTripList({ userTrips, onDelete }: UserTripListProps) {
+const { width } = Dimensions.get("window");
+
+export default function UserTripList({ 
+  userTrips, 
+  onDelete, 
+  ListHeaderComponent, 
+  ListEmptyComponent,
+  contentContainerStyle,
+  refreshing,
+  onRefresh
+}: UserTripListProps & { 
+  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
+  ListEmptyComponent?: React.ComponentType<any> | React.ReactElement | null;
+  contentContainerStyle?: any;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}) {
   return (
     <FlatList
       data={userTrips}
@@ -11,7 +27,19 @@ export default function UserTripList({ userTrips, onDelete }: UserTripListProps)
       renderItem={({ item }) => (
         <UserTripCard trip={item} onDelete={onDelete} />
       )}
-      scrollEnabled={false}
+      ListHeaderComponent={ListHeaderComponent}
+      ListEmptyComponent={ListEmptyComponent}
+      contentContainerStyle={[styles.listContent, contentContainerStyle]}
+      showsVerticalScrollIndicator={false}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  listContent: {
+    paddingHorizontal: width * 0.03,
+    paddingBottom: 160,
+  }
+});

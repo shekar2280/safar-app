@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -14,188 +14,53 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { getDistance } from "@/src/utils/geoUtils";
-import { useActiveTrip } from "@/src/context/ActiveTripContext";
-import { auth } from "@/src/lib/firebase";
 import { Image } from "expo-image";
-import { fallbackImages } from "@/src/constants";
-import { PlaceItem, LocalExperience, SightItem, ExperienceItem, JourneyItem, VisibilityState } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { useLocationTracker } from "@/src/hooks/useLocationTracker";
 import { LocationStatus } from "@/src/components/planner/LocationStatus";
 import { PlannerItem } from "@/src/components/planner/PlannerItem";
 import { LockedSight } from "@/src/components/planner/LockedSight";
+import { useDayPlanner } from "@/src/hooks/useDayPlanner";
 
 const { height } = Dimensions.get("window");
 
 export default function DailyPlanner() {
   const insets = useSafeAreaInsets();
-  const user = auth.currentUser;
-  const { activeTrip, markAsDone, skipPlace, finalizeTrip } = useActiveTrip();
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
   const {
-    userLocation,
-    showLocationAlert,
-    isLocationBlocked,
+    activeTrip,
+    isFinished,
     loading,
-    refreshLocation,
+    effectiveLocation,
+    displayImage,
+    sections,
+    visibilityMap,
+    lockedCount,
+    processingIndex,
+    concluding,
+    showConcludeAlert,
+    setShowConcludeAlert,
+    showLocationAlert,
     setShowLocationAlert,
-  } = useLocationTracker();
-
-  const [processingIndex, setProcessingIndex] = useState<number | null>(null);
-  const [concluding, setConcluding] = useState(false);
-  const [showConcludeAlert, setShowConcludeAlert] = useState(false);
-  const isFinished = activeTrip?.isFinished || false;
-
-  const effectiveLocation = userLocation;
-
-  const randomFallback = useMemo(() => {
-    return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
-  }, [activeTrip?.id]);
-
-  const displayImage = useMemo(() => {
-    const img = activeTrip?.imageUrl;
-    if (Array.isArray(img) && img.length > 0) {
-      return { uri: img[2] || img[0] };
-    }
-    if (typeof img === "string" && img.trim().length > 0) {
-      return { uri: img };
-    }
-    return randomFallback;
-  }, [activeTrip?.imageUrl, randomFallback]);
-
-  const sections = useMemo(() => {
-    if (!activeTrip?.tripPlan) return { active: [] as JourneyItem[], completed: [] as JourneyItem[] };
-
-    const { dailyItinerary, recommendations } = activeTrip.tripPlan;
-    const completedIndices = activeTrip.visitedIndices || [];
-    const skippedIndices = activeTrip.skipped_indices || [];
-
-    const rawArray: any[] = Array.isArray(dailyItinerary)
-      ? dailyItinerary
-      : (dailyItinerary as any)?.places || [];
-
-    const itineraryArray: PlaceItem[] = (rawArray.length > 0 && rawArray[0].places)
-      ? rawArray.flatMap((day: any) => day.places || [])
-      : rawArray;
-
-    const allSights: SightItem[] = itineraryArray.map((p, idx) => ({
-      ...p,
-      isLocation: true,
-      originalIndex: idx,
-      isDone: completedIndices.includes(idx),
-      isSkipped: skippedIndices.includes(idx),
-      distance: (effectiveLocation && p.geoCoordinates)
-        ? getDistance(
-          effectiveLocation.latitude,
-          effectiveLocation.longitude,
-          p.geoCoordinates.latitude,
-          p.geoCoordinates.longitude,
-        )
-        : null,
-    }));
-
-    const allExps: ExperienceItem[] = (recommendations?.localExperiences || []).map((e, idx) => ({
-      ...e,
-      placeName: e.experienceName,
-      isDone: false,
-      isLocation: false,
-    }));
-
-    const sortedSights = [...allSights].sort(
-      (a, b) => (a.distance ?? 999) - (b.distance ?? 999),
-    );
-
-    const mappedJourney: JourneyItem[] = sortedSights.map((sight, index) => ({
-      ...sight,
-      activity: allExps[index] || null,
-    }));
-
-    const completed = mappedJourney.filter((item) => item.isDone);
-    
-    let active: JourneyItem[];
-    if (isFinished) {
-      active = [];
-    } else {
-      const unvisited = mappedJourney.filter((item) => !item.isDone);
-      const normal = unvisited.filter(item => !(item as any).isSkipped);
-      const postponed = unvisited.filter(item => (item as any).isSkipped);
-      active = [...normal, ...postponed];
-    }
-
-    return { active, completed };
-  }, [effectiveLocation, activeTrip?.visitedIndices, activeTrip?.skipped_indices, activeTrip?.tripPlan, isFinished]);
-
-  const visibilityMap = useMemo((): VisibilityState[] => {
-    return sections.active.map((_, idx) => {
-      if (idx === 0) return 'full';
-      if (idx === 1) return 'teaser';
-      return 'locked';
-    });
-  }, [sections.active]);
-
-  const lockedCount = useMemo(
-    () => sections.active.filter((_, idx) => visibilityMap[idx] === 'locked').length,
-    [sections.active, visibilityMap]
-  );
-
-  const openNavigation = (placeName: string) => {
-    const query = encodeURIComponent(`${placeName} ${activeTrip?.tripPlan?.tripName}`);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    Linking.openURL(url);
-  };
-
-  const findNearbyFood = (placeName: string) => {
-    const searchQuery = encodeURIComponent(`Best Restaurants near ${placeName} ${activeTrip?.tripPlan?.tripName || ""}`);
-    const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
-    Linking.openURL(url);
-  };
-
-  const handleMarkAsDone = async (item: JourneyItem) => {
-    if (user && activeTrip) {
-      const idx = item.originalIndex;
-      const current = activeTrip.visitedIndices || [];
-      const newList = current.includes(idx) 
-        ? current.filter(i => i !== idx) 
-        : [...current, idx];
-      
-      setProcessingIndex(idx);
-      await markAsDone(activeTrip.id, newList);
-      setProcessingIndex(null);
-    }
-  };
-
-  const handleSkipPlace = async (item: JourneyItem) => {
-    if (user && activeTrip) {
-      const idx = item.originalIndex;
-      const current = activeTrip.skipped_indices || [];
-      const newList = current.includes(idx) 
-        ? current.filter(i => i !== idx) 
-        : [...current, idx];
-
-      setProcessingIndex(idx);
-      await skipPlace(activeTrip.id, newList);
-      setProcessingIndex(null);
-    }
-  };
-
-  const handleConcludeJourney = () => {
-    setShowConcludeAlert(true);
-  };
-
-  const handleConfirmConclude = async () => {
-    setShowConcludeAlert(false);
-    if (!activeTrip) return;
-    setConcluding(true);
-    await finalizeTrip(activeTrip.id);
-    setConcluding(false);
-  };
+    isLocationBlocked,
+    refreshLocation,
+    openNavigation,
+    findNearbyFood,
+    handleMarkAsDone,
+    handleSkipPlace,
+    handleConfirmConclude,
+  } = useDayPlanner();
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.container,
+          styles.loadingContainer,
+          { backgroundColor: colors.BACKGROUND, paddingTop: insets.top },
+        ]}
+      >
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#D4AF37" />
@@ -207,8 +72,15 @@ export default function DailyPlanner() {
             <View key={i} style={[styles.skeletonRow, { opacity: 1 - i * 0.25 }]}>
               <View style={[styles.skeletonDot, { backgroundColor: colors.BORDER }]} />
               <View style={styles.skeletonLines}>
-                <View style={[styles.skeletonLine, { width: "70%", backgroundColor: colors.BORDER }]} />
-                <View style={[styles.skeletonLine, { width: "45%", backgroundColor: colors.BORDER, marginTop: 8 }]} />
+                <View
+                  style={[styles.skeletonLine, { width: "70%", backgroundColor: colors.BORDER }]}
+                />
+                <View
+                  style={[
+                    styles.skeletonLine,
+                    { width: "45%", backgroundColor: colors.BORDER, marginTop: 8 },
+                  ]}
+                />
               </View>
             </View>
           ))}
@@ -218,10 +90,20 @@ export default function DailyPlanner() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+    <View
+      style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}
+    >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <ScrollView showsVerticalScrollIndicator={false} style={{ backgroundColor: colors.BACKGROUND }}>
-        <Image source={displayImage} style={styles.headerImage} contentFit="cover" transition={500} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: colors.BACKGROUND }}
+      >
+        <Image
+          source={displayImage}
+          style={styles.headerImage}
+          contentFit="cover"
+          transition={500}
+        />
 
         <LocationStatus
           effectiveLocation={effectiveLocation}
@@ -234,14 +116,27 @@ export default function DailyPlanner() {
           <View style={styles.mainHeader}>
             <View style={styles.headerTitleRow}>
               <View style={styles.headerTitleTextBlock}>
-                <Text style={[styles.tripNameText, { color: colors.PRIMARY }, isFinished && { color: colors.MUTED_TEXT }]}>
+                <Text
+                  style={[
+                    styles.tripNameText,
+                    { color: colors.PRIMARY },
+                    isFinished && { color: colors.MUTED_TEXT },
+                  ]}
+                >
                   {activeTrip?.tripPlan?.tripName}
                 </Text>
               </View>
 
               {isFinished ? (
-                <View style={[styles.archivedBadge, { backgroundColor: isDark ? "#1A1A1A" : "#F1F5F9", borderColor: colors.BORDER }]}>
-                  <Text style={[styles.archivedBadgeText, { color: colors.MUTED_TEXT }]}>ARCHIVED</Text>
+                <View
+                  style={[
+                    styles.archivedBadge,
+                    { backgroundColor: isDark ? "#1A1A1A" : "#F1F5F9", borderColor: colors.BORDER },
+                  ]}
+                >
+                  <Text style={[styles.archivedBadgeText, { color: colors.MUTED_TEXT }]}>
+                    ARCHIVED
+                  </Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -251,12 +146,10 @@ export default function DailyPlanner() {
                       backgroundColor: isDark
                         ? "rgba(212,175,55,0.12)"
                         : "rgba(212,175,55,0.10)",
-                      borderColor: isDark
-                        ? "rgba(212,175,55,0.35)"
-                        : "rgba(212,175,55,0.4)",
+                      borderColor: isDark ? "rgba(212,175,55,0.35)" : "rgba(212,175,55,0.4)",
                     },
                   ]}
-                  onPress={handleConcludeJourney}
+                  onPress={() => setShowConcludeAlert(true)}
                   disabled={concluding}
                   accessibilityLabel="Conclude Journey"
                 >
@@ -265,9 +158,7 @@ export default function DailyPlanner() {
                     size={13}
                     color="#D4AF37"
                   />
-                  <Text style={styles.concludeBtnText}>
-                    {concluding ? "Saving…" : "Conclude"}
-                  </Text>
+                  <Text style={styles.concludeBtnText}>{concluding ? "Saving…" : "Conclude"}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -282,7 +173,7 @@ export default function DailyPlanner() {
             <>
               {sections.active.map((item, index) => {
                 const vs = visibilityMap[index];
-                if (vs === 'locked') return null;
+                if (vs === "locked") return null;
                 return (
                   <PlannerItem
                     key={`active-${item.originalIndex}`}
@@ -303,11 +194,7 @@ export default function DailyPlanner() {
               })}
 
               {lockedCount > 0 && (
-                <LockedSight
-                  count={lockedCount}
-                  isDark={isDark}
-                  colors={colors}
-                />
+                <LockedSight count={lockedCount} isDark={isDark} colors={colors} />
               )}
             </>
           ) : (
@@ -320,7 +207,9 @@ export default function DailyPlanner() {
           {sections.completed.length > 0 && (
             <>
               <View style={[styles.pathLabelRow, { marginTop: 40 }]}>
-                <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>COMPLETED SIGHTS</Text>
+                <Text style={[styles.sectionLabel, { color: colors.MUTED_TEXT }]}>
+                  COMPLETED SIGHTS
+                </Text>
                 <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
               </View>
               {sections.completed.map((item, index) => (
@@ -380,7 +269,7 @@ export default function DailyPlanner() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
+  container: { flex: 1 },
   loadingContainer: {
     justifyContent: "center",
   },
@@ -433,12 +322,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   mainHeader: { marginBottom: 20, paddingLeft: 16, paddingRight: 20 },
-  welcomeText: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-  },
   tripNameText: {
     fontFamily: "playfairBold",
     fontSize: 28,

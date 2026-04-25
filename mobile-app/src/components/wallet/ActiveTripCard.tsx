@@ -20,8 +20,6 @@ import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { fallbackImages } from "@/src/constants";
 import { ActiveTripCardProps } from "@/src/types";
-import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import * as Sentry from "@sentry/react-native";
@@ -68,9 +66,10 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   };
 
   const goToWallet = () => {
+    setActiveTrip(trip as any);
     router.push({
       pathname: "/wallet-details",
-      params: { trip: JSON.stringify(trip), tripId: trip.id },
+      params: { tripId: trip.id },
     } as any);
   };
 
@@ -84,34 +83,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       setArchiveVisible(false);
       setIsArchiving(true);
 
-      const user = auth.currentUser;
-      if (!user) throw new Error("User not found");
-
-      const transactionsRef = collection(db, "UserTrips", user.uid, "trips", trip.id, "transactions");
-      const q = query(transactionsRef, where("tripId", "==", trip.id));
-      const snapshot = await getDocs(q);
-
-      const spendingsToArchive = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          timestamp: data.date?.toDate()?.getTime() || Date.now(),
-          date: data.date?.toDate()?.toLocaleString() || new Date().toLocaleString(),
-          isArchived: true
-        };
-      });
-
-      if (spendingsToArchive.length > 0) {
-        await apiPatch(`/api/v1/trips/${trip.id}/archive-spendings`, { spendings: spendingsToArchive });
-      }
-
       await apiPatch(`/api/v1/trips/${trip.id}/deactivate`, {});
-
-      if (spendingsToArchive.length > 0) {
-        const batchDeletes = snapshot.docs.map(d => deleteDoc(doc(db, "UserTrips", user.uid, "trips", trip.id, "transactions", d.id)));
-        await Promise.all(batchDeletes);
-      }
 
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       setIsArchiving(false);

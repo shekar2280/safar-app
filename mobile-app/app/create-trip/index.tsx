@@ -115,7 +115,6 @@ export default function CreateTripIndex() {
   );
 
   useEffect(() => {
-    // Determine traveler mode based on count since the top slider is gone
     if (travelerCount === 1) setTravelerMode(TravelerMode.Solo);
     else if (travelerCount === 2) setTravelerMode(TravelerMode.Couple);
     else if (travelerCount >= 3 && travelerCount <= 4) setTravelerMode(TravelerMode.Family);

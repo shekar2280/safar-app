@@ -18,7 +18,7 @@ import { ThemeProvider, useTheme } from "@/src/context/ThemeContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
+import { LOCAL_HOTEL_IMAGES, DiscoverIdeasList } from "@/src/constants";
 import { Asset } from "expo-asset";
 import { Image } from "react-native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -31,6 +31,7 @@ import {
 import { TripData } from "@/src/types";
 import * as Sentry from '@sentry/react-native';
 import { ErrorScreen } from "@/src/components/ErrorScreen";
+import { OfflineBanner } from "@/src/components/OfflineBanner";
 
 Sentry.init({
   dsn: 'https://1464c657ef53845c8420b0a659df59e6@o4511224422924288.ingest.de.sentry.io/4511224429150288',
@@ -83,7 +84,11 @@ export default Sentry.wrap(function RootLayout() {
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        await Promise.all(cacheImages(LOCAL_HOTEL_IMAGES));
+        const discoverImages = DiscoverIdeasList.map(item => item.image);
+        await Promise.all([
+          ...cacheImages(LOCAL_HOTEL_IMAGES),
+          ...cacheImages(discoverImages)
+        ]);
       } catch (e) {
       } finally {
         setAssetsLoaded(true);
@@ -131,6 +136,7 @@ function ThemeAwareApp({ isSignedIn, tripData, setTripData }: any) {
                           <Stack.Screen name="(tabs)" />
                         )}
                       </Stack>
+                      <OfflineBanner />
                     </ActiveTripProvider>
                   </TripProvider>
                 </ConcertTripProvider>

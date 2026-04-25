@@ -56,37 +56,6 @@ export const useLocationTracker = () => {
     }
   }, []);
 
-  useEffect(() => {
-    let subscription: Location.LocationSubscription | null = null;
-
-    const startWatching = async () => {
-      try {
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== "granted") return;
-
-        subscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.Balanced,
-            distanceInterval: 10,
-          },
-          (location) => {
-            setUserLocation(location.coords);
-            setShowLocationAlert(false);
-            setIsLocationBlocked(false);
-          },
-        );
-      } catch (err) {
-        Sentry.captureException(err, { extra: { context: "useLocationTracker:startWatching" } });
-      }
-    };
-
-    startWatching();
-
-    return () => {
-      if (subscription) subscription.remove();
-    };
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
       refreshLocation();

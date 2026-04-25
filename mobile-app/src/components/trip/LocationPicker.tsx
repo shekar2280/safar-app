@@ -51,8 +51,6 @@ export default function LocationPicker({
         handleLocationSelect(newData);
       }
     } catch (e: any) {
-      // Silent fail
-
     } finally {
       setLoading(false);
     }
