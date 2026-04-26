@@ -1,70 +1,62 @@
-🌍 Safar (सफ़र)
-Your AI-Powered Concierge for Authentic Travel
-Safar is a premium React Native application built with Expo and Firebase that transforms the way travelers experience new cities. Unlike static itineraries, Safar provides a live, context-aware journey that adapts to your current location and time of day.
+Safar 🌍 
+If You Never Go, You Will Never Know
 
-✨ Core Features
-📅 Intelligent Daily Planner
-Optimal Pathing: Automatically sorts your itinerary based on your live GPS location to minimize travel time.
+[![React Native](https://img.shields.io/badge/React_Native-0.74-61DAFB?logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-SDK_51-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Sentry](https://img.shields.io/badge/Sentry-Monitored-362D59?logo=sentry&logoColor=white)](https://sentry.io/)
 
-Time-Aware UI: Contextual labels and icons that adapt based on Morning, Afternoon, or Evening modes.
+![Safar Hero Banner](./assets/images/hero_banner.png)
 
-The "Discovery Pool": A clean, categorized feed of sights and local vibes tailored to your destination.
+Safar is a luxury-tier travel companion that bridges the gap between AI-driven planning and real-world execution. It is a digital concierge that synchronizes your journey, budget, and location into a single, fluid experience.
 
-🛵 Contextual Local Experiences
-Clubbed Activities: "Experience it here" logic that attaches unique local activities (like renting a scooty or market walking tours) to specific landmarks.
+Experience the App
+Intelligent Planning • Financial Control • Discovery
 
-One-Tap Navigation: Deep-linked Google Maps integration that calculates routes directly from your current coordinates.
+![Planning GIF](./assets/gifs/planning.gif)
+![Wallet GIF](./assets/gifs/wallet.gif)
+![Discovery GIF](./assets/gifs/discovery.gif)
 
-🍴 Proximity Dining
-"Find Eats Nearby": Ditch pre-planned restaurants. Every landmark features a dedicated button to find the best local food within walking distance of where you are right now.
+## ✨ Visual Experience
 
-✅ Journey Tracking
-Smart Check-ins: Mark sights and experiences as "Visited." Completed items automatically sink to the "Archived" section, keeping your active feed focused and clutter-free.
+| Journey Hub | Smart Discovery | Live Sync |
+|:---:|:---:|:---:|
+| <img src="app%20screenshots/homepage.jpg" width="250" /> | <img src="app%20screenshots/discoverTrips.jpg" width="250" /> | <img src="app%20screenshots/activeTrips.jpg" width="250" /> |
 
-Cloud Persistence: Your progress is synced to Firestore, ensuring your journey state is preserved across devices.
+| Financial Hub | Live Itinerary | Traveler Profile |
+|:---:|:---:|:---:|
+| <img src="app%20screenshots/walletDetail.jpg" width="250" /> | <img src="app%20screenshots/activeTripDetails-1.jpg" width="250" /> | <img src="app%20screenshots/profilePage.jpg" width="250" /> |
 
-🛠️ Tech Stack
-Frontend: React Native (Expo SDK)
+## 🏗️ Engineering Architecture
 
-Navigation: Expo Router (File-based routing)
+Safar utilizes an event-driven architecture to ensure the UI is always in sync with the cloud. 
 
-Backend/Database: Firebase Firestore & Authentication
+1. **The Handshake**: A secure OAuth exchange between Google and Firebase, verified via SHA-1/SHA-256 fingerprints.
+2. **The Sync**: Firebase ID tokens are exchanged for custom JWTs via a FastAPI backend, establishing a secure, session-aware link.
+3. **The Brain**: Preferences are processed through Google Gemini API, returning structured JSON itineraries.
 
-Location Services: Expo Location & Geolib
+## 🔒 Security & Reliability
 
-Icons: Ionicons, Feather, and FontAwesome5
+- **CI/CD Integrity**: 100% of sensitive configuration is managed via EAS Secrets.
+- **Error Resiliency**: Integrated Sentry hooks capture every native crash and API failure.
+- **Data Protection**: Secure storage of session tokens and encrypted communication with the FastAPI gateway.
 
-Design System: Premium minimalist aesthetic with soft shadows and Glassmorphism elements.
+## 🛠️ Tech Stack
 
-🚀 Getting Started
-Prerequisites
-Node.js (v18 or higher)
+- **Frontend**: React Native, Expo Router, TypeScript, Reanimated, AsyncStorage
+- **Backend**: FastAPI (Python), Firebase Auth, PostgreSQL, Redis, Celery
+- **AI Engine**: Google Gemini Pro LLM
+- **DevOps**: Sentry, EAS (Expo Application Services), Cloudflare Pages (Landing Page)
 
-Expo Go app on your mobile device
+## 🎨 Design Philosophy
 
-Installation
-Clone the repository:
+Safar follows a **Glassmorphic Design System**. Every interaction is designed to feel alive with curated HSL color palettes, subtle micro-animations, and skeleton loaders for high perceived performance.
 
-Bash
-git clone https://github.com/shekar2280/safar-app.git
-Install dependencies:
+## 👨‍💻 Developed By
 
-Bash
-cd mobile-app
-npm install
-Set up environment:
+**Soma Shekar**
+[LinkedIn](https://www.linkedin.com/in/t-somashekar/) • [GitHub](https://github.com/shekar2280) • [Email](mailto:somashekar2025@gmail.com)
 
-Place your google-services.json in the root folder (it is ignored by Git for security).
+---
+*Built for the modern explorer. Part of a full-stack ecosystem including mobile, server, and web.*
 
-Create a .env file for your AI API keys.
-
-Start the app:
-
-Bash
-npx expo start
-🔒 Security
-This repository uses strict .gitignore policies to ensure sensitive configuration files (like google-services.json) are never leaked in the version history.
-
-Planned Route: Minimalist timeline with pulsing active indicators. Discovery Pool: Clean cards with primary actions for navigation and dining.
-
-Safar — Don't just travel, experience.
