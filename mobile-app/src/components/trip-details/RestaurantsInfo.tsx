@@ -51,7 +51,9 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
 
   const getFoodImageSource = (idx: number) => {
     let sourceUrl = globalCloudinaryFood;
-    if (idx < foodCollection.length) sourceUrl = foodCollection[idx];
+    if (foodCollection && foodCollection.length > 0) {
+      sourceUrl = foodCollection[idx % foodCollection.length];
+    }
     return { uri: getTransformCloudinaryUrl(sourceUrl, 400, 400, "auto") };
   };
 

@@ -6,6 +6,6 @@ const defaultConfig = getSentryExpoConfig(__dirname);
 
 defaultConfig.resolver.assetExts.push('jfif');
 defaultConfig.resolver.sourceExts.push('cjs');
-defaultConfig.resolver.unstable_enablePackageExports = false;
+defaultConfig.resolver.unstable_enablePackageExports = true;
 
 module.exports = defaultConfig;
