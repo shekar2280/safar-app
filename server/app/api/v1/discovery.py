@@ -29,37 +29,46 @@ def get_gemini_client():
         raise ValueError("AI API key missing")
     return genai.Client(api_key=api_key)
 
-async def call_gemini_with_resilience(prompt: str, primary_model: str = "gemini-2.5-flash", fallback_model: str = "gemini-2.5-flash-lite"):
+async def call_gemini_with_resilience(prompt: str, models_to_try: list = None):
+    if models_to_try is None:
+        models_to_try = [
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemini-3-flash",
+            "gemini-2.5-flash"
+        ]
+        
     client = get_gemini_client()
-    attempts = 0
-    max_attempts = 4 
-    current_model = primary_model
     
-    while attempts < max_attempts:
-        try:
-            response = client.models.generate_content(
-                model=current_model,
-                contents=prompt,
-            )
-            return response.text
-        except Exception as e:
-            error_str = str(e).upper()
-            attempts += 1
+    for current_model in models_to_try:
+        attempts = 0
+        max_attempts = 2
+        
+        while attempts < max_attempts:
+            try:
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                error_str = str(e).upper()
+                attempts += 1
 
-            if attempts == 2 and current_model == primary_model:
-                api_logger.warning(f"Primary model {primary_model} busy. Switching to fallback {fallback_model}...")
-                current_model = fallback_model
-                continue
-
-            if "503" in error_str or "UNAVAILABLE" in error_str or "EXHAUSTED" in error_str:
-                if attempts < max_attempts:
-                    wait_time = attempts * 2 
-                    api_logger.warning(f"Gemini {current_model} busy. Retrying in {wait_time}s...", extra={"attempt": attempts})
-                    await asyncio.sleep(wait_time)
-                    continue
-            
-            api_logger.error(f"Error with model {current_model}: {str(e)}")
-            break
+                is_rate_limit = "503" in error_str or "UNAVAILABLE" in error_str or "EXHAUSTED" in error_str
+                
+                if is_rate_limit:
+                    if attempts < max_attempts:
+                        wait_time = attempts * 2 
+                        api_logger.warning(f"Gemini {current_model} busy/quota. Retrying in {wait_time}s...", extra={"attempt": attempts})
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        api_logger.warning(f"Model {current_model} busy/quota after {max_attempts} attempts. Switching to next model...")
+                        break
+                
+                api_logger.error(f"Error with model {current_model}: {str(e)}. Switching to next model...")
+                break
             
     raise HTTPException(
         status_code=503, 
