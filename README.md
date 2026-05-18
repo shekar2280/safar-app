@@ -6,8 +6,6 @@ If You Never Go, You Will Never Know
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Sentry](https://img.shields.io/badge/Sentry-Monitored-362D59?logo=sentry&logoColor=white)](https://sentry.io/)
 
-![Safar Hero Banner](./assets/images/hero_banner.png)
-
 Safar is a luxury-tier travel companion that bridges the gap between AI-driven planning and real-world execution. It is a digital concierge that synchronizes your journey, budget, and location into a single, fluid experience.
 
 Experience the App
