@@ -48,9 +48,6 @@ Safar utilizes an event-driven architecture to ensure the UI is always in sync w
 - **AI Engine**: Google Gemini Pro LLM
 - **DevOps**: Sentry, EAS (Expo Application Services), Cloudflare Pages (Landing Page)
 
-## 🎨 Design Philosophy
-
-Safar follows a **Glassmorphic Design System**. Every interaction is designed to feel alive with curated HSL color palettes, subtle micro-animations, and skeleton loaders for high perceived performance.
 
 ## 👨‍💻 Developed By
 
