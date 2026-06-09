@@ -37,7 +37,7 @@ export default function Mytrip() {
   const deleteTrip = useDeleteTrip();
   const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
   const loading = authLoading || tripsLoading;
-  
+
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
@@ -148,8 +148,8 @@ export default function Mytrip() {
         )}
       </View>
       <HomeLocationPrompt />
-      {(userTrips.length === 0 && (loading || isFetching)) ? (
-        <View style={{ flex: 1, paddingHorizontal: 15 }}>
+      {loading ? (
+        <View style={{ flex: 1 }}>
           <TripCardSkeleton />
           <TripCardSkeleton />
           <TripCardSkeleton />
@@ -160,7 +160,7 @@ export default function Mytrip() {
 
   const renderEmpty = () => {
     if (loading || (isFetching && userTrips.length === 0)) return null;
-    
+
     if (searchQuery.trim()) {
       return (
         <View style={styles.noResults}>
@@ -185,8 +185,8 @@ export default function Mytrip() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.BACKGROUND }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <UserTripList 
-        userTrips={filteredTrips} 
+      <UserTripList
+        userTrips={loading ? [] : filteredTrips}
         onDelete={handleDelete}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
