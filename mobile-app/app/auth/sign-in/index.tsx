@@ -11,8 +11,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  ImageBackground,
 } from "react-native";
+import { Image } from "expo-image";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
@@ -81,10 +81,7 @@ export default function SignIn() {
       await syncUserWithBackend(firebaseToken);
       router.replace("/mytrip" as any);
     } catch (error: any) {
-      const msg = error?.code === "auth/invalid-credential" 
-        ? "Hmm, those details don't look right. Please try again." 
-        : "We couldn't sign you in with Google. Please try again in a moment.";
-      showToast(msg);
+      showToast("We couldn't sign you in with Google. Please try again.");
     } finally {
       setGoogleLoading(false);
     }
@@ -115,10 +112,13 @@ export default function SignIn() {
   };
 
   return (
-    <ImageBackground
-      source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774696616/login2_rtocxo.jpg" }}
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
+      <Image
+        source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto,f_auto,w_800/v1774696616/login2_rtocxo.jpg" }}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: '#050505' }]}
+        contentFit="cover"
+        transition={800}
+      />
       <LinearGradient
         colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)"]}
         style={styles.gradient}
@@ -213,12 +213,12 @@ export default function SignIn() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, backgroundColor: '#050505' },
   gradient: { ...StyleSheet.absoluteFillObject },
   container: { flex: 1 },
   scrollContent: {

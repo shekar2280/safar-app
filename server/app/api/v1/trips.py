@@ -24,7 +24,7 @@ async def get_saved_trip(normalized_key: str, db: Session = Depends(get_db)):
     return trip
 
 
-@router.post("/", response_model=schemas.UserTripOut)
+@router.post("", response_model=schemas.UserTripOut)
 async def save_trip(
     body: schemas.SaveTripRequest,
     db: Session = Depends(get_db),
@@ -69,7 +69,7 @@ async def save_trip(
     return user_trip
 
 
-@router.get("/", response_model=List[schemas.UserTripOut])
+@router.get("", response_model=List[schemas.UserTripOut])
 async def get_user_trips(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),

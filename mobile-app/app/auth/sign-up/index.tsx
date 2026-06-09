@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   ToastAndroid,
   Dimensions,
-  ImageBackground,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,10 +78,13 @@ export default function SignUp() {
   };
 
   return (
-    <ImageBackground
-      source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774696616/login2_rtocxo.jpg" }}
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
+      <Image
+        source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto,f_auto,w_800/v1774696616/login2_rtocxo.jpg" }}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: '#050505' }]}
+        contentFit="cover"
+        transition={800}
+      />
       <LinearGradient
         colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)"]}
         style={styles.gradient}
@@ -167,12 +170,12 @@ export default function SignUp() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, backgroundColor: '#050505' },
   gradient: { ...StyleSheet.absoluteFillObject },
   container: { flex: 1 },
   scrollContent: {

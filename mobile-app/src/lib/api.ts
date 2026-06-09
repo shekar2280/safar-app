@@ -10,13 +10,20 @@ import * as Sentry from "@sentry/react-native";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(JWT_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = { "ngrok-skip-browser-warning": "69420" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 export async function syncUserWithBackend(firebaseIdToken: string): Promise<SafarUser> {
   const res = await fetch(`${BASE_URL}/api/v1/auth/sync-user`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "69420"
+    },
     body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
   });
 
@@ -24,7 +31,7 @@ export async function syncUserWithBackend(firebaseIdToken: string): Promise<Safa
     const errorDetails = await res.json().catch(() => ({}));
     const technicalError = errorDetails.detail ?? `Status: ${res.status}`;
     Sentry.captureException(new Error(`Sync Failed: ${technicalError}`));
-    throw new Error("We're having trouble syncing your profile. Please try again in a moment.");
+    throw new Error("We're having trouble syncing your profile. Please check your connection and try again.");
   }
 
   const data = await res.json();
@@ -67,7 +74,8 @@ export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
+    if (!err.detail) Sentry.captureException(new Error(`API Error (${endpoint}): ${res.status}`));
+    throw new Error(err.detail ?? "Something went wrong on our end. Please try again in a moment.");
   }
   return res.json();
 }
@@ -79,7 +87,8 @@ export async function apiGet<T>(endpoint: string, params?: Record<string, string
   const res = await fetch(url.toString(), { headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
+    if (!err.detail) Sentry.captureException(new Error(`API Error (${endpoint}): ${res.status}`));
+    throw new Error(err.detail ?? "Something went wrong on our end. Please try again in a moment.");
   }
   return res.json();
 }
@@ -93,7 +102,8 @@ export async function apiPatch<T>(endpoint: string, body: unknown): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
+    if (!err.detail) Sentry.captureException(new Error(`API Error (${endpoint}): ${res.status}`));
+    throw new Error(err.detail ?? "Something went wrong on our end. Please try again in a moment.");
   }
   return res.json();
 }

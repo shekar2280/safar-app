@@ -84,11 +84,7 @@ export default function Login() {
       await syncUserWithBackend(firebaseToken);
       router.replace("/(tabs)/mytrip" as any);
     } catch (error: any) {
-      const msg =
-        error?.code === "auth/invalid-credential"
-          ? "Hmm, those details don't look right. Please try again."
-          : "We couldn't sign you in with Google. Please try again in a moment.";
-      showToast(msg);
+      showToast("We couldn't sign you in with Google. Please try again.");
     } finally {
       setGoogleLoading(false);
     }
@@ -96,11 +92,12 @@ export default function Login() {
 
   return (
     <View style={styles.screen}>
-      <ImageBackground
-        source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1774696616/login2_rtocxo.jpg" }}
-        style={styles.bgImage}
-        resizeMode="cover"
-      >
+      <Image
+        source={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/q_auto,f_auto,w_800/v1774696616/login2_rtocxo.jpg" }}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: '#050505' }]}
+        contentFit="cover"
+        transition={800}
+      />
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.85)"]}
           style={[styles.gradientOverlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
@@ -144,14 +141,12 @@ export default function Login() {
             </View>
           </View>
         </LinearGradient>
-      </ImageBackground>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  bgImage: { flex: 1, width: "100%", height: "100%" },
+  screen: { flex: 1, backgroundColor: '#050505' },
   gradientOverlay: {
     flex: 1,
     paddingHorizontal: width * 0.08,
