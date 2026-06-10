@@ -49,6 +49,7 @@ export default function TripDetails() {
     alertConfig,
     setAlertConfig,
     loadingStaticData,
+    isInitializing,
     images,
     handleScroll,
     handleActivateTrip,
@@ -63,7 +64,7 @@ export default function TripDetails() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  if (loadingStaticData) {
+  if (isInitializing) {
     return <DetailsSkeleton />;
   }
 
@@ -175,10 +176,8 @@ export default function TripDetails() {
             />
           ) : null}
 
-          {tripDetails?.concertData ? (
+          {tripDetails?.concertData && (
             <ConcertInfo concertDetails={tripDetails as any} />
-          ) : (
-            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
           )}
 
           <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
@@ -210,6 +209,10 @@ export default function TripDetails() {
           />
 
           <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
+
+          {!tripDetails?.concertData && (
+            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
+          )}
 
           <RestaurantsInfo
             restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}

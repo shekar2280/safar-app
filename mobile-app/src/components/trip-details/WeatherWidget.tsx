@@ -30,11 +30,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const config = WEATHER_CONFIG[weatherCategory as keyof typeof WEATHER_CONFIG];
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.PRIMARY} />
-      </View>
-    );
+    return null;
   }
 
   if (!weather || !weather.current || !weather.current.weather) return null;

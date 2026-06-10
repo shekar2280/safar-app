@@ -151,6 +151,7 @@ export const useTripDetails = () => {
     alertConfig,
     setAlertConfig,
     loadingStaticData,
+    isInitializing: loadingStaticData && !tripDetails?.tripPlan,
     images,
     handleScroll,
     handleActivateTrip,
