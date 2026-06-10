@@ -4,6 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,6 +21,10 @@ export default function TabLayout() {
   const rotation = useSharedValue(0);
   const colors = useThemeColors();
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  // Dynamically position the tab bar above the home indicator.
+  // Minimum 15 so the pill never touches the very bottom edge.
+  const tabBarBottom = Math.max(insets.bottom, 15);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -47,7 +52,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.GOLD,
         tabBarStyle: {
           position: "absolute",
-          bottom: 30,
+          bottom: tabBarBottom,
           left: 16,
           right: 16,
           height: 65,
@@ -57,8 +62,8 @@ export default function TabLayout() {
           borderTopWidth: 0,
           borderWidth: 1,
           borderColor: colors.TAB_BAR_BORDER,
-          paddingBottom: 22,
-          paddingTop: 5,
+          paddingBottom: 8,
+          paddingTop: 8,
           paddingLeft: 5,
           paddingRight: 5,
           shadowColor: "#000",
@@ -66,6 +71,10 @@ export default function TabLayout() {
           shadowOpacity: 0.5,
           shadowRadius: 15,
           elevation: 10,
+        },
+        tabBarItemStyle: {
+          justifyContent: "center",
+          alignItems: "center",
         },
         tabBarLabelStyle: {
           fontFamily: "outfit",
@@ -143,7 +152,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 15,
   },
   createIconWrapper: {
     width: 50,

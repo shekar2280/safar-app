@@ -21,7 +21,7 @@ export default {
     },
     android: {
       package: "com.shekarsafar.safar",
-      googleServicesFile: "./google-services.json",
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/images/app_logo.png",
         backgroundColor: "#000000",
