@@ -67,6 +67,14 @@ export default function Login() {
     try {
       setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
+      
+      try {
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // Forcing sign out clears the cached session so the account picker always shows.
+        // We safely catch errors if there is no active session to clear.
+      }
+
       const signInResult = await GoogleSignin.signIn();
       if (!signInResult?.data?.user) {
         setGoogleLoading(false);
