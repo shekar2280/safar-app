@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Alert, TouchableOpacity } from "rea
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { SpendingItemProps } from "@/src/types";
+import { SpendingItemProps } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";

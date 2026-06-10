@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { apiPatch } from "@/src/lib/api";
 import { fallbackImages } from "@/src/constants";
-import { UserTrip } from "@/src/types";
+import { UserTrip } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 
@@ -142,7 +142,6 @@ export const useTripDetails = () => {
 
   return {
     tripDetails,
-    transportData,
     isAnimating,
     activeIndex,
     confirmActivateVisible,

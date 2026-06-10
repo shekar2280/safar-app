@@ -18,7 +18,6 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useUser } from "@/src/context/UserContext";
 import { updateUserProfile, USER_KEY } from "@/src/lib/api";
-import * as Location from "expo-location";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, setDoc } from "firebase/firestore";
@@ -34,10 +33,7 @@ export default function PersonalDetails() {
   const { isDark } = useTheme();
 
   const [name, setName] = useState(userProfile?.fullName || "");
-  const [homeLocation, setHomeLocation] = useState<any>(userProfile?.homeLocation || null);
   const [loading, setLoading] = useState(false);
-  const [detecting, setDetecting] = useState(false);
-  
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -53,7 +49,6 @@ export default function PersonalDetails() {
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.fullName || "");
-      setHomeLocation(userProfile.homeLocation || null);
     }
   }, [userProfile]);
 
@@ -61,43 +56,7 @@ export default function PersonalDetails() {
     setAlertConfig({ visible: true, title, message, type });
   };
 
-  const detectLocation = async () => {
-    setDetecting(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        showAlert("Permission Denied", "Location permission is required to detect your home city.", "error");
-        return;
-      }
 
-      const location = await Location.getCurrentPositionAsync({});
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (address) {
-        const city = address.city || address.name || "Unknown City";
-        const locData = {
-          name: city,
-          label: `${city}${address.region ? ", " + address.region : ""}`,
-          fullAddress: `${address.name ? address.name + ", " : ""}${address.city ? address.city + ", " : ""}${address.region ? address.region + ", " : ""}${address.country || ""}`,
-          country: address.country || "",
-          countryCode: address.isoCountryCode || "",
-          coordinates: {
-            lat: location.coords.latitude,
-            lon: location.coords.longitude
-          }
-        };
-        setHomeLocation(locData);
-        showAlert("Location Detected", `Identified your home location as ${city}.`);
-      }
-    } catch (e: any) {
-      showAlert("Detection Error", e.message || "Failed to detect location", "error");
-    } finally {
-      setDetecting(false);
-    }
-  };
 
   const handleSave = async () => {
     const user = auth.currentUser;
@@ -110,13 +69,11 @@ export default function PersonalDetails() {
 
       const updatedUser = await updateUserProfile({
         full_name: name,
-        home_location: homeLocation
       });
 
       const updatedProfile = { 
         ...userProfile!, 
         fullName: name, 
-        homeLocation: homeLocation,
         isNameCustom: true, 
         ...updatedUser 
       };
@@ -125,7 +82,6 @@ export default function PersonalDetails() {
 
       const rawUser = {
         full_name: name,
-        home_location: homeLocation,
         is_name_custom: true,
         email: userProfile?.email,
         firebase_uid: user.uid,
@@ -163,7 +119,7 @@ export default function PersonalDetails() {
         >
           <View style={styles.headerInfo}>
             <Text style={[styles.sectionTitle, { color: colors.TEXT }]}>Identity Info</Text>
-            <Text style={[styles.sectionDesc, { color: colors.MUTED_TEXT }]}>Update your public profile and home city for personalized trip suggestions.</Text>
+            <Text style={[styles.sectionDesc, { color: colors.MUTED_TEXT }]}>Update your public profile details.</Text>
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.SURFACE }]}>
@@ -191,27 +147,6 @@ export default function PersonalDetails() {
                         editable={false}
                     />
                 </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>HOME LOCATION</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)", borderColor: colors.BORDER }]}>
-                <Ionicons name="home-outline" size={20} color={colors.TEXT} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { flex: 1, color: colors.TEXT }]}
-                  value={homeLocation?.label || ""}
-                  editable={false}
-                  placeholder="Not set"
-                  placeholderTextColor={colors.GRAY}
-                />
-                <TouchableOpacity style={styles.detectBtn} onPress={detectLocation} disabled={detecting}>
-                  {detecting ? (
-                    <ActivityIndicator size="small" color={colors.PRIMARY} />
-                  ) : (
-                    <Ionicons name="locate" size={20} color={colors.PRIMARY} />
-                  )}
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
 

@@ -3,7 +3,7 @@ import { Linking } from "react-native";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { auth } from "@/src/lib/firebase";
 import { fallbackImages } from "@/src/constants";
-import { PlaceItem, SightItem, ExperienceItem, JourneyItem, VisibilityState } from "@/src/types";
+import { PlaceItem, SightItem, ExperienceItem, JourneyItem, VisibilityState, LocalExperience } from "@/src/constants";
 import { useLocationTracker } from "@/src/hooks/useLocationTracker";
 import { getDistance } from "@/src/utils/geoUtils";
 
@@ -73,7 +73,7 @@ export const useDayPlanner = () => {
         : null,
     }));
 
-    const allExps: ExperienceItem[] = (recommendations?.localExperiences || []).map((e, idx) => ({
+    const allExps: ExperienceItem[] = (recommendations?.localExperiences || []).map((e: LocalExperience, idx: number) => ({
       ...e,
       placeName: e.experienceName,
       isDone: false,

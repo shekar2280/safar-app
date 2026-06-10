@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Dimensions, StyleSheet } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { trendingTripCardImages } from "@/src/constants";
-import { DiscoverCardProps } from "@/src/types";
+import { DiscoverCardProps } from "@/src/constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";

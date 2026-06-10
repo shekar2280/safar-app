@@ -18,12 +18,11 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "@/src/components/trips/StartNewTripCard";
 import UserTripList from "@/src/components/trips/UserTripList";
-import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
+
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
-import { UserTrip } from "@/src/types";
-import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
+import { UserTrip } from "@/src/constants";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { useTheme } from "@/src/context/ThemeContext";
 
@@ -154,7 +153,7 @@ export default function Mytrip() {
           </>
         )}
       </View>
-      <HomeLocationPrompt />
+
       {loading ? (
         <View style={{ flex: 1 }}>
           <TripCardSkeleton />

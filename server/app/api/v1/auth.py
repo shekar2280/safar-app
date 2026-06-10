@@ -48,7 +48,6 @@ async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)
             email=email,
             full_name=full_name,
             photo_url=photo_url,
-            home_location=None,
             created_at=now,
             last_login=now,
         )
@@ -85,8 +84,6 @@ async def update_me(
         "has_full_name": body.full_name is not None,
         "new_name": body.full_name
     })
-    if body.home_location is not None:
-        current_user.home_location = body.home_location
     if body.full_name is not None:
         auth_logger.info(f"Manual name update: {body.full_name}")
         current_user.full_name = body.full_name

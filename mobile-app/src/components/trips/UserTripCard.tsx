@@ -18,10 +18,9 @@ import SafarAlert from "@/src/components/ui/SafarAlert";
 import { concertImages, fallbackImages } from "@/src/constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserTripCardProps } from "@/src/types";
+import { UserTripCardProps, AlertType } from "@/src/constants";
 import { apiDelete } from "@/src/lib/api";
 import * as Sentry from "@sentry/react-native";
-import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
@@ -31,7 +30,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
   const { isDark } = useTheme();
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
-  const [cardWidth, setCardWidth] = React.useState(width - 40);
+  const [cardWidth, setCardWidth] = React.useState(width * 0.94);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const imageLengthRef = useRef(0);
 

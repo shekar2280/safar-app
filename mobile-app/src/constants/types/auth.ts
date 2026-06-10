@@ -1,11 +1,8 @@
-import { LocationData } from "./location";
-
 export interface UserProfile {
   fullName: string;
   email: string;
   uid: string;
   photoURL?: string;
-  homeLocation?: LocationData | null;
 }
 
 export interface SafarUser {

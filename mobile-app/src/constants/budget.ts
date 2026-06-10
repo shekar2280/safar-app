@@ -1,5 +1,4 @@
-import { BudgetTier } from "@/src/types";
-import { BudgetOption } from "@/src/types";
+import { BudgetTier, BudgetOption } from "./types";
 
 export const SelectBudgetOptions: BudgetOption[] = [
   {

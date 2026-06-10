@@ -15,14 +15,13 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { UserContext } from "@/src/context/UserContext";
 import { MAX_TRIP_DAYS } from "@/src/constants/limits";
-import LocationPicker from "@/src/components/trip/LocationPicker";
 import DestinationPicker from "@/src/components/trip/DestinationPicker";
 import { SelectBudgetOptions } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types";
+import { DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/constants";
 import Button from "@/src/components/common/Button";
 
 interface CounterTileProps {
@@ -89,7 +88,6 @@ export default function CreateTripIndex() {
   const userCtx = useContext(UserContext);
   const userProfile = userCtx?.userProfile;
 
-  const [departure, setDeparture] = useState<LocationData | null>(userProfile?.homeLocation || null);
   const [destination, setDestination] = useState<DestinationData | null>(null);
   const [travelerMode, setTravelerMode] = useState<TravelerMode>(TravelerMode.Solo);
   const [travelerCount, setTravelerCount] = useState(1);
@@ -128,21 +126,6 @@ export default function CreateTripIndex() {
         priceRange: params.priceRange ? JSON.parse(params.priceRange as string) : undefined,
       });
     }
-
-    if (params.originName) {
-      const cityOnly = (params.originName as string).split(",")[0].trim();
-      setDeparture({
-        name: cityOnly,
-        label: cityOnly,
-        fullAddress: params.originName as string,
-        country: params.originCountry as string || "",
-        countryCode: params.originCountryCode as string || "",
-        coordinates: {
-          lat: Number(params.originLat) || 0,
-          lon: Number(params.originLon) || 0
-        }
-      });
-    }
   }, [params]);
 
   useEffect(() => {
@@ -165,25 +148,27 @@ export default function CreateTripIndex() {
   }, [travelerCount]);
 
   const handleGenerateTrip = () => {
-    const missing: string[] = [];
-    if (!departure) missing.push("Departure");
-    if (!destination) missing.push("Destination");
-    if (!budget) missing.push("Budget");
-
-    if (missing.length > 0) {
-      setAlertMessage(`Please complete the following: ${missing.join(", ")}`);
+    if (!destination) {
+      setAlertMessage("Please select a destination to continue.");
+      setAlertVisible(true);
+      return;
+    }
+    if (!budget) {
+      setAlertMessage("Please select a budget tier to continue.");
       setAlertVisible(true);
       return;
     }
 
+    const homeDeparture = { name: "India", countryCode: "IN" };
+
     setTripData({
-      departureInfo: departure,
+      departureInfo: homeDeparture as any,
       destinationInfo: destination,
       travelerMode,
       totalDays,
       traveler: getTravelerObject(travelerMode, travelerCount),
-      budget: budget!.title,
-      isInternational: departure!.countryCode !== destination!.countryCode,
+      budget: budget.title,
+      isInternational: (homeDeparture as any).countryCode !== destination.countryCode,
       tripCategory: (params.tripCategory as any) || "GENERAL",
     });
     router.push("/create-trip/generate-trip" as any);
@@ -265,34 +250,25 @@ export default function CreateTripIndex() {
           style={[styles.bridgeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
         >
           <View style={styles.bridgeContent}>
-            <View style={[styles.bridgeHalf, { zIndex: 2 }]}>
-              <LocationPicker
-                placeholder="Origin"
-                onLocationChange={setDeparture}
-                value={departure}
-              />
-            </View>
-            <View style={[styles.bridgeHalf, { zIndex: 1 }]}>
-              {params.destName ? (
-                <View style={[styles.staticDestinationWrapper, { backgroundColor: colors.SURFACE_LIGHT }]}>
-                  <View style={styles.labelSection}>
-                    <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>TO</Text>
-                  </View>
-                  <View style={styles.staticContent}>
-                    <Text style={[styles.staticValue, { color: colors.TEXT }]} numberOfLines={1}>
-                      {destination?.name || (params.destName as string).split(",")[0].trim()}
-                    </Text>
-                    <Ionicons name="sparkles" size={14} color={colors.GOLD} />
-                  </View>
+            {params.destName ? (
+              <View style={[styles.staticDestinationWrapper, { backgroundColor: colors.SURFACE_LIGHT }]}>
+                <View style={styles.labelSection}>
+                  <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>TO</Text>
                 </View>
-              ) : (
-                <DestinationPicker
-                  placeholder="Destination"
-                  onLocationSelect={setDestination}
-                  value={destination}
-                />
-              )}
-            </View>
+                <View style={styles.staticContent}>
+                  <Text style={[styles.staticValue, { color: colors.TEXT }]} numberOfLines={1}>
+                    {destination?.name || (params.destName as string).split(",")[0].trim()}
+                  </Text>
+                  <Ionicons name="sparkles" size={14} color={colors.GOLD} />
+                </View>
+              </View>
+            ) : (
+              <DestinationPicker
+                placeholder="Where do you want to go?"
+                onLocationSelect={setDestination}
+                value={destination}
+              />
+            )}
           </View>
         </MotiView>
 

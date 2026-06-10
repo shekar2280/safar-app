@@ -22,7 +22,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     last_login = Column(DateTime)
-    home_location = Column(JSON, nullable=True)
+
     is_name_custom = Column(Boolean, default=False)
 
     user_trips = relationship("UserTrip", back_populates="user", cascade="all, delete-orphan")

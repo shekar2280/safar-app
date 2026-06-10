@@ -17,7 +17,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
 import RestaurantsInfo from "@/src/components/trip-details/RestaurantsInfo";
-import TransportInfo from "@/src/components/trip-details/TransportInfo";
+import SafarInsights from "@/src/components/trip-details/SafarInsights";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
@@ -40,7 +40,6 @@ export default function TripDetails() {
 
   const {
     tripDetails,
-    transportData,
     isAnimating,
     activeIndex,
     confirmActivateVisible,
@@ -180,8 +179,16 @@ export default function TripDetails() {
             <ConcertInfo concertDetails={tripDetails as any} />
           )}
 
-          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
-          <TransportInfo transportData={transportData as any} />
+
+          <SafarInsights
+            bestTransport={tripDetails?.tripPlan?.bestTransport}
+            weatherInsight={(tripDetails?.concertData || tripDetails?.isFinished) ? undefined : tripDetails?.tripPlan?.weatherInsight}
+          />
+
+          {(!tripDetails?.concertData && !tripDetails?.isFinished) && (
+            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
+          )}
+
           <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
           <HotelInfo
@@ -209,10 +216,6 @@ export default function TripDetails() {
           />
 
           <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
-
-          {!tripDetails?.concertData && (
-            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
-          )}
 
           <RestaurantsInfo
             restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}

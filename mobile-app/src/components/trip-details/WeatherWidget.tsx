@@ -9,7 +9,7 @@ import { useWeather } from "@/src/hooks/queries/useWeather";
 
 const { width } = Dimensions.get("window");
 
-import { WeatherWidgetProps } from "@/src/types";
+import { WeatherWidgetProps } from "@/src/constants";
 
 export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const { data: weather, isLoading: loading } = useWeather(cityName);

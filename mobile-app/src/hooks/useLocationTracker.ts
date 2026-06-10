@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
 
-import { GeoCoords } from "../types";
+import { GeoCoords } from "../constants";
 import * as Sentry from "@sentry/react-native";
 
 export const useLocationTracker = () => {

@@ -1,15 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Dimensions,
   StatusBar,
 } from "react-native";
@@ -22,10 +19,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   getAuth,
   signOut,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
   deleteUser,
 } from "firebase/auth";
+
 import {
   doc,
   deleteDoc,
@@ -54,7 +50,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<"none" | "terminate">("none");
   const [logoutVisible, setLogoutVisible] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
 
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -86,15 +81,12 @@ export default function Profile() {
 
   const handleDeleteAccount = async () => {
     const user = auth.currentUser;
-    if (!currentPassword || !user || !user.email) {
-      return showAlert("Authentication Required", "Please enter your password to confirm termination.", "error");
+    if (!user) {
+      return showAlert("Authentication Required", "Please sign in to confirm account termination.", "error");
     }
 
     setLoading(true);
     try {
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(user, credential);
-
       const tripsCollectionRef = collection(db, "UserTrips", user.uid, "trips");
       const snapshot = await getDocs(tripsCollectionRef);
 
@@ -116,8 +108,8 @@ export default function Profile() {
       setActiveModal("none");
       router.replace("/auth/Login" as any);
 
-    } catch (e) {
-      showAlert("Verification Failed", "Incorrect password. Account termination aborted.", "error");
+    } catch (e: any) {
+      showAlert("Termination Failed", e.message || "Something went wrong during account termination. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -170,12 +162,7 @@ export default function Profile() {
               subtitle="Update your name and home city"
               onPress={() => router.push("/profile/personal-details" as any)}
             />
-            <MenuItem
-              icon="lock-closed-outline"
-              title="Change Password"
-              subtitle="Keep your account secure"
-              onPress={() => router.push("/profile/security" as any)}
-            />
+
             <MenuItem
               icon="server-outline"
               title="Data Credits"
@@ -210,50 +197,36 @@ export default function Profile() {
       <Modal visible={activeModal === "terminate"} transparent animationType="fade">
         <View style={styles.modalOverlayCenter}>
           <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View style={[styles.modalCard, { width: width * 0.9, backgroundColor: colors.SURFACE }]}>
-              <View style={styles.dangerIconHeader}>
-                <Ionicons name="warning" size={40} color={colors.RED} />
-              </View>
-
-              <Text style={[styles.dangerTitleCenter, { color: colors.RED }]}>Terminate Account</Text>
-              <Text style={[styles.modalDescCenter, { color: colors.MUTED_TEXT }]}>
-                This action is <Text style={{ fontFamily: "outfitBold", color: colors.RED }}>permanent</Text>.
-                All your curated journeys, saved trips, and AI insights will be lost instantly.
-              </Text>
-
-              <View style={[styles.modalInputWrapper, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.05)" }]}>
-                <Ionicons name="key" size={20} color={colors.RED} style={styles.modalInputIcon} />
-                <TextInput
-                  style={[styles.modalInput, { color: colors.RED }]}
-                  placeholder="Confirm with Password"
-                  secureTextEntry
-                  onChangeText={setCurrentPassword}
-                  placeholderTextColor={isDark ? "#F87171" : "#FCA5A5"}
-                />
-              </View>
-
-              <View style={styles.modalBtnRow}>
-                <TouchableOpacity
-                  style={[styles.modalCancelBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
-                  onPress={() => {
-                    setCurrentPassword("");
-                    setActiveModal("none");
-                  }}
-                  disabled={loading}
-                >
-                  <Text style={[styles.modalCancelBtnText, { color: colors.MUTED_TEXT }]}>KEEP MY DATA</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalDangerBtn, { backgroundColor: colors.RED }]}
-                  onPress={handleDeleteAccount}
-                  disabled={loading}
-                >
-                  {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalDangerBtnText}>DELETE</Text>}
-                </TouchableOpacity>
-              </View>
+          <View style={[styles.modalCard, { width: width * 0.9, backgroundColor: colors.SURFACE }]}>
+            <View style={styles.dangerIconHeader}>
+              <Ionicons name="warning" size={40} color={colors.RED} />
             </View>
-          </KeyboardAvoidingView>
+
+            <Text style={[styles.dangerTitleCenter, { color: colors.RED }]}>Terminate Account</Text>
+            <Text style={[styles.modalDescCenter, { color: colors.MUTED_TEXT }]}>
+              This action is <Text style={{ fontFamily: "outfitBold", color: colors.RED }}>permanent</Text>.
+              All your curated journeys, saved trips, and AI insights will be lost instantly.
+            </Text>
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
+                onPress={() => {
+                  setActiveModal("none");
+                }}
+                disabled={loading}
+              >
+                <Text style={[styles.modalCancelBtnText, { color: colors.MUTED_TEXT }]}>KEEP MY DATA</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalDangerBtn, { backgroundColor: colors.RED }]}
+                onPress={handleDeleteAccount}
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalDangerBtnText}>DELETE</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
 
@@ -414,23 +387,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 25,
   },
-  modalInputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#FCA5A5",
-    borderRadius: 18,
-    paddingHorizontal: 15,
-    marginBottom: 25,
-    width: "100%",
-  },
-  modalInputIcon: { marginRight: 10 },
-  modalInput: {
-    flex: 1,
-    paddingVertical: 15,
-    fontFamily: "outfitBold",
-    fontSize: 16,
-  },
+
   modalBtnRow: {
     flexDirection: "row",
     gap: 15,

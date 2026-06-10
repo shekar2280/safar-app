@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import * as Location from "expo-location";
-import { LocationContextValue, LocationData, AlertType } from "@/src/types";
+import { LocationContextValue, LocationData, AlertType } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
 

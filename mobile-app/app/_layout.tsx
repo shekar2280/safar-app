@@ -28,7 +28,7 @@ import {
   Inter_500Medium,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { TripData } from "@/src/types";
+import { TripData } from "@/src/constants";
 import * as Sentry from '@sentry/react-native';
 import { ErrorScreen } from "@/src/components/ErrorScreen";
 import { OfflineBanner } from "@/src/components/OfflineBanner";

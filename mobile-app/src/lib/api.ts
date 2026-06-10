@@ -5,7 +5,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_ROOT ?? "http://localhost:8000"
 export const JWT_KEY = "safar_jwt_token";
 export const USER_KEY = "safar_user";
 
-import { SafarUser } from "../types";
+import { SafarUser } from "../constants";
 import * as Sentry from "@sentry/react-native";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -121,6 +121,8 @@ export async function apiDelete(endpoint: string): Promise<void> {
   }
 }
 
-export async function updateUserProfile(data: { home_location?: any; full_name?: string }): Promise<any> {
-  return await apiPatch("/api/v1/auth/me", data);
+export async function updateUserProfile(data: { full_name?: string }): Promise<any> {
+  const payload: any = {};
+  if (data.full_name !== undefined) payload.full_name = data.full_name;
+  return await apiPatch("/api/v1/auth/me", payload);
 }

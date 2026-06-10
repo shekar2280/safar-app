@@ -2,7 +2,7 @@ import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors } from "@/src/constants/colors";
-import { LocationStatusProps } from "@/src/types";
+import { LocationStatusProps } from "@/src/constants";
 import { MotiView, AnimatePresence } from "moti";
 
 export const LocationStatus: React.FC<LocationStatusProps> = ({

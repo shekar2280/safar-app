@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { apiPost, JWT_KEY } from "@/src/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
-import { TrendingPlace } from "@/src/types";
+import { TrendingPlace } from "@/src/constants";
 
 export const trendingQueryKeys = {
   all: ["trendingPlaces", "v3"] as const,

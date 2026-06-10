@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { CITY_ALIASES } from "@/src/constants/discover";
 import { useTheme } from "@/src/context/ThemeContext";
-import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/types";
+import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";

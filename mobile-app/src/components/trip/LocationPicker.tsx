@@ -15,7 +15,7 @@ import { useLocation } from "@/src/context/LocationContext";
 
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
-import { LocationData, LocationPickerProps } from "@/src/types";
+import { LocationData, LocationPickerProps } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 

@@ -18,7 +18,7 @@ import { ImageBackground, ScrollView as RNScrollView } from "react-native";
 import dayjs from "dayjs";
 import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants";
 
-import { TransportData } from "@/src/types";
+import { TransportData } from "@/src/constants";
 
 const TransportInfo = ({ transportData }: { transportData?: Partial<TransportData> }) => {
   const colors = useThemeColors();

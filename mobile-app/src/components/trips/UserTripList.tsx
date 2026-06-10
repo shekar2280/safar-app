@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import { FlatList, StyleSheet, Dimensions, ViewToken } from "react-native";
 import UserTripCard from "./UserTripCard";
-import { UserTripListProps } from "@/src/types";
+import { UserTripListProps } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 

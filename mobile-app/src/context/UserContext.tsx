@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/src/lib/firebase";
-import { UserContextValue, UserProfile, AlertType } from "@/src/types";
+import { UserContextValue, UserProfile, AlertType } from "@/src/constants";
 import { apiPatch, JWT_KEY, USER_KEY, updateUserProfile, getMe, syncUserWithBackend } from "@/src/lib/api";
 import { useLocation } from "@/src/context/LocationContext";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -15,8 +15,7 @@ function mapBackendUser(raw: any): UserProfile {
     fullName: raw.full_name ?? "",
     email: raw.email ?? "",
     uid: raw.firebase_uid ?? "",
-    photoURL: raw.photo_url ?? undefined,
-    homeLocation: raw.home_location ?? null,
+    photoURL: raw.photo_url || raw.photoURL || null,
   };
 }
 
@@ -93,55 +92,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setAlertVisible(true);
   };
 
-  const detectHomeLocation = async () => {
-    showAlert(
-      "Welcome to Safar",
-      "We use your location to pick your home airport for trip planning. Would you like us to detect your current city?",
-      "confirm"
-    );
-  };
 
-  const handleDetectCity = async () => {
-    setAlertVisible(false);
-    try {
-      const newData = await refreshGPS();
-      if (newData) {
-        const latitude = newData.coordinates.latitude || newData.coordinates.lat;
-        const longitude = newData.coordinates.longitude || newData.coordinates.lon;
-        
-        if (latitude === undefined || longitude === undefined) return;
-
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-          { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
-        );
-        const data = await res.json();
-
-        const address = data.address || {};
-        let rawCity = address.city || address.town || address.village || address.state_district || "";
-        let cleanCity = rawCity.replace(/City of /gi, "").replace(/ City/gi, "").trim();
-
-        const homeData = {
-          name: cleanCity,
-          label: `${cleanCity}, ${address.state || ""}`,
-          fullAddress: data.display_name || "",
-          country: address.country || "",
-          countryCode: address.country_code || "",
-          coordinates: { latitude, longitude },
-        };
-
-        await updateUserProfile({ home_location: homeData });
-        setUserProfile(prev => prev ? { ...prev, homeLocation: homeData } : null);
-      }
-    } catch (err) {
-      Sentry.captureException(err, { extra: { context: "UserContext:detectHomeLocation" } });
-      showAlert(
-        "Detection Failed",
-        "We could not identify your home city automatically. Please set it manually in your profile.",
-        "error"
-      );
-    }
-  };
 
   return (
     <UserContext.Provider
@@ -151,7 +102,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         loading,
         transactions,
         setTransactions,
-        detectHomeLocation,
+
       }}
     >
       {children}
@@ -160,9 +111,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         title={alertTitle}
         message={alertMessage}
         type={alertType}
-        confirmText={alertType === "confirm" ? "Detect City" : "Continue"}
+        confirmText="Continue"
         cancelText="Later"
-        onConfirm={alertType === "confirm" ? handleDetectCity : () => setAlertVisible(false)}
+        onConfirm={() => setAlertVisible(false)}
         onCancel={() => setAlertVisible(false)}
       />
     </UserContext.Provider>

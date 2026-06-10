@@ -12,7 +12,6 @@ class UserProfile(BaseModel):
     created_at: datetime.datetime
     updated_at: Optional[datetime.datetime] = None
     last_login: Optional[datetime.datetime] = None
-    home_location: Optional[Any] = None
     is_name_custom: bool = False
 
     class Config:
@@ -39,14 +38,13 @@ class TokenData(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    home_location: Optional[Any] = None
-    full_name: Optional[str] = None
+    is_name_custom: Optional[bool] = None
 
 class SavedTripOut(BaseModel):
     id: str
     normalized_key: str
     trip_plan: Any
-    image_urls: List[str] = []       # list (was single image_url)
+    image_urls: List[str] = []  
     destination_iata: Optional[str] = None
     created_at: datetime.datetime
 

@@ -14,7 +14,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
-import { HotelOption, HotelInfoProps } from "@/src/types";
+import { HotelOption, HotelInfoProps } from "@/src/constants";
 import Button from "@/src/components/common/Button";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 

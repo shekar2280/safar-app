@@ -35,20 +35,21 @@ export default function TrendingTrips() {
   const params = useLocalSearchParams();
 
   const paramCountry = params.country as string | undefined;
-  const defaultCountry = paramCountry || userProfile?.homeLocation?.country || "India";
-  const defaultCity = paramCountry ? paramCountry : (userProfile?.homeLocation?.name || "Your Location");
+  const defaultCountry = paramCountry || "India";
+  const defaultCity = paramCountry ? paramCountry : "Your Location";
 
   const [activeCountry, setActiveCountry] = useState(defaultCountry);
+  const [activeCity, setActiveCity] = useState(defaultCity);
   const [searchInput, setSearchInput] = useState("");
 
-  const isHomeCountry = activeCountry === (userProfile?.homeLocation?.country || "India");
+  const isHomeCountry = activeCountry === "India";
   const displayCity = isHomeCountry ? defaultCity : activeCountry;
 
   const { data: places = [], isLoading: loading } = useTrendingPlaces(activeCountry);
   const { isConnected } = useNetInfo();
 
   const POPULAR_COUNTRIES = [
-    { name: userProfile?.homeLocation?.country || "India", label: "📍 Near Me" },
+    { name: "India", label: "📍 Near Me" },
     ...POPULAR_COUNTRIES_LIST
   ];
 

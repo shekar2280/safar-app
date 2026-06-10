@@ -20,7 +20,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 import { singerOptions } from "@/src/constants";
-import { ConcertEvent } from "@/src/types";
+import { ConcertEvent } from "@/src/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { apiGet } from "@/src/lib/api";
 

@@ -18,7 +18,7 @@ import {
   INTL_FOOD_COLLECTION,
 } from "@/src/constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types";
+import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/constants";
 import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");

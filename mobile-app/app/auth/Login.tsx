@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  ImageBackground,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -17,7 +16,6 @@ import { LOGO } from "@/src/constants/images";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
@@ -53,11 +51,6 @@ export default function Login() {
     GoogleSignin.configure({ webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID });
   }, []);
 
-  const handleStart = async () => {
-    await AsyncStorage.setItem("seenLogin", "true");
-    router.push("/auth/sign-in" as any);
-  };
-
   const onContinueWithGoogle = async () => {
     const GoogleSignin = getGoogleSignin();
     if (!GoogleSignin) {
@@ -71,8 +64,6 @@ export default function Login() {
       try {
         await GoogleSignin.signOut();
       } catch (e) {
-        // Forcing sign out clears the cached session so the account picker always shows.
-        // We safely catch errors if there is no active session to clear.
       }
 
       const signInResult = await GoogleSignin.signIn();
@@ -88,7 +79,6 @@ export default function Login() {
       const credential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, credential);
       const firebaseToken = await userCredential.user.getIdToken();
-      await AsyncStorage.setItem("seenLogin", "true");
       await syncUserWithBackend(firebaseToken);
       router.replace("/(tabs)/mytrip" as any);
     } catch (error: any) {
@@ -140,10 +130,6 @@ export default function Login() {
                       <Text style={styles.primaryButtonText}>Continue with Google</Text>
                     </>
                   )}
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.secondaryButton} onPress={handleStart}>
-                  <Text style={styles.secondaryButtonText}>Get Started</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -219,14 +205,4 @@ const styles = StyleSheet.create({
   },
   buttonIcon: { marginRight: 10 },
   primaryButtonText: { fontFamily: "outfitMedium", fontSize: width * 0.045, color: Colors.WHITE },
-  secondaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: height * 0.065,
-    borderRadius: 16,
-    backgroundColor: Colors.WHITE,
-    gap: 8,
-  },
-  secondaryButtonText: { fontFamily: "outfitMedium", fontSize: width * 0.045, color: Colors.PRIMARY },
 });

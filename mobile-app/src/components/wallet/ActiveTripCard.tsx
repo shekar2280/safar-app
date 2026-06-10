@@ -19,7 +19,7 @@ import { apiPatch } from "@/src/lib/api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { fallbackImages } from "@/src/constants";
-import { ActiveTripCardProps } from "@/src/types";
+import { ActiveTripCardProps } from "@/src/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import * as Sentry from "@sentry/react-native";

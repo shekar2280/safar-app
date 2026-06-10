@@ -1,13 +1,11 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActiveTripContextValue, ActiveTripData } from "@/src/types";
+import { ActiveTripContextValue, ActiveTripData, AlertType, Spending } from "@/src/constants";
 import { apiPatch } from "@/src/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
-import { AlertType } from "@/src/types";
-import { Spending } from "@/src/types";
 import { formatSpendingDate } from "../utils/dateFormatter";
 import NetInfo from "@react-native-community/netinfo";
 
