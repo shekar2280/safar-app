@@ -188,8 +188,9 @@ export default function Mytrip() {
       <UserTripList
         userTrips={loading ? [] : filteredTrips}
         onDelete={handleDelete}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+        isPaused={isSearching}
+        ListHeaderComponent={renderHeader()}
+        ListEmptyComponent={renderEmpty()}
         contentContainerStyle={{ backgroundColor: colors.BACKGROUND }}
         refreshing={isFetching && !loading}
         onRefresh={refetch}

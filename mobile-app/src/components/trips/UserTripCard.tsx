@@ -25,7 +25,7 @@ import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
-const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
+const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps) => {
   const router = useRouter();
   const colors = useThemeColors();
   const { isDark } = useTheme();
@@ -110,7 +110,7 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
   }, [trip, randomFallback, concertFallback, isConcert]);
 
   React.useEffect(() => {
-    if (imageSources.length <= 1) return;
+    if (imageSources.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
       const nextIndex = (activeIndex + 1) % imageSources.length;
@@ -119,7 +119,7 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [activeIndex, imageSources.length]);
+  }, [activeIndex, imageSources.length, isPaused]);
 
   const onScroll = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;

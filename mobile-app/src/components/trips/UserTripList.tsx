@@ -8,6 +8,7 @@ const { width } = Dimensions.get("window");
 export default function UserTripList({ 
   userTrips, 
   onDelete, 
+  isPaused,
   ListHeaderComponent, 
   ListEmptyComponent,
   contentContainerStyle,
@@ -25,7 +26,7 @@ export default function UserTripList({
       data={userTrips}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <UserTripCard trip={item} onDelete={onDelete} />
+        <UserTripCard trip={item} onDelete={onDelete} isPaused={isPaused} />
       )}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
