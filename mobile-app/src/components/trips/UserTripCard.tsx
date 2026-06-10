@@ -25,7 +25,7 @@ import { AlertType } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
-const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps) => {
+const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }: UserTripCardProps) => {
   const router = useRouter();
   const colors = useThemeColors();
   const { isDark } = useTheme();
@@ -38,6 +38,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
   const [errorTitle, setErrorTitle] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState("");
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width } = e.nativeEvent.layout;
@@ -110,21 +111,23 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
   }, [trip, randomFallback, concertFallback, isConcert]);
 
   React.useEffect(() => {
-    if (imageSources.length <= 1 || isPaused) return;
+    if (imageSources.length <= 1 || isPaused || !isVisible || isDragging) return;
 
     const interval = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % imageSources.length;
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-      setActiveIndex(nextIndex);
+      setActiveIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % imageSources.length;
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        return nextIndex;
+      });
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [activeIndex, imageSources.length, isPaused]);
+  }, [imageSources.length, isPaused, isVisible, isDragging]);
 
-  const onScroll = (event: any) => {
+  const onMomentumScrollEnd = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
-    if (index !== activeIndex && index >= 0 && index < imageSources.length) {
+    if (index >= 0 && index < imageSources.length) {
       setActiveIndex(index);
     }
   };
@@ -152,19 +155,20 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
     }
   };
 
+  const handlePressCard = () => {
+    router.push({
+      pathname: "/trip-details",
+      params: {
+        trip: JSON.stringify(trip),
+        imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
+      },
+    } as any);
+  };
+
   return (
-    <TouchableOpacity
+    <View
       style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}
       onLayout={onLayout}
-      onPress={() =>
-        router.push({
-          pathname: "/trip-details",
-          params: {
-            trip: JSON.stringify(trip),
-            imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
-          },
-        } as any)
-      }
     >
       <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
         <FlatList
@@ -176,8 +180,12 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
           snapToInterval={cardWidth}
           snapToAlignment="center"
           showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
+          onScrollBeginDrag={() => setIsDragging(true)}
+          onScrollEndDrag={() => setIsDragging(false)}
+          onMomentumScrollEnd={(e) => {
+            onMomentumScrollEnd(e);
+            setIsDragging(false);
+          }}
           getItemLayout={getItemLayout}
           keyExtractor={(_, index) => index.toString()}
           initialNumToRender={5}
@@ -185,7 +193,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
           maxToRenderPerBatch={5}
           removeClippedSubviews={false}
           renderItem={({ item, index }) => (
-            <View style={{ width: cardWidth, height: 230 }}>
+            <TouchableOpacity activeOpacity={0.95} onPress={handlePressCard} style={{ width: cardWidth, height: 230 }}>
               <Image
                 source={item}
                 style={StyleSheet.absoluteFill}
@@ -196,7 +204,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
                 transition={200}
                 recyclingKey={trip.id + index}
               />
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>
@@ -204,10 +212,11 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.85)"]}
         style={styles.bottomGradient}
+        pointerEvents="none"
       />
 
       {imageSources.length > 1 && (
-        <View style={styles.paginationContainer}>
+        <View style={styles.paginationContainer} pointerEvents="none">
           {imageSources.map((_, i) => (
             <View
               key={i}
@@ -221,15 +230,15 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
       )}
 
       {isConcert && (
-        <View style={styles.badgeContainer}>
+        <View style={styles.badgeContainer} pointerEvents="none">
           <View style={[styles.eventBadge, { backgroundColor: colors.SECONDARY }]}>
             <Text style={[styles.badgeText, { color: Colors.BLACK }]}>CONCERT</Text>
           </View>
         </View>
       )}
 
-      <View style={styles.content}>
-        <View style={{ flex: 1 }}>
+      <View style={styles.content} pointerEvents="box-none">
+        <TouchableOpacity style={{ flex: 1 }} onPress={handlePressCard} activeOpacity={0.9}>
           <Text
             style={styles.title}
             numberOfLines={1}
@@ -248,7 +257,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
               `${trip.totalDays} ${trip.totalDays === 1 ? "Day" : "Days"} • ${trip?.traveler?.title || "1"}`
             )}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setDeleteVisible(true)} style={styles.deleteBtn}>
           <MaterialIcons name="delete-outline" size={22} color="rgba(247, 13, 13, 0.73)" />
@@ -276,7 +285,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused }: UserTripCardProps
         onConfirm={() => setErrorVisible(false)}
         onCancel={() => setErrorVisible(false)}
       />
-    </TouchableOpacity>
+    </View>
   );
 });
 

@@ -21,6 +21,7 @@ export interface UserTripCardProps {
   trip: UserTrip;
   onDelete?: (id: string) => void;
   isPaused?: boolean;
+  isVisible?: boolean;
 }
 
 export interface UserTripListProps {

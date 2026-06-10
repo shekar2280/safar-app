@@ -1,5 +1,5 @@
-import React from "react";
-import { FlatList, StyleSheet, Dimensions } from "react-native";
+import React, { useState, useCallback, useRef } from "react";
+import { FlatList, StyleSheet, Dimensions, ViewToken } from "react-native";
 import UserTripCard from "./UserTripCard";
 import { UserTripListProps } from "@/src/types";
 
@@ -21,12 +21,28 @@ export default function UserTripList({
   refreshing?: boolean;
   onRefresh?: () => void;
 }) {
+  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const visibleIds = new Set(viewableItems.map(v => String(v.item.id)));
+    setVisibleItems(visibleIds);
+  }, []);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
+
   return (
     <FlatList
       data={userTrips}
       keyExtractor={(item) => item.id}
+      onViewableItemsChanged={onViewableItemsChanged}
+      viewabilityConfig={viewabilityConfig}
       renderItem={({ item }) => (
-        <UserTripCard trip={item} onDelete={onDelete} isPaused={isPaused} />
+        <UserTripCard 
+          trip={item} 
+          onDelete={onDelete} 
+          isPaused={isPaused} 
+          isVisible={visibleItems.size === 0 ? true : visibleItems.has(String(item.id))} 
+        />
       )}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
