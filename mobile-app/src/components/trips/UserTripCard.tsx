@@ -199,7 +199,7 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
                 priority="high"
-                cachePolicy="disk"
+                cachePolicy="memory-disk"
                 placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
                 transition={200}
                 recyclingKey={trip.id + index}

@@ -63,7 +63,8 @@ export default function DiscoverCard({
         contentFit="cover"
         style={StyleSheet.absoluteFill}
         transition={500}
-        placeholder={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048382/trending-place5_n062ft.jpg" }}
+        cachePolicy="memory-disk"
+        placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
         placeholderContentFit="cover"
       />
 

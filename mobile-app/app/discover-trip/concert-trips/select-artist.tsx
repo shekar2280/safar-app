@@ -3,7 +3,6 @@ import {
   Text,
   Dimensions,
   TextInput,
-  Image,
   TouchableOpacity,
   ToastAndroid,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
+import { Image } from "expo-image";
 import React, { useState, useContext } from "react";
 import { useRouter } from "expo-router";
 import { Colors } from "@/src/constants/colors";
@@ -156,7 +156,11 @@ export default function ConcertTrip() {
               <View style={styles.card}>
                 <Image 
                   source={typeof item.image === "string" ? { uri: item.image } : item.image} 
-                  style={styles.cardImage} 
+                  style={styles.cardImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
+                  transition={200}
                 />
                 <View style={styles.imageOverlay} />
                 <Text
