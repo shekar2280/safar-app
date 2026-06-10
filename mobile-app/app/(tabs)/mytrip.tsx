@@ -35,15 +35,22 @@ export default function Mytrip() {
   const { theme, toggleTheme, isDark } = useTheme();
   const colors = useThemeColors();
   const deleteTrip = useDeleteTrip();
-  const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
+  const { data: userTrips = [], isLoading: tripsLoading, refetch } = useTrips();
   const loading = authLoading || tripsLoading;
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
   const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
 
   const handleDelete = (deletedId: string) => {
     deleteTrip.mutate(deletedId);
+  };
+
+  const handleManualRefresh = async () => {
+    setIsManualRefresh(true);
+    await refetch();
+    setIsManualRefresh(false);
   };
 
   const filteredTrips = useMemo(() => {
@@ -82,7 +89,7 @@ export default function Mytrip() {
         ? "GOOD AFTERNOON"
         : "GOOD EVENING";
 
-  const renderHeader = () => (
+  const header = useMemo(() => (
     <View style={{ paddingTop: insets.top + 5 }}>
       <View style={styles.header}>
         {isSearching ? (
@@ -156,10 +163,10 @@ export default function Mytrip() {
         </View>
       ) : null}
     </View>
-  );
+  ), [isSearching, searchQuery, colors, isDark, firstName, timeGreeting, loading, toggleTheme, toggleSearch, insets.top]);
 
   const renderEmpty = () => {
-    if (loading || (isFetching && userTrips.length === 0)) return null;
+    if (loading) return null;
 
     if (searchQuery.trim()) {
       return (
@@ -189,11 +196,11 @@ export default function Mytrip() {
         userTrips={loading ? [] : filteredTrips}
         onDelete={handleDelete}
         isPaused={isSearching}
-        ListHeaderComponent={renderHeader()}
+        ListHeaderComponent={header}
         ListEmptyComponent={renderEmpty()}
         contentContainerStyle={{ backgroundColor: colors.BACKGROUND }}
-        refreshing={isFetching && !loading}
-        onRefresh={refetch}
+        refreshing={isManualRefresh}
+        onRefresh={handleManualRefresh}
       />
     </View>
   );

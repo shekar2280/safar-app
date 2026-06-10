@@ -243,7 +243,7 @@ export default function GenerateTrip() {
           return old ? [mappedTrip, ...old] : [mappedTrip];
         });
         
-        await queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
         setLoading(false);
         router.replace("/(tabs)/mytrip" as any);
       } catch (err: any) {

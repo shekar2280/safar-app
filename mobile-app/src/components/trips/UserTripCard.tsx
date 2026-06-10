@@ -1,11 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  FlatList,
+  ScrollView,
   LayoutChangeEvent,
 } from "react-native";
 import moment from "moment";
@@ -32,7 +32,8 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [cardWidth, setCardWidth] = React.useState(width - 40);
-  const flatListRef = React.useRef<FlatList>(null);
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const imageLengthRef = useRef(0);
 
   const [errorVisible, setErrorVisible] = React.useState(false);
   const [errorTitle, setErrorTitle] = React.useState("");
@@ -110,33 +111,30 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
     return [{ uri: randomFallback }];
   }, [trip, randomFallback, concertFallback, isConcert]);
 
+  imageLengthRef.current = imageSources.length;
+
   React.useEffect(() => {
-    if (imageSources.length <= 1 || isPaused || !isVisible || isDragging) return;
+    if (imageLengthRef.current <= 1 || isPaused || !isVisible || isDragging) return;
 
     const interval = setInterval(() => {
       setActiveIndex((prevIndex) => {
-        const nextIndex = (prevIndex + 1) % imageSources.length;
-        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        const nextIndex = (prevIndex + 1) % imageLengthRef.current;
+        scrollViewRef.current?.scrollTo({ x: nextIndex * cardWidth, animated: true });
         return nextIndex;
       });
-    }, 4000);
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [imageSources.length, isPaused, isVisible, isDragging]);
+  }, [isPaused, isVisible, isDragging, cardWidth]);
 
-  const onMomentumScrollEnd = (event: any) => {
+  const onScrollEnd = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
     if (index >= 0 && index < imageSources.length) {
       setActiveIndex(index);
     }
+    setIsDragging(false);
   };
-
-  const getItemLayout = (_: any, index: number) => ({
-    length: cardWidth,
-    offset: cardWidth * index,
-    index,
-  });
 
   const handleDeleteFinal = async () => {
     try {
@@ -171,40 +169,35 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
       onLayout={onLayout}
     >
       <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
-        <FlatList
-          ref={flatListRef}
-          data={imageSources}
+        <ScrollView
+          ref={scrollViewRef}
           horizontal
-          pagingEnabled
-          decelerationRate="fast"
+          pagingEnabled={false}
           snapToInterval={cardWidth}
-          snapToAlignment="center"
+          snapToAlignment="start"
+          decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
           onScrollBeginDrag={() => setIsDragging(true)}
-          onScrollEndDrag={() => setIsDragging(false)}
-          onMomentumScrollEnd={(e) => {
-            onMomentumScrollEnd(e);
-            setIsDragging(false);
-          }}
-          getItemLayout={getItemLayout}
-          keyExtractor={(_, index) => index.toString()}
-          initialNumToRender={5}
-          windowSize={2}
-          maxToRenderPerBatch={5}
-          removeClippedSubviews={false}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity activeOpacity={0.95} onPress={handlePressCard} style={{ width: cardWidth, height: 230 }}>
+          onMomentumScrollEnd={onScrollEnd}
+          onScrollEndDrag={onScrollEnd}
+        >
+          {imageSources.map((item, index) => (
+            <TouchableOpacity
+              key={`${trip.id}-${index}`}
+              activeOpacity={0.95}
+              onPress={handlePressCard}
+              style={{ width: cardWidth, height: 230 }}
+            >
               <Image
                 source={item}
                 style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
                 contentFit="cover"
-                cachePolicy="memory-disk"
                 transition={200}
-                recyclingKey={trip.id + index}
               />
             </TouchableOpacity>
-          )}
-        />
+          ))}
+        </ScrollView>
       </View>
 
       <LinearGradient

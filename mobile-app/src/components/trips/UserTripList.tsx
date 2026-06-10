@@ -5,16 +5,16 @@ import { UserTripListProps } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
-export default function UserTripList({ 
-  userTrips, 
-  onDelete, 
+export default function UserTripList({
+  userTrips,
+  onDelete,
   isPaused,
-  ListHeaderComponent, 
+  ListHeaderComponent,
   ListEmptyComponent,
   contentContainerStyle,
   refreshing,
   onRefresh
-}: UserTripListProps & { 
+}: UserTripListProps & {
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
   ListEmptyComponent?: React.ComponentType<any> | React.ReactElement | null;
   contentContainerStyle?: any;
@@ -30,20 +30,22 @@ export default function UserTripList({
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <UserTripCard
+      trip={item}
+      onDelete={onDelete}
+      isPaused={isPaused}
+      isVisible={visibleItems.size === 0 ? true : visibleItems.has(String(item.id))}
+    />
+  ), [onDelete, isPaused, visibleItems]);
+
   return (
     <FlatList
       data={userTrips}
       keyExtractor={(item) => item.id}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
-      renderItem={({ item }) => (
-        <UserTripCard 
-          trip={item} 
-          onDelete={onDelete} 
-          isPaused={isPaused} 
-          isVisible={visibleItems.size === 0 ? true : visibleItems.has(String(item.id))} 
-        />
-      )}
+      renderItem={renderItem}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
       contentContainerStyle={[styles.listContent, contentContainerStyle]}
