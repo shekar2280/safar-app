@@ -114,6 +114,11 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
   imageLengthRef.current = imageSources.length;
 
   React.useEffect(() => {
+    setActiveIndex(0);
+    scrollViewRef.current?.scrollTo({ x: 0, animated: false });
+  }, [trip?.id]);
+
+  React.useEffect(() => {
     if (imageLengthRef.current <= 1 || isPaused || !isVisible || isDragging) return;
 
     const interval = setInterval(() => {
@@ -193,7 +198,6 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
                 source={item}
                 style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
                 contentFit="cover"
-                transition={200}
               />
             </TouchableOpacity>
           ))}
