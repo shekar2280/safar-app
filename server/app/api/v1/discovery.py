@@ -178,19 +178,16 @@ async def get_trending_places(
             else:
                 api_logger.info("TRENDING CACHE STALE, REFRESHING", extra={"country": country_key, "age_days": (now - cached.created_at).days})
         
-        api_logger.info("FETCHING NEW TRENDING PLACES (12 ITEMS)", extra={"country": country_key})
+        api_logger.info("FETCHING NEW TRENDING PLACES", extra={"country": country_key})
         country_name = body.country or "India"
-        trending_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
-        Return the result as a raw JSON array of objects with these keys: 
-        - "name": City/Destination name
-        - "title": Full display name (e.g. "Tokyo, Japan")
-        - "country": Country name
-        - "desc": Short 1-sentence catchy description
-        - "famous_landmark": A specific famous place in that destination
-        - "pexels_query": A highly optimized keyword-rich search query for a STUNNING landscape photo of this place (e.g., "Cinematic sunset photography [Landmark] [Name]")
-        - "insight": A 2-sentence "Discovery Insight" explaining WHY this place is trending or what makes it culturally/visually unique right now.
-        - "recommended_month": Best month(s) to visit this specific place.
-        No markdown, no extra text."""
+        
+        base_prompt = body.trendingPlacesPrompt if body.trendingPlacesPrompt else f"Suggest exactly 20 top travel destinations strictly within {country_name}. Include a mix of the country's most iconic, world-famous major cities AND highly trending seasonal destinations. Return JSON array."
+        
+        trending_prompt = f"""{base_prompt}
+
+CRITICAL BACKEND INSTRUCTION:
+You MUST also add a "pexels_query" field to EVERY JSON object.
+- "pexels_query": A highly optimized keyword-rich search query for a STUNNING landscape photo of this place (e.g., "Cinematic sunset photography [Landmark] [Name]")"""
 
         raw_text = await call_gemini_with_resilience(trending_prompt)
         api_logger.info("GEMINI RESPONSE RECEIVED", extra={"raw_text_preview": raw_text[:200]})

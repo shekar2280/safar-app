@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,18 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
+  FlatList,
+  Keyboard,
+  Modal,
 } from "react-native";
-import Autocomplete from "react-native-autocomplete-input";
-const AutocompleteInput = Autocomplete as any;
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
+import { useRouter } from "expo-router";
+import { CITY_ALIASES } from "@/src/constants";
 
 export default function DestinationPicker({
   onLocationSelect,
@@ -23,10 +26,14 @@ export default function DestinationPicker({
 }: DestinationPickerProps & { value?: DestinationData | null }) {
   const colors = useThemeColors();
   const { isDark } = useTheme();
+  const router = useRouter();
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [selected, setSelected] = useState<DestinationData | null>(value || null);
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [dropdownLayout, setDropdownLayout] = useState<{ x: number; y: number; width: number } | null>(null);
+  const inputRef = useRef<View>(null);
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -60,7 +67,7 @@ export default function DestinationPicker({
       setQuery("");
       setSelected(null);
     }
-  }, [value?.name]); 
+  }, [value?.name]);
 
   useEffect(() => {
     if (query.length < 3 || selected) {
@@ -70,7 +77,7 @@ export default function DestinationPicker({
     setLoading(true);
     const timeout = setTimeout(() => {
       fetch(
-        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1&limit=8`,
         {
           headers: {
             "User-Agent": "safar-travel-app",
@@ -93,6 +100,25 @@ export default function DestinationPicker({
 
   const handleSelect = (item: NominatimResult) => {
     const addr = item.address;
+
+    // Detect if the user selected an entire country
+    const isCountry = item.addresstype === "country" || item.type === "administrative" && !addr?.city && !addr?.town && !addr?.municipality && addr?.country && !addr?.state;
+
+    if (isCountry) {
+      const countryName = addr?.country || item.display_name.split(",")[0].trim();
+      setQuery(countryName);
+      setResults([]);
+      setSelected(null);
+      onLocationSelect(null);
+      Keyboard.dismiss();
+      // Redirect to trending places filtered by this country
+      router.push({
+        pathname: "/discover-trip/trending",
+        params: { country: countryName },
+      } as any);
+      return;
+    }
+
     let rawCity =
       addr?.city ||
       addr?.town ||
@@ -113,15 +139,7 @@ export default function DestinationPicker({
       .replace(/ Zone \d+/gi, "")
       .trim();
 
-    const cityAliases: Record<string, string> = {
-      "london": "London",
-      "mumbai city": "Mumbai",
-      "bombay": "Mumbai",
-      "new york city": "New York",
-      "bengaluru urban": "Bengaluru",
-    };
-
-    const finalName = cityAliases[cleanName.toLowerCase()] || cleanName;
+    const finalName = CITY_ALIASES[cleanName.toLowerCase()] || cleanName;
 
     const locationInfo: DestinationData = {
       name: finalName,
@@ -137,6 +155,8 @@ export default function DestinationPicker({
     setQuery(finalName);
     setResults([]);
     setSelected(locationInfo);
+    setIsFocused(false);
+    Keyboard.dismiss();
     onLocationSelect(locationInfo);
   };
 
@@ -144,67 +164,156 @@ export default function DestinationPicker({
     setQuery("");
     setResults([]);
     setSelected(null);
+    setIsFocused(false);
     onLocationSelect(null);
+  };
+
+  const showDropdown = results.length > 0 && isFocused && !selected;
+
+  const measureInput = () => {
+    if (inputRef.current) {
+      inputRef.current.measure((_x: number, _y: number, width: number, height: number, pageX: number, pageY: number) => {
+        setDropdownLayout({ x: pageX, y: pageY + height + 6, width });
+      });
+    }
+  };
+
+  const getIconForType = (item: NominatimResult) => {
+    const type = item.addresstype || item.type || "";
+    if (type === "country") return "earth-outline";
+    if (type === "state" || type === "province") return "map-outline";
+    if (type === "city" || type === "town" || type === "municipality") return "business-outline";
+    if (type === "tourism" || item.category === "tourism") return "camera-outline";
+    return "location-outline";
   };
 
   return (
     <View style={styles.mainWrapper}>
-      <AutocompleteInput
-        data={results}
-        defaultValue={query}
-        autoCorrect={false}
-        onChangeText={(text: string) => {
-          setQuery(text);
-          setSelected(null);
-          onLocationSelect(null);
-        }}
-        placeholder={placeholder}
-        containerStyle={styles.autocompleteContainer}
-        inputContainerStyle={{ borderWidth: 0 }}
-        listStyle={{ borderWidth: 0 }}
-        renderTextInput={(props: any) => (
-          <View style={[styles.inputCapsule, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }]}>
-            <View style={styles.labelSection}>
-              <Text style={[styles.label, { color: colors.GOLD }]}>TO</Text>
-            </View>
-            <TextInput
-              {...props}
-              style={[styles.inputStyle, { color: colors.TEXT }]}
-              placeholderTextColor={colors.MUTED_TEXT}
-              selectionColor={colors.GOLD}
+      {/* Input Row */}
+      <View
+        ref={inputRef}
+        style={[styles.inputCapsule, {
+          backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)",
+          borderColor: isFocused ? colors.GOLD : "transparent",
+          borderWidth: isFocused ? 1 : 0,
+        }]}
+      >
+        <View style={styles.labelSection}>
+          <Text style={[styles.label, { color: colors.GOLD }]}>TO</Text>
+        </View>
+        <TextInput
+          style={[styles.inputStyle, { color: colors.TEXT }]}
+          placeholderTextColor={colors.MUTED_TEXT}
+          selectionColor={colors.GOLD}
+          placeholder={placeholder}
+          value={query}
+          onChangeText={(text) => {
+            setQuery(text);
+            setSelected(null);
+            setIsFocused(true);
+            onLocationSelect(null);
+          }}
+          onFocus={() => {
+            setIsFocused(true);
+            measureInput();
+          }}
+          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+          autoCorrect={false}
+        />
+        <View style={styles.actionSection}>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.GOLD} />
+          ) : query.length > 0 ? (
+            <TouchableOpacity onPress={clearInput} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={20} color={colors.MUTED_TEXT} />
+            </TouchableOpacity>
+          ) : (
+            <Ionicons name="search-outline" size={18} color={colors.MUTED_TEXT} />
+          )}
+        </View>
+      </View>
+
+      {/* Dropdown rendered in Modal to avoid FlatList-in-ScrollView error */}
+      <Modal
+        visible={showDropdown && !!dropdownLayout}
+        transparent
+        animationType="none"
+        onRequestClose={() => setIsFocused(false)}
+      >
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={() => setIsFocused(false)}
+        />
+        {dropdownLayout && (
+          <View style={[
+            styles.dropdown,
+            {
+              position: "absolute",
+              top: dropdownLayout.y,
+              left: dropdownLayout.x,
+              width: dropdownLayout.width,
+              backgroundColor: isDark ? "rgba(18,18,24,0.98)" : "rgba(255,255,255,0.98)",
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+              shadowColor: colors.PRIMARY,
+            }
+          ]}>
+            <FlatList
+              data={results}
+              keyExtractor={(item) => String(item.place_id)}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item, index }) => {
+                const [mainName, ...rest] = item.display_name.split(",");
+                const subLabel = rest.slice(0, 2).join(",").trim();
+                const isCountry = item.addresstype === "country";
+                const icon = getIconForType(item);
+                return (
+                  <>
+                    {index > 0 && (
+                      <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }]} />
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleSelect(item)}
+                      style={styles.suggestionItem}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.iconCircle, {
+                        backgroundColor: isCountry
+                          ? (isDark ? "rgba(255,191,0,0.12)" : "rgba(255,191,0,0.08)")
+                          : (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)")
+                      }]}>
+                        <Ionicons
+                          name={icon as any}
+                          size={15}
+                          color={isCountry ? colors.GOLD : colors.MUTED_TEXT}
+                        />
+                      </View>
+                      <View style={styles.textWrap}>
+                        <Text style={[styles.mainText, { color: colors.TEXT }]} numberOfLines={1}>
+                          {mainName.trim()}
+                        </Text>
+                        {subLabel ? (
+                          <Text style={[styles.subText, { color: colors.MUTED_TEXT }]} numberOfLines={1}>
+                            {subLabel}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {isCountry && (
+                        <View style={[styles.countryBadge, { backgroundColor: isDark ? "rgba(255,191,0,0.15)" : "rgba(255,191,0,0.1)" }]}>
+                          <Text style={[styles.countryBadgeText, { color: colors.GOLD }]}>EXPLORE</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                );
+              }}
             />
-            <View style={styles.actionSection}>
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.GOLD} />
-              ) : query.length > 0 ? (
-                <TouchableOpacity onPress={clearInput}>
-                  <Text style={[styles.clearText, { color: colors.MUTED_TEXT }]}>Clear</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
           </View>
         )}
-        listContainerStyle={[styles.suggestionList, { backgroundColor: colors.SURFACE }]}
-        flatListProps={{
-          scrollEnabled: false,
-          nestedScrollEnabled: true,
-          keyExtractor: (item: NominatimResult) => String(item.place_id),
-          renderItem: ({ item }: { item: NominatimResult }) => {
-            const [mainName, ...rest] = item.display_name.split(",");
-            return (
-              <TouchableOpacity
-                onPress={() => handleSelect(item)}
-                style={[styles.suggestionItem, { backgroundColor: colors.SURFACE }]}
-              >
-                <View style={styles.textWrap}>
-                  <Text style={[styles.mainText, { color: colors.TEXT }]} numberOfLines={1}>{mainName.trim()}</Text>
-                  <Text style={[styles.subText, { color: colors.MUTED_TEXT }]} numberOfLines={1}>{rest.join(",").trim()}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          },
-        }}
-      />
+      </Modal>
+
       <SafarAlert
         visible={alertVisible}
         title={alertTitle}
@@ -219,8 +328,7 @@ export default function DestinationPicker({
 }
 
 const styles = StyleSheet.create({
-  mainWrapper: { zIndex: 1000, width: "100%", height: 75 },
-  autocompleteContainer: { width: "100%", position: "absolute", zIndex: 10, borderWidth: 0 },
+  mainWrapper: { zIndex: 1000, width: "100%" },
   inputCapsule: {
     flexDirection: "row",
     alignItems: "center",
@@ -243,37 +351,38 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   actionSection: { paddingLeft: 10 },
-  clearText: {
-    fontFamily: "outfit",
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  suggestionList: {
+  clearBtn: { padding: 2 },
+  dropdown: {
+    position: "absolute",
+    top: 72,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
     borderRadius: 24,
-    marginTop: 10,
-    maxHeight: 280,
-    borderWidth: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    borderWidth: 1,
     overflow: "hidden",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    elevation: 12,
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 16,
   },
   suggestionItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 12,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.03)",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
   textWrap: { flex: 1 },
   mainText: {
@@ -283,6 +392,16 @@ const styles = StyleSheet.create({
   subText: {
     fontFamily: "outfit",
     fontSize: 12,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  countryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  countryBadgeText: {
+    fontFamily: "outfitBold",
+    fontSize: 9,
+    letterSpacing: 1,
   },
 });

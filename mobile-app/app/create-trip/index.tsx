@@ -7,7 +7,7 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
-import React, { useContext, useEffect, useState, useCallback, useRef } from "react";
+import React, { useContext, useEffect, useState, useCallback, useRef, memo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -24,6 +24,49 @@ import { Easing } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types";
 import Button from "@/src/components/common/Button";
+
+interface CounterTileProps {
+  label: string;
+  value: number;
+  unit: string;
+  unitPlural: string;
+  min: number;
+  max: number;
+  onChange: (val: number) => void;
+  colors: any;
+  delay: number;
+}
+
+const CounterTile = memo(({ label, value, unit, unitPlural, min, max, onChange, colors, delay }: CounterTileProps) => (
+  <MotiView
+    from={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, type: "timing" }}
+    style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
+  >
+    <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>{label}</Text>
+    <Text style={[styles.tileValue, { color: colors.TEXT }]}>{value}</Text>
+    <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{value === 1 ? unit : unitPlural}</Text>
+    <View style={styles.tileActions}>
+      <TouchableOpacity
+        style={[styles.tileBtn, { backgroundColor: colors.BLACK }, value === min && { opacity: 0.3 }]}
+        onPress={() => onChange(Math.max(min, value - 1))}
+        disabled={value === min}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tileBtn, { backgroundColor: colors.BLACK }, value === max && { opacity: 0.3 }]}
+        onPress={() => onChange(Math.min(max, value + 1))}
+        disabled={value === max}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
+      </TouchableOpacity>
+    </View>
+  </MotiView>
+));
 
 const { width, height } = Dimensions.get("window");
 
@@ -255,61 +298,28 @@ export default function CreateTripIndex() {
 
 
         <View style={styles.statsGrid}>
-          <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: DELAY + 200, type: "timing" }}
-            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-          >
-            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>DURATION</Text>
-            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{totalDays}</Text>
-            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{totalDays === 1 ? "DAY" : "DAYS"}</Text>
-
-            <View style={styles.tileActions}>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === 1 && { opacity: 0.3 }]}
-                onPress={() => setTotalDays(p => Math.max(1, p - 1))}
-                disabled={totalDays === 1}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
-                onPress={() => setTotalDays(p => Math.min(MAX_TRIP_DAYS, p + 1))}
-                disabled={totalDays === MAX_TRIP_DAYS}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </MotiView>
-
-          <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: DELAY + 300, type: "timing" }}
-            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-          >
-            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>COMPANIONS</Text>
-            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{travelerCount}</Text>
-            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{travelerCount === 1 ? "PERSON" : "PEOPLE"}</Text>
-
-            <View style={styles.tileActions}>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 1 && { opacity: 0.3 }]}
-                onPress={() => setTravelerCount(p => Math.max(1, p - 1))}
-                disabled={travelerCount === 1}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 6 && { opacity: 0.3 }]}
-                onPress={() => setTravelerCount(p => Math.min(6, p + 1))}
-                disabled={travelerCount === 6}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </MotiView>
+          <CounterTile
+            label="DURATION"
+            value={totalDays}
+            unit="DAY"
+            unitPlural="DAYS"
+            min={1}
+            max={MAX_TRIP_DAYS}
+            onChange={setTotalDays}
+            colors={colors}
+            delay={DELAY + 200}
+          />
+          <CounterTile
+            label="COMPANIONS"
+            value={travelerCount}
+            unit="PERSON"
+            unitPlural="PEOPLE"
+            min={1}
+            max={6}
+            onChange={setTravelerCount}
+            colors={colors}
+            delay={DELAY + 300}
+          />
         </View>
 
         <MotiView

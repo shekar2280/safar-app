@@ -31,3 +31,21 @@ export const DiscoverIdeasList = [
     image: require("../../assets/images/discover/festive.jpg"),
   },
 ];
+
+export const POPULAR_COUNTRIES_LIST = [
+  { name: "Japan", label: "🇯🇵 Japan" },
+  { name: "United States", label: "🇺🇸 United States" },
+  { name: "Italy", label: "🇮🇹 Italy" },
+  { name: "UAE", label: "🇦🇪 UAE" },
+  { name: "Thailand", label: "🇹🇭 Thailand" },
+  { name: "France", label: "🇫🇷 France" },
+  { name: "Indonesia", label: "🇮🇩 Indonesia" },
+];
+
+export const CITY_ALIASES: Record<string, string> = {
+  "london": "London",
+  "mumbai city": "Mumbai",
+  "bombay": "Mumbai",
+  "new york city": "New York",
+  "bengaluru urban": "Bengaluru",
+};
