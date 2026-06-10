@@ -98,12 +98,11 @@ export default function ConcertTrip() {
     }
   };
 
-  const onSelectArtist = async (name: string) => {
-    if (loading) return;
-    setArtist(name);
+  const handleConfirm = async () => {
+    if (loading || artist.trim().length < 3) return;
     setLoading(true);
 
-    const options = await fetchConcerts(name);
+    const options = await fetchConcerts(artist.trim());
 
     setLoading(false);
 
@@ -151,18 +150,26 @@ export default function ConcertTrip() {
           keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={true}
+          extraData={artist}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.cardContainer}
-              onPress={() => onSelectArtist(item.title)}
+              onPress={() => setArtist(item.title)}
             >
-              <View style={styles.card}>
+              <View style={[
+                styles.card,
+                { borderWidth: 3, borderColor: artist === item.title ? colors.GOLD : 'transparent' }
+              ]}>
                 <Image
                   source={typeof item.image === "string" ? { uri: item.image } : item.image}
                   style={[styles.cardImage, { backgroundColor: colors.SURFACE_LIGHT }]}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  transition={200}
                 />
                 <View style={styles.imageOverlay} />
                 <Text
@@ -173,6 +180,11 @@ export default function ConcertTrip() {
                 >
                   {item.title}
                 </Text>
+                {artist === item.title && (
+                  <View style={[styles.checkBadge, { backgroundColor: colors.GOLD }]}>
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           )}
@@ -190,16 +202,17 @@ export default function ConcertTrip() {
 
       {artist.trim().length > 2 && (
         <TouchableOpacity
-          onPress={() => onSelectArtist(artist)}
-          style={[styles.continueButton, { backgroundColor: colors.PRIMARY, shadowColor: colors.PRIMARY }]}
+          onPress={handleConfirm}
+          disabled={loading}
+          style={[styles.continueButton, { backgroundColor: colors.GOLD, shadowColor: colors.GOLD }]}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={colors.WHITE} />
+            <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
           ) : (
             <Text
               style={[
                 styles.continueText,
-                { color: colors.WHITE, fontSize: artist.trim().length > 12 ? 14 : 16 },
+                { color: isDark ? "#000" : colors.WHITE, fontSize: artist.trim().length > 12 ? 14 : 16 },
               ]}
             >
               Search "{artist}"
@@ -227,7 +240,6 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -252,11 +264,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 55,
-    backgroundColor: "#F8FAFC",
     borderRadius: 18,
     paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
   },
   searchBar: {
     flex: 1,
@@ -313,13 +323,11 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 60,
-    backgroundColor: Colors.PRIMARY,
     borderRadius: 20,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
-    shadowColor: Colors.PRIMARY,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -346,5 +354,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#854d0e",
     lineHeight: 16,
+  },
+  checkBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    elevation: 4,
+    zIndex: 10,
   },
 });

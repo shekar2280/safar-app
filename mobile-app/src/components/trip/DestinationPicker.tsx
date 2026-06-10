@@ -12,12 +12,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, useThemeColors } from "@/src/constants/colors";
+import { CITY_ALIASES } from "@/src/constants/discover";
 import { useTheme } from "@/src/context/ThemeContext";
 import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/types";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
-import { CITY_ALIASES } from "@/src/constants";
 
 export default function DestinationPicker({
   onLocationSelect,
@@ -101,7 +101,6 @@ export default function DestinationPicker({
   const handleSelect = (item: NominatimResult) => {
     const addr = item.address;
 
-    // Detect if the user selected an entire country
     const isCountry = item.addresstype === "country" || item.type === "administrative" && !addr?.city && !addr?.town && !addr?.municipality && addr?.country && !addr?.state;
 
     if (isCountry) {
@@ -111,7 +110,6 @@ export default function DestinationPicker({
       setSelected(null);
       onLocationSelect(null);
       Keyboard.dismiss();
-      // Redirect to trending places filtered by this country
       router.push({
         pathname: "/discover-trip/trending",
         params: { country: countryName },

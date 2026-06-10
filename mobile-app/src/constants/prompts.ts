@@ -43,6 +43,7 @@ You are a high-end luxury travel concierge.
    - "tripDuration": "{totalDays} days, {totalNight} nights".
 
 ### JSON SYNTAX RULES (STRICT):
+- CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
 - NO trailing commas. NO comments.
 - All numbers must be bare; all strings must be double-quoted.
 - Return ONLY raw JSON. No markdown backticks.
@@ -92,6 +93,7 @@ Follow these instructions carefully:
    - "tripDuration": "{totalDays} days, {totalNight} nights".
 
 6. JSON SYNTAX RULES (STRICT):
+- CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
 - NO trailing commas. NO comments. NO extra text.
 - Every opening brace '{' MUST have a matching closing brace '}'.
 - Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
@@ -142,6 +144,7 @@ Follow these instructions carefully to ensure the trip captures the cultural ess
    - "tripDuration": "{totalDays} days, {totalNight} nights".
 
 6. JSON SYNTAX RULES (STRICT):
+- CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
 - NO trailing commas. NO comments. NO extra text.
 - Every opening brace '{' MUST have a matching closing brace '}'.
 - Ensure "geoCoordinates" is a complete object: {"latitude": number, "longitude": number}.
@@ -190,6 +193,7 @@ Travelers depart from {departure} for a fixed duration of 3 days and 2 nights. T
    - "tripDuration": "3 days, 2 nights".
 
 6. JSON SYNTAX RULES (STRICT):
+  - CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
   - NO trailing commas after the last item in an array or object.
   - NO comments or extra text.
   - Every opening brace '{' MUST have a matching closing brace '}'.

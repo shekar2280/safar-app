@@ -2,7 +2,7 @@ export const DiscoverIdeasList = [
   {
     id: 1,
     title: "Trending Places",
-    desc: "Trending places near you",
+    desc: "Explore trending spots globally",
     tripCategory: "TRENDING",
     route: "/discover-trip/trending",
     image: require("../../assets/images/discover/trending.png"),

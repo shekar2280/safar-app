@@ -98,7 +98,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 
   return (
     <View style={[styles.cardContainer, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
-      <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner} disabled={isArchiving}>
+      <TouchableOpacity activeOpacity={0.95} style={[styles.card, { backgroundColor: colors.LIGHT_GRAY }]} onPress={goToPlanner} disabled={isArchiving}>
         <Image source={tripImageSource} style={styles.bannerImage} transition={500} />
 
         <View style={styles.topRow}>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.3,
     borderColor: Colors.WHITE,
   },
-  card: { height: 160, borderRadius: 20, overflow: "hidden", backgroundColor: "#F0F0F0" },
+  card: { height: 160, borderRadius: 20, overflow: "hidden" },
   bannerImage: { ...StyleSheet.absoluteFillObject },
   topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, alignItems: 'center' },
   liveBadge: {

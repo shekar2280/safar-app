@@ -188,6 +188,15 @@ export default function TrendingTrips() {
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={true}
+          getItemLayout={(_data, index) => ({
+            length: height * 0.20 + 14,
+            offset: (height * 0.20 + 14) * index,
+            index,
+          })}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => handleSelect(item)}

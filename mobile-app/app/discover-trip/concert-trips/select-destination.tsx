@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 import { ConcertEvent } from "@/src/types";
@@ -34,6 +35,8 @@ export default function SelectDestination() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const context = useContext(ConcertTripContext);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const [selectedOption, setSelectedOption] = useState<ConcertEvent | null>(null);
   const [concertDates, setConcertDates] = useState<ConcertEvent[]>([]);
@@ -79,16 +82,19 @@ export default function SelectDestination() {
   if (!context) return null;
 
   return (
-    <View style={[styles.mainContainer, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={Colors.PRIMARY} />
+    <View style={[styles.mainContainer, { paddingTop: insets.top, backgroundColor: colors.BACKGROUND }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      <View style={[styles.header, { borderBottomColor: colors.BORDER }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.backBtn, { backgroundColor: colors.SURFACE_LIGHT }]}
+        >
+          <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.subtitle}>CHOOSE YOUR EXPERIENCE</Text>
-          <Text style={styles.title}>Select Event</Text>
+          <Text style={[styles.subtitle, { color: colors.GOLD }]}>CHOOSE YOUR EXPERIENCE</Text>
+          <Text style={[styles.title, { color: colors.TEXT }]}>Select Event</Text>
         </View>
       </View>
 
@@ -101,7 +107,8 @@ export default function SelectDestination() {
               activeOpacity={0.93}
               style={[
                 styles.card,
-                selectedOption?.id === item.id && styles.selectedCard
+                { backgroundColor: colors.SURFACE },
+                selectedOption?.id === item.id && { borderWidth: 3, borderColor: colors.GOLD }
               ]}
             >
               <ImageBackground
@@ -130,7 +137,7 @@ export default function SelectDestination() {
               </ImageBackground>
               {selectedOption?.id === item.id && (
                 <View style={styles.checkBadge}>
-                   <Ionicons name="checkmark" size={18} color={Colors.WHITE} />
+                  <Ionicons name="checkmark" size={18} color="#fff" />
                 </View>
               )}
             </TouchableOpacity>
@@ -140,28 +147,40 @@ export default function SelectDestination() {
           contentContainerStyle={styles.listContent}
         />
 
-        <View style={styles.cautionContainer}>
-           <View style={styles.cautionBox}>
-             <Ionicons name="information-circle-outline" size={16} color={Colors.SECONDARY} />
-             <Text style={styles.cautionText}>
-                Double-check the concert date and venue with official sources before finalizing your trip details.
-             </Text>
-           </View>
+        <View style={[styles.cautionContainer, { backgroundColor: colors.BACKGROUND }]}>
+          <View style={[styles.cautionBox, { backgroundColor: colors.GOLD_MUTED, borderColor: colors.BORDER }]}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.GOLD} />
+            <Text style={[styles.cautionText, { color: colors.GOLD }]}>
+              Double-check the concert date and venue with official sources before finalizing your trip details.
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: colors.BACKGROUND, borderTopColor: colors.BORDER }]}>
           <TouchableOpacity
             onPress={onClickContinue}
             disabled={!selectedOption}
             style={[
               styles.continueButton,
-              !selectedOption && { backgroundColor: "#F1F5F9", shadowOpacity: 0 }
+              { backgroundColor: colors.GOLD, shadowColor: colors.GOLD },
+              !selectedOption && { backgroundColor: colors.SURFACE_LIGHT, shadowOpacity: 0 }
             ]}
           >
-            <Text style={[styles.continueText, !selectedOption && { color: "#94A3B8" }]}>
+            <Text style={[
+              styles.continueText,
+              { color: isDark ? "#000" : "#fff" },
+              !selectedOption && { color: colors.MUTED_TEXT }
+            ]}>
               CONFIRM SELECTION
             </Text>
-            {selectedOption && <Ionicons name="arrow-forward" size={18} color={Colors.WHITE} style={{ marginLeft: 8 }} />}
+            {selectedOption && (
+              <Ionicons
+                name="arrow-forward"
+                size={18}
+                color={isDark ? "#000" : "#fff"}
+                style={{ marginLeft: 8 }}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -172,7 +191,6 @@ export default function SelectDestination() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
   },
   header: {
     flexDirection: "row",
@@ -180,113 +198,96 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     gap: 15,
+    borderBottomWidth: 1,
   },
   backBtn: {
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
   subtitle: {
     fontFamily: "outfitMedium",
     fontSize: 10,
-    color: Colors.SECONDARY,
     letterSpacing: 2.5,
   },
   title: {
     fontFamily: "playfairBold",
     fontSize: 28,
-    color: Colors.PRIMARY,
     marginTop: -2,
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 20,
     marginTop: 10,
   },
-  card: { 
-    height: 180, 
-    marginVertical: 10, 
-    borderRadius: 20, 
-    backgroundColor: "#F8FAFC", 
+  card: {
+    height: 180,
+    marginVertical: 10,
+    borderRadius: 20,
     overflow: "hidden",
     elevation: 4,
-    shadowColor: Colors.BLACK,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
-  selectedCard: { 
-    borderWidth: 3, 
-    borderColor: Colors.SECONDARY, 
-  },
   cardImage: { flex: 1 },
   gradient: { flex: 1, justifyContent: "flex-end", padding: 20 },
   cardInfo: { flex: 0 },
-  eventTitle: { color: Colors.WHITE, fontFamily: "playfairBold", fontSize: 20, marginBottom: 8 },
+  eventTitle: { color: "#fff", fontFamily: "playfairBold", fontSize: 20, marginBottom: 8 },
   eventDetails: { flexDirection: "row", gap: 15 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  detailText: { color: "#CBD5E1", fontFamily: "interMedium", fontSize: 12 },
-  
-  checkBadge: { 
-    position: "absolute", 
-    top: 10, 
-    right: 10, 
-    width: 34, 
-    height: 34, 
-    borderRadius: 17, 
-    backgroundColor: Colors.SECONDARY, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    borderWidth: 3, 
-    borderColor: Colors.WHITE, 
+  detailText: { color: "#CBD5E1", fontFamily: "outfitMedium", fontSize: 12 },
+  checkBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#D4AF37",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
     elevation: 4,
     zIndex: 10,
   },
-  
-  footer: { 
-    padding: 20, 
-    paddingBottom: 35, 
-    backgroundColor: Colors.WHITE,
+  footer: {
+    padding: 20,
+    paddingBottom: 35,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
   },
   cautionContainer: {
     paddingHorizontal: 25,
     paddingVertical: 10,
-    backgroundColor: Colors.WHITE,
   },
   cautionBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(234, 179, 8, 0.05)",
     padding: 12,
     borderRadius: 12,
     gap: 10,
     borderWidth: 1,
-    borderColor: "rgba(234, 179, 8, 0.1)",
   },
   cautionText: {
     flex: 1,
     fontFamily: "outfit",
     fontSize: 11,
-    color: "#854d0e",
     lineHeight: 16,
   },
-  continueButton: { 
-    height: 65, 
-    backgroundColor: Colors.PRIMARY, 
-    borderRadius: 18, 
-    flexDirection: "row", 
-    justifyContent: "center", 
-    alignItems: "center", 
-    shadowColor: Colors.PRIMARY, 
-    shadowOffset: { width: 0, height: 8 }, 
-    shadowOpacity: 0.15, 
-    shadowRadius: 15, 
-    elevation: 6 
+  continueButton: {
+    height: 65,
+    borderRadius: 18,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 6,
   },
-  continueText: { color: Colors.WHITE, fontFamily: "outfitBold", fontSize: 14, letterSpacing: 2 }
+  continueText: { fontFamily: "outfitBold", fontSize: 14, letterSpacing: 2 },
 });
