@@ -15,6 +15,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [theme, setTheme] = useState<ThemeMode>(systemScheme || "light");
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -22,9 +23,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (savedTheme) {
         setTheme(savedTheme as ThemeMode);
       }
+      setIsLoaded(true);
     };
     loadTheme();
   }, []);
+
+  if (!isLoaded) return null;
 
   const toggleTheme = async () => {
     const newTheme = theme === "light" ? "dark" : "light";

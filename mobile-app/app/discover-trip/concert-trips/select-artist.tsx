@@ -159,10 +159,9 @@ export default function ConcertTrip() {
               <View style={styles.card}>
                 <Image
                   source={typeof item.image === "string" ? { uri: item.image } : item.image}
-                  style={styles.cardImage}
+                  style={[styles.cardImage, { backgroundColor: colors.SURFACE_LIGHT }]}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
                   transition={200}
                 />
                 <View style={styles.imageOverlay} />

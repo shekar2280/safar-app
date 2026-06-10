@@ -60,12 +60,10 @@ export default function DiscoverCard({
       <Image
         source={imgSource}
         onError={handleError}
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
         contentFit="cover"
-        style={StyleSheet.absoluteFill}
-        transition={500}
+        transition={200}
         cachePolicy="memory-disk"
-        placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
-        placeholderContentFit="cover"
       />
 
       <LinearGradient

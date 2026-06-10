@@ -196,11 +196,9 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
             <TouchableOpacity activeOpacity={0.95} onPress={handlePressCard} style={{ width: cardWidth, height: 230 }}>
               <Image
                 source={item}
-                style={StyleSheet.absoluteFill}
+                style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
                 contentFit="cover"
-                priority="high"
                 cachePolicy="memory-disk"
-                placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
                 transition={200}
                 recyclingKey={trip.id + index}
               />
