@@ -42,8 +42,8 @@ export function useTrendingPlaces(country: string = "India") {
   const query = useQuery({
     queryKey: trendingQueryKeys.byCountry(country),
     queryFn: () => fetchTrendingPlaces(country),
-    staleTime: 12 * 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
+    staleTime: 30 * 24 * 60 * 60 * 1000,
+    gcTime: 30 * 24 * 60 * 60 * 1000,
     enabled: !!country,
   });
 
