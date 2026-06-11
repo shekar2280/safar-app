@@ -28,18 +28,18 @@ class User(Base):
     user_trips = relationship("UserTrip", back_populates="user", cascade="all, delete-orphan")
 
 
-class SavedTrip(Base):
-    """Shared cached itinerary plans, keyed by normalized destination+days+budget."""
-    __tablename__ = "saved_trips"
+class LocationCache(Base):
+    """Atomized cache for locations: places of interest and images."""
+    __tablename__ = "location_cache"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=_uuid, index=True)
-    normalized_key = Column(String, unique=True, index=True, nullable=False)
-    trip_plan = Column(JSON, nullable=False)
+    city = Column(String, unique=True, index=True, nullable=False)
+    lat = Column(Float, nullable=True)
+    lon = Column(Float, nullable=True)
+    places_data = Column(JSON, nullable=False)
     image_urls = Column(JSON, default=list)
-    destination_iata = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-    user_trips = relationship("UserTrip", back_populates="saved_trip")
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
 class UserTrip(Base):
@@ -48,15 +48,13 @@ class UserTrip(Base):
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=_uuid, index=True)
     user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False, index=True)
-    saved_trip_id = Column(UUID(as_uuid=False), ForeignKey("saved_trips.id"), nullable=False)
-    normalized_key = Column(String, index=True)
+    
+    trip_plan = Column(JSON, nullable=False)
+    image_urls = Column(JSON, default=list)
 
     total_days = Column(Integer, nullable=False, default=1)
 
     traveler = Column(JSON)
-    is_international = Column(Boolean, default=False)
-    departure_iata = Column(String)
-    destination_iata = Column(String)
     traveler_mode = Column(String, default="SOLO")
     
     # Lifecycle
@@ -78,7 +76,6 @@ class UserTrip(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="user_trips")
-    saved_trip = relationship("SavedTrip", back_populates="user_trips")
 
 
 class TrendingCache(Base):

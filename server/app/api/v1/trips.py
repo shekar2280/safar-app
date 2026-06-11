@@ -14,14 +14,7 @@ from app.tasks import update_trip_weather
 router = APIRouter()
 
 
-@router.get("/saved/{normalized_key}", response_model=schemas.SavedTripOut)
-async def get_saved_trip(normalized_key: str, db: Session = Depends(get_db)):
-    trip = db.query(models.SavedTrip).filter(models.SavedTrip.normalized_key == normalized_key).first()
-    if not trip:
-        trip_logger.info("CACHE MISS", extra={"normalized_key": normalized_key})
-        raise HTTPException(status_code=404, detail="We couldn't find a saved plan for this destination. Try generating a new one!")
-    trip_logger.info("CACHE HIT", extra={"normalized_key": normalized_key, "saved_trip_id": trip.id})
-    return trip
+
 
 
 @router.post("", response_model=schemas.UserTripOut)
@@ -30,29 +23,12 @@ async def save_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    saved = db.query(models.SavedTrip).filter(models.SavedTrip.normalized_key == body.normalized_key).first()
-    if not saved:
-        saved = models.SavedTrip(
-            normalized_key=body.normalized_key,
-            trip_plan=body.trip_plan,
-            image_urls=body.image_urls,
-            destination_iata=body.destination_iata,
-        )
-        db.add(saved)
-        db.flush()
-        trip_logger.info("NEW shared trip saved", extra={"normalized_key": body.normalized_key})
-    else:
-        trip_logger.info("REUSING existing shared trip", extra={"normalized_key": body.normalized_key, "saved_trip_id": saved.id})
-
     user_trip = models.UserTrip(
         user_id=current_user.id,
-        saved_trip_id=saved.id,
-        normalized_key=body.normalized_key,
+        trip_plan=body.trip_plan,
+        image_urls=body.image_urls,
         total_days=body.total_days,
         traveler=body.traveler,
-        is_international=body.is_international,
-        departure_iata=body.departure_iata,
-        destination_iata=body.destination_iata,
         traveler_mode=body.traveler_mode,
         is_finished=False,
         concert_data=body.concert_data,
@@ -61,10 +37,6 @@ async def save_trip(
     db.commit()
     db.refresh(user_trip)
     trip_logger.info("Trip saved", extra={"user_id": current_user.id, "trip_id": user_trip.id})
-
-    if body.destination_iata:
-        update_trip_weather.delay(body.destination_iata, user_id=current_user.id)
-        trip_logger.info("BACKGROUND: triggered weather update task", extra={"destination": body.destination_iata, "user_id": current_user.id})
 
     return user_trip
 
@@ -76,7 +48,6 @@ async def get_user_trips(
 ):
     trips = (
         db.query(models.UserTrip)
-        .options(joinedload(models.UserTrip.saved_trip))
         .filter(
             models.UserTrip.user_id == current_user.id,
         )
