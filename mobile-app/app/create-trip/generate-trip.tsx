@@ -53,7 +53,6 @@ export default function GenerateTrip() {
   useEffect(() => {
     const isTripReady =
       tripData?.destinationInfo?.name &&
-      tripData?.departureInfo?.name &&
       tripData?.totalDays &&
       tripData?.traveler?.title &&
       tripData?.budget;
@@ -97,81 +96,65 @@ export default function GenerateTrip() {
     let success = false;
 
     const normalizedKey = `${tripData.destinationInfo?.shortName?.toLowerCase()}-${tripData.totalDays}-${tripData.budget?.toLowerCase()}`;
-    const localDepartureIata =
-      (tripData.departureInfo as any)?.iataCode ||
-      CITY_TO_IATA[tripData.departureInfo?.name?.split(",")[0].toLowerCase() || ""] ||
-      "BOM";
 
     let itineraryData: any, finalImageUrl: any, destinationIata: string;
 
     while (attempts < maxAttempts && !success) {
       try {
         setRetryCount(attempts);
-        let cached: any = null;
-        try {
-          cached = await apiGet(`/api/v1/trips/saved/${encodeURIComponent(normalizedKey)}`);
-        } catch {
+        
+        const days = parseInt(tripData.totalDays!.toString());
+        const totalPlaces = days * 4;
+        const perSlot = days;
+        const totalRecs = days * 2;
+
+        let basePrompt = AI_PROMPT;
+        const category = tripData.tripCategory;
+
+        if (category === "HIDDEN_GEMS") {
+          basePrompt = HIDDEN_GEMS_AI_PROMPT;
+        } else if (category === "FESTIVE") {
+          basePrompt = FESTIVE_AI_PROMPT;
+        } else if (category === "CONCERT") {
+          basePrompt = CONCERT_TRIP_AI_PROMPT;
         }
 
-        if (cached) {
-          itineraryData = cached.trip_plan;
-          finalImageUrl = cached.image_urls || cached.image_url || [];
-          destinationIata = cached.destination_iata || "N/A";
-        } else {
-          const days = parseInt(tripData.totalDays!.toString());
-          const totalPlaces = days * 4;
-          const perSlot = days;
-          const totalRecs = days * 2;
+        let FINAL_ITINERARY_PROMPT = basePrompt
+          .replace(/{location}/g, tripData.destinationInfo?.name || "")
+          .replace(/{totalDays}/g, tripData.totalDays!.toString())
+          .replace(/{totalNight}/g, (days - 1).toString())
+          .replace(/{traveler}/g, tripData.traveler?.title || "")
+          .replace(/{travelers}/g, tripData.traveler?.title || "") 
+          .replace(/{budget}/g, tripData.budget || "")
+          .replace(/{totalPlaces}/g, totalPlaces.toString())
+          .replace(/{perSlot}/g, perSlot.toString())
+          .replace(/{totalRecs}/g, totalRecs.toString())
+          .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO")
+          .replace(/{venueName}/g, (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name || "");
 
-          let basePrompt = AI_PROMPT;
-          const category = tripData.tripCategory;
-
-          if (category === "HIDDEN_GEMS") {
-            basePrompt = HIDDEN_GEMS_AI_PROMPT;
-          } else if (category === "FESTIVE") {
-            basePrompt = FESTIVE_AI_PROMPT;
-          } else if (category === "CONCERT") {
-            basePrompt = CONCERT_TRIP_AI_PROMPT;
-          }
-
-          let FINAL_ITINERARY_PROMPT = basePrompt
-            .replace(/{location}/g, tripData.destinationInfo?.name || "")
-            .replace(/{totalDays}/g, tripData.totalDays!.toString())
-            .replace(/{totalNight}/g, (days - 1).toString())
-            .replace(/{traveler}/g, tripData.traveler?.title || "")
-            .replace(/{travelers}/g, tripData.traveler?.title || "") 
-            .replace(/{budget}/g, tripData.budget || "")
-            .replace(/{totalPlaces}/g, totalPlaces.toString())
-            .replace(/{perSlot}/g, perSlot.toString())
-            .replace(/{totalRecs}/g, totalRecs.toString())
-            .replace(/{travelerMode}/g, tripData.travelerMode || "SOLO")
-            .replace(/{departure}/g, tripData.departureInfo?.name || "current location")
-            .replace(/{venueName}/g, (tripData.destinationInfo as any)?.venueName || tripData.destinationInfo?.name || "");
-
-          if ((tripData as any).festival) {
-            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{festival}/g, (tripData as any).festival);
-          }
-          
-          if (concertContext?.concertData?.artist) {
-            FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, concertContext.concertData.artist);
-          }
-
-          const result = await apiPost<{ itinerary: string, imageUrl?: string, imageUrls?: string[] }>("/api/v1/discovery/generate", {
-            itineraryPrompt: FINAL_ITINERARY_PROMPT,
-            locationName: tripData.destinationInfo?.name,
-            tripCategory: category || "GENERAL",
-            latitude: tripData.destinationInfo?.coordinates?.lat,
-            longitude: tripData.destinationInfo?.coordinates?.lon,
-          });
-
-          const rawAiResponse = cleanAiResponse(result.itinerary);
-          const repairedJson = jsonrepair(rawAiResponse);
-          const aiData = JSON.parse(repairedJson);
-
-          itineraryData = normalizeItinerary(aiData);
-          finalImageUrl = result.imageUrl || result.imageUrls || "";
-          destinationIata = aiData.destinationIata || "N/A";
+        if ((tripData as any).festival) {
+          FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{festival}/g, (tripData as any).festival);
         }
+        
+        if (concertContext?.concertData?.artist) {
+          FINAL_ITINERARY_PROMPT = FINAL_ITINERARY_PROMPT.replace(/{artist}/g, concertContext.concertData.artist);
+        }
+
+        const result = await apiPost<{ itinerary: string, imageUrl?: string, imageUrls?: string[] }>("/api/v1/discovery/generate", {
+          itineraryPrompt: FINAL_ITINERARY_PROMPT,
+          locationName: tripData.destinationInfo?.name,
+          tripCategory: category || "GENERAL",
+          latitude: tripData.destinationInfo?.coordinates?.lat,
+          longitude: tripData.destinationInfo?.coordinates?.lon,
+        });
+
+        const rawAiResponse = cleanAiResponse(result.itinerary);
+        const repairedJson = jsonrepair(rawAiResponse);
+        const aiData = JSON.parse(repairedJson);
+
+        itineraryData = normalizeItinerary(aiData);
+        finalImageUrl = result.imageUrl || result.imageUrls || "";
+        destinationIata = aiData.destinationIata || "N/A";
 
         const jwt = await AsyncStorage.getItem(JWT_KEY);
         if (!jwt) throw new Error("Not authenticated with backend");
@@ -197,30 +180,22 @@ export default function GenerateTrip() {
         } : null;
 
         const newlyCreatedTrip = await apiPost<any>("/api/v1/trips", {
-          normalized_key: normalizedKey,
           trip_plan: itineraryData,
           image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
-          destination_iata: destinationIata,
           total_days: tripData.totalDays,
           traveler: cleanTraveler,
-          is_international: tripData.isInternational || false,
-          departure_iata: localDepartureIata,
           traveler_mode: tripData.travelerMode || "SOLO",
           concert_data: concertPayload,
         });
 
-        const savedTrip = newlyCreatedTrip.saved_trip;
-        const imageUrls: string[] = savedTrip?.image_urls ?? [];
+        const imageUrls: string[] = newlyCreatedTrip.image_urls ?? [];
         const mappedTrip = {
           id: String(newlyCreatedTrip.id),
-          savedTripId: newlyCreatedTrip.normalized_key,
+          savedTripId: newlyCreatedTrip.id,
           userEmail: "",
           userId: String(newlyCreatedTrip.user_id ?? ""),
           totalDays: newlyCreatedTrip.total_days ?? 1,
           traveler: newlyCreatedTrip.traveler,
-          isInternational: newlyCreatedTrip.is_international,
-          departureIata: newlyCreatedTrip.departure_iata,
-          destinationIata: newlyCreatedTrip.destination_iata,
           travelerMode: newlyCreatedTrip.traveler_mode,
           isActive: newlyCreatedTrip.is_active,
           isFinished: newlyCreatedTrip.is_finished,
@@ -231,7 +206,7 @@ export default function GenerateTrip() {
           completedAt: newlyCreatedTrip.completed_at,
           updatedAt: newlyCreatedTrip.updated_at,
           createdAt: newlyCreatedTrip.created_at,
-          tripPlan: savedTrip?.trip_plan,
+          tripPlan: newlyCreatedTrip.trip_plan,
           concertData: newlyCreatedTrip.concert_data,
           imageUrl: newlyCreatedTrip.image_url || newlyCreatedTrip.imageUrl || (imageUrls.length > 0 ? imageUrls : undefined),
         };

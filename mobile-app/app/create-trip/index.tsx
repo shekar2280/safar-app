@@ -159,16 +159,12 @@ export default function CreateTripIndex() {
       return;
     }
 
-    const homeDeparture = { name: "India", countryCode: "IN" };
-
     setTripData({
-      departureInfo: homeDeparture as any,
       destinationInfo: destination,
       travelerMode,
       totalDays,
       traveler: getTravelerObject(travelerMode, travelerCount),
       budget: budget.title,
-      isInternational: (homeDeparture as any).countryCode !== destination.countryCode,
       tripCategory: (params.tripCategory as any) || "GENERAL",
     });
     router.push("/create-trip/generate-trip" as any);

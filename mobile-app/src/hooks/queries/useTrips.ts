@@ -4,11 +4,10 @@ import { UserTrip } from "@/src/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function mapBackendTrip(raw: any): UserTrip {
-  const savedTrip = raw.saved_trip;
-  const imageUrls: string[] = savedTrip?.image_urls ?? [];
+  const imageUrls: string[] = raw.image_urls ?? [];
   return {
     id: String(raw.id),
-    savedTripId: raw.normalized_key,
+    savedTripId: undefined,
     userEmail: "",
     userId: String(raw.user_id ?? ""),
     totalDays: raw.total_days ?? 1,
@@ -26,7 +25,7 @@ function mapBackendTrip(raw: any): UserTrip {
     completedAt: raw.completed_at,
     updatedAt: raw.updated_at,
     createdAt: raw.created_at,
-    tripPlan: savedTrip?.trip_plan,
+    tripPlan: raw.trip_plan,
     concertData: raw.concert_data,
     imageUrl:
       raw.image_url ||
