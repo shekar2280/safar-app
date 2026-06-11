@@ -3,13 +3,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.orm import joinedload
 
 from app import models, schemas
 from app.database import get_db
 from app.logger import trip_logger
 from app.api.dependencies import get_current_user
-from app.tasks import update_trip_weather
 
 router = APIRouter()
 

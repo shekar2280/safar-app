@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional, List, Any
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
 
 class UserProfile(BaseModel):
     id: str
@@ -38,6 +38,7 @@ class TokenData(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
     is_name_custom: Optional[bool] = None
 
 

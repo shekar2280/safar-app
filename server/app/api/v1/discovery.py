@@ -1,4 +1,3 @@
-import os
 import json
 import re
 import datetime
@@ -8,22 +7,20 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from fastapi_cache.decorator import cache
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from google import genai
 
 from app import models, schemas
 from app.database import get_db
 from app.logger import api_logger
-from app.api.dependencies import get_current_user
 from app.services.weather_service import weather_service
 from app.services.opentripmap_service import opentripmap_service
+from app.config import settings
+from app.rate_limiter import limiter
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 def get_gemini_client():
-    api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
+    api_key = settings.google_generative_ai_api_key
     if not api_key:
         api_logger.error("GOOGLE_GENERATIVE_AI_API_KEY is missing")
         raise ValueError("AI API key missing")
@@ -76,7 +73,7 @@ async def call_gemini_with_resilience(prompt: str, models_to_try: list = None):
     )
 
 async def get_pexels_image(query: str) -> str:
-    api_key = os.getenv("PEXELS_API_KEY")
+    api_key = settings.pexels_api_key
     if not api_key:
         return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
     
@@ -146,7 +143,7 @@ async def get_places(lat: float, lon: float, radius: int = 5000):
 @cache(expire=3600)
 @limiter.limit("10/minute")
 async def find_concerts(request: Request, artistName: str):
-    ticketmaster_key = os.getenv("TICKETMASTER_API_KEY")
+    ticketmaster_key = settings.ticketmaster_api_key
     if not ticketmaster_key:
         raise HTTPException(status_code=503, detail="Concert discovery is temporarily unavailable. Check back soon!")
     async with httpx.AsyncClient() as http_client:
@@ -321,7 +318,7 @@ async def generate_itinerary(request: Request, body: schemas.ItineraryRequest, d
             ]
 
             if body.tripCategory != "CONCERT":
-                unsplash_api_key = os.getenv("UNSPLASH_API_KEY")
+                unsplash_api_key = settings.unsplash_api_key
                 if unsplash_api_key:
                     async with httpx.AsyncClient() as http_client:
                         unsplash_res = await http_client.get(

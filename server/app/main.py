@@ -1,34 +1,32 @@
-from fastapi.responses import JSONResponse
-from app.tasks import process_test_task
-
 import os
 import datetime
 import json
+import asyncio
 import firebase_admin
 from firebase_admin import credentials
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.backends.inmemory import InMemoryBackend
 import sentry_sdk
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
 import redis.asyncio as aioredis
-import asyncio
-from app.websocket_manager import manager
 
+from app.tasks import process_test_task
+from app.websocket_manager import manager
 from app import models, schemas, auth_utils
 from app.database import engine, Base
 from app.logger import auth_logger, trip_logger, api_logger
 from app.services.weather_service import weather_service
 from app.services.opentripmap_service import opentripmap_service
 from app.config import settings
+from app.rate_limiter import limiter
 
-if settings.env == "development":
-    Base.metadata.create_all(bind=engine)
+# Unconditionally initialize tables on startup if they don't exist
+Base.metadata.create_all(bind=engine)
 
 if settings.sentry_dsn:
     sentry_sdk.init(
@@ -62,7 +60,6 @@ if not firebase_admin._apps:
         firebase_admin.initialize_app()
         auth_logger.warning("Firebase Admin initialized WITHOUT service account (restricted access)")
 
-limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -143,8 +140,8 @@ async def startup():
         api_logger.info("Safar API started with Redis cache", extra={"redis": redis_url.split("@")[-1]})
         asyncio.create_task(redis_pubsub_listener())
     except Exception as e:
-        api_logger.warning("Redis cache initialization failed, falling back to memory", extra={"error": str(e)})
-        FastAPICache.init(RedisBackend(None), prefix="safar-cache")
+        api_logger.warning("Redis cache initialization failed, falling back to in-memory cache", extra={"error": str(e)})
+        FastAPICache.init(InMemoryBackend(), prefix="safar-cache")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
