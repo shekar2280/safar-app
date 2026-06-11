@@ -2,11 +2,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Animated, Dimensions } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useUser } from "@/src/context/UserContext";
-import { useTrips } from "@/src/hooks/queries/useTrips";
+import { useTrips, useActivateTrip } from "@/src/hooks/queries/useTrips";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
-import { apiPatch } from "@/src/lib/api";
 import { fallbackImages } from "@/src/constants";
 import { UserTrip } from "@/src/constants";
 
@@ -16,7 +15,8 @@ export const useTripDetails = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { data: userTrips = [], isLoading: loadingTrips } = useTrips();
-  const { trip, imageUrl } = useLocalSearchParams();
+  const activateTripMutation = useActivateTrip();
+  const { tripId, trip, imageUrl } = useLocalSearchParams();
   const { toggleVisited, deactivateTrip } = useActiveTrip();
   const queryClient = useQueryClient();
 
@@ -37,18 +37,21 @@ export const useTripDetails = () => {
     type: "info",
   });
 
-  const parsedTrip = useMemo(() => {
+  const tripDetails = useMemo(() => {
+    if (tripId) {
+      const idStr = String(tripId);
+      return (userTrips || []).find(t => String(t.id) === idStr) || {};
+    }
     try {
-      return typeof trip === "string" ? JSON.parse(trip) : trip;
+      const parsed = typeof trip === "string" ? JSON.parse(trip) : trip;
+      if (parsed?.id) {
+        return (userTrips || []).find(t => String(t.id) === String(parsed.id)) || parsed;
+      }
+      return parsed || {};
     } catch (e) {
       return {};
     }
-  }, [trip]);
-
-  const tripDetails = useMemo(() => {
-    const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
-    return latestFromCache || parsedTrip || {};
-  }, [parsedTrip, userTrips]);
+  }, [tripId, trip, userTrips]);
 
   const transportData = useMemo(
     () => ({
@@ -69,7 +72,7 @@ export const useTripDetails = () => {
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / width);
-    setActiveIndex(index);
+    setActiveIndex((prev) => (prev !== index ? index : prev));
   };
 
   const executeActivation = async () => {
@@ -77,8 +80,11 @@ export const useTripDetails = () => {
     setConfirmActivateVisible(false);
     try {
       setIsAnimating(true);
-      await apiPatch(`/api/v1/trips/${tripDetails.id}/activate`, {});
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      
+      // Perform optimistic mutation instantly
+      activateTripMutation.mutate(tripDetails.id);
+
+      // Transition screen after a brief tactile delay (600ms) for the spinning compass rose
       setTimeout(() => {
         setIsAnimating(false);
         router.push({
@@ -88,7 +94,7 @@ export const useTripDetails = () => {
             totalDays: tripDetails.totalDays ?? 1
           },
         });
-      }, 3000);
+      }, 600);
     } catch {
       setIsAnimating(false);
       setAlertConfig({
