@@ -49,3 +49,32 @@ export const CITY_ALIASES: Record<string, string> = {
   "new york city": "New York",
   "bengaluru urban": "Bengaluru",
 };
+
+export const STORAGE_KEYS = {
+  HOME_COUNTRY: "USER_HOME_COUNTRY",
+  SELECTED_COUNTRY: "USER_SELECTED_COUNTRY",
+};
+
+export const SUGGESTED_OUTBOUND: Record<string, string[]> = {
+  US: ["Japan", "Italy", "France", "India", "United Kingdom"],
+  IN: ["Japan", "United States", "Thailand", "Vietnam", "UAE"],
+  DEFAULT: ["United States", "Japan", "Italy", "France", "Thailand"],
+};
+
+export const BACKUPS = ["United Kingdom", "Spain", "Singapore"];
+
+export const COUNTRY_EMOJIS: Record<string, string> = {
+  "India": "🇮🇳",
+  "United States": "🇺🇸",
+  "Japan": "🇯🇵",
+  "Italy": "🇮🇹",
+  "UAE": "🇦🇪",
+  "Thailand": "🇹🇭",
+  "France": "🇫🇷",
+  "Indonesia": "🇮🇩",
+  "United Kingdom": "🇬🇧",
+  "UK": "🇬🇧",
+  "Vietnam": "🇻🇳",
+  "Spain": "🇪🇸",
+  "Singapore": "🇸🇬",
+};

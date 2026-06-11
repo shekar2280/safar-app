@@ -22,7 +22,7 @@ export default function DiscoverCard({
   const cardRadius = 24;
   const colors = useThemeColors();
 
-  const originalSource = React.useMemo(() => {
+  const sourceToUse = React.useMemo(() => {
     if (option?.image) {
       return typeof option.image === "string"
         ? { uri: option.image }
@@ -31,17 +31,6 @@ export default function DiscoverCard({
     const fallbackIndex = (option?.id || 0) % DISCOVER_IMAGES.length;
     return { uri: DISCOVER_IMAGES[fallbackIndex] };
   }, [option]);
-
-  const [imgSource, setImgSource] = React.useState(originalSource);
-
-  React.useEffect(() => {
-    setImgSource(originalSource);
-  }, [originalSource]);
-
-  const handleError = () => {
-    const randomIdx = Math.floor(Math.random() * DISCOVER_IMAGES.length);
-    setImgSource({ uri: DISCOVER_IMAGES[randomIdx] });
-  };
 
   const hasSpecialTag = option?.festival && !hideTag;
 
@@ -58,8 +47,7 @@ export default function DiscoverCard({
       ]}
     >
       <Image
-        source={imgSource}
-        onError={handleError}
+        source={sourceToUse}
         style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
         contentFit="cover"
         transition={200}
