@@ -13,12 +13,25 @@ async function fetchWeather(city: string) {
   );
 }
 
+const getMsUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0,
+    0,
+    0
+  );
+  return midnight.getTime() - now.getTime();
+};
+
 export function useWeather(city: string) {
   return useQuery({
     queryKey: weatherQueryKeys.byCity(city),
     queryFn: () => fetchWeather(city),
-    staleTime: 24 * 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
+    staleTime: getMsUntilMidnight(),
+    gcTime: 48 * 60 * 60 * 1000,
     enabled: !!city,
   });
 }
