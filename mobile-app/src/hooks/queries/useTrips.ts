@@ -1,14 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiDelete, apiPatch, JWT_KEY } from "@/src/lib/api";
-import { UserTrip } from "@/src/types";
+import { UserTrip } from "@/src/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function mapBackendTrip(raw: any): UserTrip {
-  const savedTrip = raw.saved_trip;
-  const imageUrls: string[] = savedTrip?.image_urls ?? [];
+  const imageUrls: string[] = raw.image_urls ?? [];
   return {
     id: String(raw.id),
-    savedTripId: raw.normalized_key,
+    savedTripId: undefined,
     userEmail: "",
     userId: String(raw.user_id ?? ""),
     totalDays: raw.total_days ?? 1,
@@ -26,9 +25,12 @@ function mapBackendTrip(raw: any): UserTrip {
     completedAt: raw.completed_at,
     updatedAt: raw.updated_at,
     createdAt: raw.created_at,
-    tripPlan: savedTrip?.trip_plan,
+    tripPlan: raw.trip_plan,
     concertData: raw.concert_data,
-    imageUrl: raw.image_url || raw.imageUrl || (imageUrls.length > 0 ? imageUrls : undefined),
+    imageUrl:
+      raw.image_url ||
+      raw.imageUrl ||
+      (imageUrls.length > 0 ? imageUrls : undefined),
   };
 }
 
@@ -48,20 +50,23 @@ export function useTrips() {
   return useQuery({
     queryKey: tripQueryKeys.lists(),
     queryFn: fetchTrips,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 7 * 24 * 60 * 60 * 1000, 
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 7 * 24 * 60 * 60 * 1000,
   });
 }
 
 export function useActivateTrip() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (tripId: string) => apiPatch(`/api/v1/trips/${tripId}/activate`, {}),
+    mutationFn: (tripId: string) =>
+      apiPatch(`/api/v1/trips/${tripId}/activate`, {}),
     onMutate: async (tripId: string) => {
       await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
-      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      const previous = queryClient.getQueryData<UserTrip[]>(
+        tripQueryKeys.lists(),
+      );
       queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
-        old?.map((t) => (t.id === tripId ? { ...t, isActive: true } : t))
+        old?.map((t) => (t.id === tripId ? { ...t, isActive: true } : t)),
       );
       return { previous };
     },
@@ -82,9 +87,11 @@ export function useDeleteTrip() {
     mutationFn: (tripId: string) => apiDelete(`/api/v1/trips/${tripId}`),
     onMutate: async (tripId: string) => {
       await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
-      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      const previous = queryClient.getQueryData<UserTrip[]>(
+        tripQueryKeys.lists(),
+      );
       queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
-        old ? old.filter((t) => t.id !== tripId) : []
+        old ? old.filter((t) => t.id !== tripId) : [],
       );
       return { previous };
     },
@@ -102,13 +109,22 @@ export function useDeleteTrip() {
 export function useUpdateTripBudget() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ tripId, total_budget }: { tripId: string; total_budget: number }) =>
-      apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget }),
+    mutationFn: ({
+      tripId,
+      total_budget,
+    }: {
+      tripId: string;
+      total_budget: number;
+    }) => apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget }),
     onMutate: async ({ tripId, total_budget }) => {
       await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
-      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      const previous = queryClient.getQueryData<UserTrip[]>(
+        tripQueryKeys.lists(),
+      );
       queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
-        old?.map((t) => (t.id === tripId ? { ...t, totalBudget: total_budget } : t))
+        old?.map((t) =>
+          t.id === tripId ? { ...t, totalBudget: total_budget } : t,
+        ),
       );
       return { previous };
     },
@@ -126,13 +142,23 @@ export function useUpdateTripBudget() {
 export function useUpdateVisitedIndices() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ tripId, visited_indices }: { tripId: string; visited_indices: number[] }) =>
+    mutationFn: ({
+      tripId,
+      visited_indices,
+    }: {
+      tripId: string;
+      visited_indices: number[];
+    }) =>
       apiPatch(`/api/v1/trips/${tripId}/visited-indices`, { visited_indices }),
     onMutate: async ({ tripId, visited_indices }) => {
       await queryClient.cancelQueries({ queryKey: tripQueryKeys.lists() });
-      const previous = queryClient.getQueryData<UserTrip[]>(tripQueryKeys.lists());
+      const previous = queryClient.getQueryData<UserTrip[]>(
+        tripQueryKeys.lists(),
+      );
       queryClient.setQueryData<UserTrip[]>(tripQueryKeys.lists(), (old) =>
-        old?.map((t) => (t.id === tripId ? { ...t, visitedIndices: visited_indices } : t))
+        old?.map((t) =>
+          t.id === tripId ? { ...t, visitedIndices: visited_indices } : t,
+        ),
       );
       return { previous };
     },

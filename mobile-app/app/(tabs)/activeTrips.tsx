@@ -16,7 +16,7 @@ import { useTrips } from "@/src/hooks/queries/useTrips";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ActiveTripCard from "@/src/components/wallet/ActiveTripCard";
-import { UserTrip } from "@/src/types";
+import { UserTrip } from "@/src/constants";
 import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");

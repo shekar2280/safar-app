@@ -1,4 +1,3 @@
-import os
 import json
 import re
 import datetime
@@ -8,22 +7,20 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from fastapi_cache.decorator import cache
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from google import genai
 
 from app import models, schemas
 from app.database import get_db
 from app.logger import api_logger
-from app.api.dependencies import get_current_user
 from app.services.weather_service import weather_service
 from app.services.opentripmap_service import opentripmap_service
+from app.config import settings
+from app.rate_limiter import limiter
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 def get_gemini_client():
-    api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
+    api_key = settings.google_generative_ai_api_key
     if not api_key:
         api_logger.error("GOOGLE_GENERATIVE_AI_API_KEY is missing")
         raise ValueError("AI API key missing")
@@ -76,7 +73,7 @@ async def call_gemini_with_resilience(prompt: str, models_to_try: list = None):
     )
 
 async def get_pexels_image(query: str) -> str:
-    api_key = os.getenv("PEXELS_API_KEY")
+    api_key = settings.pexels_api_key
     if not api_key:
         return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80"
     
@@ -146,7 +143,7 @@ async def get_places(lat: float, lon: float, radius: int = 5000):
 @cache(expire=3600)
 @limiter.limit("10/minute")
 async def find_concerts(request: Request, artistName: str):
-    ticketmaster_key = os.getenv("TICKETMASTER_API_KEY")
+    ticketmaster_key = settings.ticketmaster_api_key
     if not ticketmaster_key:
         raise HTTPException(status_code=503, detail="Concert discovery is temporarily unavailable. Check back soon!")
     async with httpx.AsyncClient() as http_client:
@@ -178,19 +175,16 @@ async def get_trending_places(
             else:
                 api_logger.info("TRENDING CACHE STALE, REFRESHING", extra={"country": country_key, "age_days": (now - cached.created_at).days})
         
-        api_logger.info("FETCHING NEW TRENDING PLACES (12 ITEMS)", extra={"country": country_key})
+        api_logger.info("FETCHING NEW TRENDING PLACES", extra={"country": country_key})
         country_name = body.country or "India"
-        trending_prompt = f"""Suggest a mix of 12 trending travel destinations (6 domestic within {country_name} and 6 popular international spots) for someone currently in {country_name}. 
-        Return the result as a raw JSON array of objects with these keys: 
-        - "name": City/Destination name
-        - "title": Full display name (e.g. "Tokyo, Japan")
-        - "country": Country name
-        - "desc": Short 1-sentence catchy description
-        - "famous_landmark": A specific famous place in that destination
-        - "pexels_query": A highly optimized keyword-rich search query for a STUNNING landscape photo of this place (e.g., "Cinematic sunset photography [Landmark] [Name]")
-        - "insight": A 2-sentence "Discovery Insight" explaining WHY this place is trending or what makes it culturally/visually unique right now.
-        - "recommended_month": Best month(s) to visit this specific place.
-        No markdown, no extra text."""
+        
+        base_prompt = body.trendingPlacesPrompt if body.trendingPlacesPrompt else f"Suggest exactly 20 top travel destinations strictly within {country_name}. Include a mix of the country's most iconic, world-famous major cities AND highly trending seasonal destinations. Return JSON array."
+        
+        trending_prompt = f"""{base_prompt}
+
+CRITICAL BACKEND INSTRUCTION:
+You MUST also add a "pexels_query" field to EVERY JSON object.
+- "pexels_query": A highly optimized keyword-rich search query for a STUNNING landscape photo of this place (e.g., "Cinematic sunset photography [Landmark] [Name]")"""
 
         raw_text = await call_gemini_with_resilience(trending_prompt)
         api_logger.info("GEMINI RESPONSE RECEIVED", extra={"raw_text_preview": raw_text[:200]})
@@ -211,12 +205,29 @@ async def get_trending_places(
             api_logger.error("GEMINI RESPONSE IS NOT A LIST", extra={"type": str(type(destinations))})
             raise HTTPException(status_code=500, detail="AI response format invalid (not a list)")
 
-        api_logger.info("ENRICHING TRENDING PLACES WITH PEXELS PHOTOS")
+        api_logger.info("ENRICHING TRENDING PLACES WITH PEXELS PHOTOS AND COORDINATES")
         enriched_places = []
         for i, dest in enumerate(destinations[:12]):
             landmark = dest.get("famous_landmark") or dest.get("name")
             pexels_search = dest.get("pexels_query") or f"Cinematic landscape photography {landmark} {dest.get('name')}"
             image_url = await get_pexels_image(pexels_search)
+            
+            lat = 0.0
+            lon = 0.0
+            try:
+                async with httpx.AsyncClient() as client:
+                    geocode_res = await client.get(
+                        f"https://nominatim.openstreetmap.org/search?q={dest.get('name')}&format=json&limit=1",
+                        headers={"User-Agent": "safar-backend"}
+                    )
+                    if geocode_res.status_code == 200:
+                        g_data = geocode_res.json()
+                        if g_data:
+                            lat = float(g_data[0]["lat"])
+                            lon = float(g_data[0]["lon"])
+            except Exception as e:
+                api_logger.warning("Failed to geocode trending place", extra={"place": dest.get("name"), "error": str(e)})
+                
             enriched_places.append({
                 "name": dest.get("name"),
                 "title": dest.get("title") or dest.get("name"),
@@ -225,7 +236,9 @@ async def get_trending_places(
                 "famous_landmark": landmark,
                 "insight": dest.get("insight"),
                 "recommended_month": dest.get("recommended_month"),
-                "image": image_url
+                "image": image_url,
+                "lat": lat,
+                "lon": lon
             })
 
         if cached:
@@ -247,51 +260,107 @@ async def get_trending_places(
 
 @router.post("/generate", response_model=schemas.ItineraryResponse)
 @limiter.limit("5/minute")
-async def generate_itinerary(request: Request, body: schemas.ItineraryRequest):
+async def generate_itinerary(request: Request, body: schemas.ItineraryRequest, db: Session = Depends(get_db)):
     try:
+        location_key = body.locationName.lower().strip()
+        now = datetime.datetime.utcnow()
+        
+        cached_location = db.query(models.LocationCache).filter(models.LocationCache.city == location_key).first()
+        
         poi_context = ""
-        if body.latitude and body.longitude:
-            try:
-                pois = await opentripmap_service.get_places_by_radius(body.latitude, body.longitude, radius=10000)
-                if pois:
-                    poi_names = [p.get("name") for p in pois if p.get("name")][:15]
-                    poi_context = f"\n\nREAL VERIFIED PLACES IN {body.locationName} (PRIORITIZE THESE IN THE ITINERARY):\n" + ", ".join(poi_names) + "\n\n"
-            except Exception as e:
-                api_logger.warning("Failed to fetch POIs for context", extra={"error": str(e)})
+        image_urls = []
+        places_data = []
+
+        if cached_location and cached_location.places_data:
+            api_logger.info("LOCATION CACHE HIT", extra={"location": location_key})
+            places_data = cached_location.places_data
+            image_urls = cached_location.image_urls
+            
+            poi_names = [p.get("name") for p in places_data if p.get("name")][:15]
+            if poi_names:
+                poi_context = f"\n\nREAL VERIFIED PLACES IN {body.locationName} (PRIORITIZE THESE IN THE ITINERARY):\n" + ", ".join(poi_names) + "\n\n"
+        else:
+            api_logger.info("LOCATION CACHE MISS", extra={"location": location_key})
+            request_lat = body.latitude
+            request_lon = body.longitude
+
+            if not request_lat or not request_lon:
+                api_logger.info("Coordinates missing, fetching via Nominatim", extra={"location": body.locationName})
+                try:
+                    async with httpx.AsyncClient() as client:
+                        geocode_res = await client.get(
+                            f"https://nominatim.openstreetmap.org/search?q={body.locationName}&format=json&limit=1",
+                            headers={"User-Agent": "safar-backend"}
+                        )
+                        if geocode_res.status_code == 200:
+                            geocode_data = geocode_res.json()
+                            if geocode_data:
+                                request_lat = float(geocode_data[0]["lat"])
+                                request_lon = float(geocode_data[0]["lon"])
+                                api_logger.info("Nominatim success", extra={"lat": request_lat, "lon": request_lon})
+                except Exception as e:
+                    api_logger.warning("Nominatim geocoding failed", extra={"error": str(e)})
+
+            if request_lat and request_lon:
+                try:
+                    pois = await opentripmap_service.get_places_by_radius(request_lat, request_lon, radius=10000)
+                    if pois:
+                        places_data = pois
+                        poi_names = [p.get("name") for p in pois if p.get("name")][:15]
+                        poi_context = f"\n\nREAL VERIFIED PLACES IN {body.locationName} (PRIORITIZE THESE IN THE ITINERARY):\n" + ", ".join(poi_names) + "\n\n"
+                except Exception as e:
+                    api_logger.warning("Failed to fetch POIs for context", extra={"error": str(e)})
+
+            image_urls = [
+                "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80",
+                "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80",
+                "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=1080&q=80",
+            ]
+
+            if body.tripCategory != "CONCERT":
+                unsplash_api_key = settings.unsplash_api_key
+                if unsplash_api_key:
+                    async with httpx.AsyncClient() as http_client:
+                        unsplash_res = await http_client.get(
+                            "https://api.unsplash.com/search/photos",
+                            params={
+                                "query": body.locationName,
+                                "per_page": 3,
+                                "orientation": "landscape",
+                                "order_by": "relevant",
+                            },
+                            headers={"Authorization": f"Client-ID {unsplash_api_key}"},
+                            timeout=5.0,
+                        )
+                        if unsplash_res.status_code == 200:
+                            results = unsplash_res.json().get("results", [])
+                            if results:
+                                image_urls = [
+                                    f"{img['urls']['raw']}&auto=format&fit=crop&w=1080&h=720&q=80"
+                                    for img in results
+                                ]
+
+            if cached_location:
+                cached_location.lat = request_lat
+                cached_location.lon = request_lon
+                cached_location.places_data = places_data
+                cached_location.image_urls = image_urls
+                cached_location.updated_at = now
+            else:
+                new_cache = models.LocationCache(
+                    city=location_key,
+                    lat=request_lat,
+                    lon=request_lon,
+                    places_data=places_data,
+                    image_urls=image_urls
+                )
+                db.add(new_cache)
+            db.commit()
 
         final_prompt = body.itineraryPrompt + poi_context
         itinerary_text = await call_gemini_with_resilience(final_prompt)
         
         api_logger.info("GEMINI ITINERARY GENERATED", extra={"location": body.locationName})
-
-        image_urls = [
-            "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1080&q=80",
-            "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1080&q=80",
-            "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=1080&q=80",
-        ]
-
-        if body.tripCategory != "CONCERT":
-            unsplash_api_key = os.getenv("UNSPLASH_API_KEY")
-            if unsplash_api_key:
-                async with httpx.AsyncClient() as http_client:
-                    unsplash_res = await http_client.get(
-                        "https://api.unsplash.com/search/photos",
-                        params={
-                            "query": body.locationName,
-                            "per_page": 3,
-                            "orientation": "landscape",
-                            "order_by": "relevant",
-                        },
-                        headers={"Authorization": f"Client-ID {unsplash_api_key}"},
-                        timeout=5.0,
-                    )
-                    if unsplash_res.status_code == 200:
-                        results = unsplash_res.json().get("results", [])
-                        if results:
-                            image_urls = [
-                                f"{img['urls']['raw']}&auto=format&fit=crop&w=1080&h=720&q=80"
-                                for img in results
-                            ]
 
         return {"itinerary": itinerary_text, "imageUrls": image_urls}
     except HTTPException:

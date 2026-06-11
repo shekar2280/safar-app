@@ -3,7 +3,6 @@ import {
   Text,
   Dimensions,
   TextInput,
-  Image,
   TouchableOpacity,
   ToastAndroid,
   ActivityIndicator,
@@ -13,13 +12,15 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
+import { Image } from "expo-image";
 import React, { useState, useContext } from "react";
 import { useRouter } from "expo-router";
-import { Colors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/colors";
+import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
 import { singerOptions } from "@/src/constants";
-import { ConcertEvent } from "@/src/types";
+import { ConcertEvent } from "@/src/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { apiGet } from "@/src/lib/api";
 
@@ -39,11 +40,13 @@ export default function ConcertTrip() {
   const [artist, setArtist] = useState("");
   const [loading, setLoading] = useState(false);
   const context = useContext(ConcertTripContext);
+  const colors = useThemeColors();
+  const { isDark } = useTheme();
 
   const fetchConcerts = async (artistName: string): Promise<ConcertEvent[]> => {
     try {
-      const eventsRaw = await apiGet<any[]>("/api/v1/discovery/concert", { 
-        artistName 
+      const eventsRaw = await apiGet<any[]>("/api/v1/discovery/concert", {
+        artistName
       });
 
       if (!Array.isArray(eventsRaw)) {
@@ -95,12 +98,11 @@ export default function ConcertTrip() {
     }
   };
 
-  const onSelectArtist = async (name: string) => {
-    if (loading) return;
-    setArtist(name);
+  const handleConfirm = async () => {
+    if (loading || artist.trim().length < 3) return;
     setLoading(true);
 
-    const options = await fetchConcerts(name);
+    const options = await fetchConcerts(artist.trim());
 
     setLoading(false);
 
@@ -114,49 +116,60 @@ export default function ConcertTrip() {
   if (!context) return null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.BACKGROUND }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={Colors.PRIMARY} />
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: colors.SURFACE_LIGHT }]}>
+          <Ionicons name="chevron-back" size={28} color={colors.TEXT} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.subtitle}>CHOOSE YOUR VIBE</Text>
-          <Text style={styles.title}>Select Artist</Text>
+          <Text style={[styles.subtitle, { color: colors.SECONDARY }]}>CHOOSE YOUR VIBE</Text>
+          <Text style={[styles.title, { color: colors.TEXT }]}>Select Artist</Text>
         </View>
       </View>
 
       <View style={styles.searchContainer}>
-        <View style={styles.searchBarWrapper}>
-          <Ionicons name="search-outline" size={20} color={Colors.GRAY} style={{ marginRight: 10 }} />
+        <View style={[styles.searchBarWrapper, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
+          <Ionicons name="search-outline" size={20} color={colors.MUTED_TEXT} style={{ marginRight: 10 }} />
           <TextInput
-            style={styles.searchBar}
+            style={[styles.searchBar, { color: colors.TEXT }]}
             value={artist}
             onChangeText={setArtist}
             placeholder="Type artist name here"
-            placeholderTextColor={Colors.GRAY}
+            placeholderTextColor={colors.MUTED_TEXT}
           />
         </View>
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={styles.subHeader}>Popular Artists</Text>
+        <Text style={[styles.subHeader, { color: colors.TEXT }]}>Popular Artists</Text>
         <FlatList
           data={singerOptions}
           numColumns={2}
           keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={true}
+          extraData={artist}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.cardContainer}
-              onPress={() => onSelectArtist(item.title)}
+              onPress={() => setArtist(item.title)}
             >
-              <View style={styles.card}>
-                <Image 
-                  source={typeof item.image === "string" ? { uri: item.image } : item.image} 
-                  style={styles.cardImage} 
+              <View style={[
+                styles.card,
+                { borderWidth: 3, borderColor: artist === item.title ? colors.GOLD : 'transparent' }
+              ]}>
+                <Image
+                  source={typeof item.image === "string" ? { uri: item.image } : item.image}
+                  style={[styles.cardImage, { backgroundColor: colors.SURFACE_LIGHT }]}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
                 <View style={styles.imageOverlay} />
                 <Text
@@ -167,33 +180,39 @@ export default function ConcertTrip() {
                 >
                   {item.title}
                 </Text>
+                {artist === item.title && (
+                  <View style={[styles.checkBadge, { backgroundColor: colors.GOLD }]}>
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           )}
         />
-        
-        <View style={styles.cautionContainer}>
-           <View style={styles.cautionBox}>
-             <Ionicons name="information-circle-outline" size={16} color={Colors.SECONDARY} />
-             <Text style={styles.cautionText}>
-                Always cross-verify artist schedules and official tour dates.
-             </Text>
-           </View>
+
+        <View style={[styles.cautionContainer, { backgroundColor: colors.BACKGROUND }]}>
+          <View style={[styles.cautionBox, { backgroundColor: colors.GOLD_MUTED, borderColor: colors.BORDER }]}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.GOLD} />
+            <Text style={[styles.cautionText, { color: colors.GOLD }]}>
+              Always cross-verify artist schedules and official tour dates.
+            </Text>
+          </View>
         </View>
       </View>
 
       {artist.trim().length > 2 && (
         <TouchableOpacity
-          onPress={() => onSelectArtist(artist)}
-          style={styles.continueButton}
+          onPress={handleConfirm}
+          disabled={loading}
+          style={[styles.continueButton, { backgroundColor: colors.GOLD, shadowColor: colors.GOLD }]}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={Colors.WHITE} />
+            <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
           ) : (
             <Text
               style={[
                 styles.continueText,
-                { fontSize: artist.trim().length > 12 ? 14 : 16 },
+                { color: isDark ? "#000" : colors.WHITE, fontSize: artist.trim().length > 12 ? 14 : 16 },
               ]}
             >
               Search "{artist}"
@@ -221,7 +240,6 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -246,11 +264,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 55,
-    backgroundColor: "#F8FAFC",
     borderRadius: 18,
     paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
   },
   searchBar: {
     flex: 1,
@@ -270,10 +286,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 100,
   },
-  cardContainer: { 
-    flex: 1, 
-    margin: 8, 
-    height: height * 0.2 
+  cardContainer: {
+    flex: 1,
+    margin: 8,
+    height: height * 0.2
   },
   card: {
     flex: 1,
@@ -285,14 +301,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
-  cardImage: { 
-    width: "100%", 
-    height: "100%", 
-    resizeMode: "cover" 
+  cardImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover"
   },
-  imageOverlay: { 
-    ...StyleSheet.absoluteFillObject, 
-    backgroundColor: "rgba(0,0,0,0.3)" 
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)"
   },
   cardText: {
     position: "absolute",
@@ -307,13 +323,11 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 60,
-    backgroundColor: Colors.PRIMARY,
     borderRadius: 20,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
-    shadowColor: Colors.PRIMARY,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -340,5 +354,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#854d0e",
     lineHeight: 16,
+  },
+  checkBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    elevation: 4,
+    zIndex: 10,
   },
 });

@@ -1,13 +1,11 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActiveTripContextValue, ActiveTripData } from "@/src/types";
+import { ActiveTripContextValue, ActiveTripData, AlertType, Spending } from "@/src/constants";
 import { apiPatch } from "@/src/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
-import { AlertType } from "@/src/types";
-import { Spending } from "@/src/types";
 import { formatSpendingDate } from "../utils/dateFormatter";
 import NetInfo from "@react-native-community/netinfo";
 
@@ -81,20 +79,26 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
 
         const state = await NetInfo.fetch();
         if (state.isConnected) {
-          if (localSpendings && localSpendings.length > (activeTrip.archivedSpendings?.length || 0)) {
+          const localSpendingsStr = JSON.stringify(localSpendings || []);
+          const serverSpendingsStr = JSON.stringify(activeTrip.archivedSpendings || []);
+          if (localSpendings && localSpendingsStr !== serverSpendingsStr) {
             await apiPatch(`/api/v1/trips/${activeTrip.id}/archive-spendings`, { spendings: localSpendings });
             queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
           }
           
-          if (visited.length > (activeTrip.visitedIndices?.length || 0)) {
+          const localVisitedStr = JSON.stringify(visited || []);
+          const serverVisitedStr = JSON.stringify(activeTrip.visitedIndices || []);
+          if (localVisitedStr !== serverVisitedStr) {
             await apiPatch(`/api/v1/trips/${activeTrip.id}/visited-indices`, { visited_indices: visited });
           }
 
-          if (skipped.length > (activeTrip.skipped_indices?.length || 0)) {
+          const localSkippedStr = JSON.stringify(skipped || []);
+          const serverSkippedStr = JSON.stringify(activeTrip.skipped_indices || []);
+          if (localSkippedStr !== serverSkippedStr) {
             await apiPatch(`/api/v1/trips/${activeTrip.id}/skipped-indices`, { skipped_indices: skipped });
           }
 
-          if (totalBudget && totalBudget !== activeTrip.totalBudget) {
+          if (totalBudget !== undefined && totalBudget !== activeTrip.totalBudget) {
             await apiPatch(`/api/v1/trips/${activeTrip.id}/budget`, { total_budget: totalBudget });
           }
 
@@ -177,10 +181,11 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, visitedIndices } : prev);
       await saveLocally(tripId, visitedIndices, skipped);
-      await apiPatch(`/api/v1/trips/${tripId}/visited-indices`, {
+      apiPatch(`/api/v1/trips/${tripId}/visited-indices`, {
         visited_indices: visitedIndices,
-      });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).catch(() => {});
     } catch (error) {
     }
   };
@@ -190,10 +195,11 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, skipped_indices: skippedIndices } : prev);
       await saveLocally(tripId, visited, skippedIndices);
-      await apiPatch(`/api/v1/trips/${tripId}/skipped-indices`, {
+      apiPatch(`/api/v1/trips/${tripId}/skipped-indices`, {
         skipped_indices: skippedIndices,
-      });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).catch(() => {});
     } catch (error) {
     }
   };
@@ -204,8 +210,9 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, totalBudget } : prev);
       await saveLocally(tripId, visited, skipped, totalBudget);
-      await apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: totalBudget });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: totalBudget }).then(() => {
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).catch(() => {});
     } catch (error) {
     }
   };
@@ -241,8 +248,9 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     });
 
     try {
-      await apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList }).then(() => {
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).catch(() => {});
     } catch (error) {
     }
   };
@@ -267,8 +275,9 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     });
 
     try {
-      await apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList });
-      queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList }).then(() => {
+        queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
+      }).catch(() => {});
     } catch (error) {
     }
   };

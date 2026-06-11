@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     
     # Security
     allowed_origins: List[str] = ["*"]
+    jwt_secret: str = "supersecretkey"
     
     # API Keys
     google_generative_ai_api_key: str = ""

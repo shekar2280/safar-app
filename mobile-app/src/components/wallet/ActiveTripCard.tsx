@@ -19,7 +19,7 @@ import { apiPatch } from "@/src/lib/api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { fallbackImages } from "@/src/constants";
-import { ActiveTripCardProps } from "@/src/types";
+import { ActiveTripCardProps } from "@/src/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import * as Sentry from "@sentry/react-native";
@@ -54,11 +54,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 
   const tripName = trip?.concertData?.artist
     ? `${trip.concertData.artist} Concert`
-    : trip?.tripPlan?.tripName ||
-    (trip?.savedTripId
-      ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
-      trip.savedTripId.split("-")[0].slice(1)
-      : "Active Trip");
+    : trip?.tripPlan?.tripName || "Active Trip";
 
   const goToPlanner = () => {
     setActiveTrip(trip as any);
@@ -98,7 +94,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 
   return (
     <View style={[styles.cardContainer, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
-      <TouchableOpacity activeOpacity={0.95} style={styles.card} onPress={goToPlanner} disabled={isArchiving}>
+      <TouchableOpacity activeOpacity={0.95} style={[styles.card, { backgroundColor: colors.LIGHT_GRAY }]} onPress={goToPlanner} disabled={isArchiving}>
         <Image source={tripImageSource} style={styles.bannerImage} transition={500} />
 
         <View style={styles.topRow}>
@@ -186,7 +182,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.3,
     borderColor: Colors.WHITE,
   },
-  card: { height: 160, borderRadius: 20, overflow: "hidden", backgroundColor: "#F0F0F0" },
+  card: { height: 160, borderRadius: 20, overflow: "hidden" },
   bannerImage: { ...StyleSheet.absoluteFillObject },
   topRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, alignItems: 'center' },
   liveBadge: {

@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional, List, Any
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
 
 class UserProfile(BaseModel):
     id: str
@@ -12,7 +12,6 @@ class UserProfile(BaseModel):
     created_at: datetime.datetime
     updated_at: Optional[datetime.datetime] = None
     last_login: Optional[datetime.datetime] = None
-    home_location: Optional[Any] = None
     is_name_custom: bool = False
 
     class Config:
@@ -39,29 +38,19 @@ class TokenData(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    home_location: Optional[Any] = None
     full_name: Optional[str] = None
+    is_name_custom: Optional[bool] = None
 
-class SavedTripOut(BaseModel):
-    id: str
-    normalized_key: str
-    trip_plan: Any
-    image_urls: List[str] = []       # list (was single image_url)
-    destination_iata: Optional[str] = None
-    created_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
 
 
 class UserTripOut(BaseModel):
     id: str
-    normalized_key: Optional[str] = None
+    trip_plan: Any
+    image_urls: List[str] = []
+
     total_days: int
     traveler: Optional[Any] = None
-    is_international: bool
-    departure_iata: Optional[str] = None
-    destination_iata: Optional[str] = None
     traveler_mode: Optional[str] = None
     is_active: bool
     is_finished: bool
@@ -78,21 +67,15 @@ class UserTripOut(BaseModel):
     created_at: datetime.datetime
     updated_at: Optional[datetime.datetime] = None
     
-    saved_trip: Optional[SavedTripOut] = None
-
     class Config:
         from_attributes = True
 
 
 class SaveTripRequest(BaseModel):
-    normalized_key: str
     trip_plan: Any
     image_urls: List[str] = []       # list (was single image_url)
-    destination_iata: Optional[str] = None
     total_days: int = 1
     traveler: Optional[Any] = None
-    is_international: bool = False
-    departure_iata: Optional[str] = None
     traveler_mode: str = "SOLO"
     concert_data: Optional[Any] = None
 
@@ -139,6 +122,8 @@ class TrendingPlace(BaseModel):
     famous_landmark: Optional[str] = None
     insight: Optional[str] = None
     recommended_month: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 
 class TrendingPlacesResponse(BaseModel):

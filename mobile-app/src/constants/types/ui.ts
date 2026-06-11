@@ -20,11 +20,14 @@ export interface AIDisclaimerProps {
 export interface UserTripCardProps {
   trip: UserTrip;
   onDelete?: (id: string) => void;
+  isPaused?: boolean;
+  isVisible?: boolean;
 }
 
 export interface UserTripListProps {
   userTrips: UserTrip[];
   onDelete?: (id: string) => void;
+  isPaused?: boolean;
 }
 
 export interface TravelOption {

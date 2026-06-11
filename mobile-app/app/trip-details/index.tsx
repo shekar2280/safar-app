@@ -7,7 +7,7 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,7 +17,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
 import RestaurantsInfo from "@/src/components/trip-details/RestaurantsInfo";
-import TransportInfo from "@/src/components/trip-details/TransportInfo";
+import SafarInsights from "@/src/components/trip-details/SafarInsights";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import ConcertInfo from "@/src/components/trip-details/ConcertInfo";
@@ -38,9 +38,11 @@ export default function TripDetails() {
   const colors = useThemeColors();
   const { isDark } = useTheme();
 
+  const [showContent, setShowContent] = useState(false);
+  const minDelayFired = useRef(false);
+
   const {
     tripDetails,
-    transportData,
     isAnimating,
     activeIndex,
     confirmActivateVisible,
@@ -48,7 +50,7 @@ export default function TripDetails() {
     activeTripInContext,
     alertConfig,
     setAlertConfig,
-    loadingStaticData,
+    isInitializing,
     images,
     handleScroll,
     handleActivateTrip,
@@ -57,13 +59,30 @@ export default function TripDetails() {
     toggleVisited,
   } = useTripDetails();
 
+  const isPlanMissing = !tripDetails?.concertData && !tripDetails?.tripPlan;
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  if (loadingStaticData) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      minDelayFired.current = true;
+      if (!isInitializing) {
+        setShowContent(true);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isInitializing && minDelayFired.current && !showContent) {
+      setShowContent(true);
+    }
+  }, [isInitializing]);
+
+  if (!showContent) {
     return <DetailsSkeleton />;
   }
 
@@ -77,7 +96,9 @@ export default function TripDetails() {
       >
         <View style={styles.slideshowContainer}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              router.back();
+            }}
             style={[
               styles.customBackBtn,
               {
@@ -94,7 +115,7 @@ export default function TripDetails() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
-            scrollEventThrottle={32}
+            scrollEventThrottle={16}
           >
             {images.map((img, index) => (
               <Image
@@ -175,48 +196,71 @@ export default function TripDetails() {
             />
           ) : null}
 
-          {tripDetails?.concertData ? (
+          {tripDetails?.concertData && (
             <ConcertInfo concertDetails={tripDetails as any} />
-          ) : (
-            <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
           )}
 
-          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
-          <TransportInfo transportData={transportData as any} />
-          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
-          <HotelInfo
-            cityName={tripDetails?.tripPlan?.tripName || ""}
-            hotelData={tripDetails?.tripPlan?.hotelOptions}
-          />
+          {isPlanMissing ? (
+            <View style={styles.offlineCard}>
+              <Ionicons name="cloud-offline-outline" size={44} color={colors.MUTED_TEXT} />
+              <Text style={[styles.offlineTitle, { color: colors.TEXT }]}>
+                Itinerary Offline
+              </Text>
+              <Text style={[styles.offlineText, { color: colors.MUTED_TEXT }]}>
+                Detailed itineraries for completed or draft journeys are stored online to optimize device storage.
+              </Text>
+              <Text style={[styles.offlineSubtext, { color: colors.GOLD }]}>
+                Please connect to the internet to load this trip.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <SafarInsights
+                bestTransport={tripDetails?.tripPlan?.bestTransport}
+                weatherInsight={(tripDetails?.concertData || tripDetails?.isFinished) ? undefined : tripDetails?.tripPlan?.weatherInsight}
+              />
 
-          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
+              {(!tripDetails?.concertData && !tripDetails?.isFinished) && (
+                <WeatherWidget cityName={tripDetails?.tripPlan?.tripName || ""} />
+              )}
 
-          <PlannedTrip
-            itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
-            cityName={tripDetails?.tripPlan?.tripName || ""}
-            isActive={!!tripDetails?.isActive}
-            isFinished={!!tripDetails?.isFinished}
-            visitedIndices={tripDetails.visitedIndices}
-            skippedIndices={tripDetails.skipped_indices}
-            onToggleVisited={(idx) => toggleVisited(tripDetails.id, idx)}
-            onActivate={handleActivateTrip}
-            onNavigateToActive={() =>
-              router.push({
-                pathname: "/activeTrips" as any,
-                params: { tripId: tripDetails.id },
-              })
-            }
-          />
+              <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
-          <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
+              <HotelInfo
+                cityName={tripDetails?.tripPlan?.tripName || ""}
+                hotelData={tripDetails?.tripPlan?.hotelOptions}
+              />
 
-          <RestaurantsInfo
-            restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}
-            cityName={tripDetails?.tripPlan?.tripName || ""}
-          />
+              <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
 
-          <AIDisclaimer />
+              <PlannedTrip
+                itineraryDetails={tripDetails?.tripPlan?.dailyItinerary}
+                cityName={tripDetails?.tripPlan?.tripName || ""}
+                isActive={!!tripDetails?.isActive}
+                isFinished={!!tripDetails?.isFinished}
+                visitedIndices={tripDetails.visitedIndices}
+                skippedIndices={tripDetails.skipped_indices}
+                onToggleVisited={(idx) => toggleVisited(tripDetails.id, idx)}
+                onActivate={handleActivateTrip}
+                onNavigateToActive={() =>
+                  router.push({
+                    pathname: "/activeTrips" as any,
+                    params: { tripId: tripDetails.id },
+                  })
+                }
+              />
+
+              <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />
+
+              <RestaurantsInfo
+                restaurantsInfo={{ ...tripDetails?.tripPlan?.recommendations } as any}
+                cityName={tripDetails?.tripPlan?.tripName || ""}
+              />
+
+              <AIDisclaimer />
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -230,36 +274,45 @@ export default function TripDetails() {
           >
             <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.animationOverlay}>
               <View style={styles.animCenterContent}>
-                <MotiView
-                  from={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", damping: 12 }}
-                  style={[styles.pulsingHex, { borderColor: colors.GOLD }]}
-                >
+                <View style={styles.compassContainer}>
+
                   <MotiView
-                    from={{ scale: 1 }}
-                    animate={{ scale: 1.2 }}
+                    from={{ scale: 0.7, opacity: 0.8 }}
+                    animate={{ scale: 1.4, opacity: 0 }}
                     transition={{
                       type: "timing",
-                      duration: 1000,
+                      duration: 2000,
                       loop: true,
-                      repeatReverse: true,
+                      repeatReverse: false,
+                    }}
+                    style={[StyleSheet.absoluteFillObject, styles.pulseRing, { borderColor: colors.GOLD }]}
+                  />
+                  <MotiView
+                    from={{ scale: 0.7, opacity: 0.8 }}
+                    animate={{ scale: 1.4, opacity: 0 }}
+                    transition={{
+                      type: "timing",
+                      duration: 2000,
+                      delay: 1000,
+                      loop: true,
+                      repeatReverse: false,
+                    }}
+                    style={[StyleSheet.absoluteFillObject, styles.pulseRing, { borderColor: colors.GOLD }]}
+                  />
+
+                  <MotiView
+                    from={{ rotate: "0deg" }}
+                    animate={{ rotate: "360deg" }}
+                    transition={{
+                      type: "timing",
+                      duration: 4000,
+                      loop: true,
+                      repeatReverse: false,
                     }}
                   >
-                    <Ionicons name="sparkles" size={60} color={colors.GOLD} />
+                    <Ionicons name="compass-outline" size={72} color={colors.GOLD} />
                   </MotiView>
-                </MotiView>
-
-                <MotiView
-                  from={{ translateX: -width }}
-                  animate={{ translateX: width }}
-                  transition={{
-                    type: "timing",
-                    duration: 1500,
-                    loop: true,
-                  }}
-                  style={[styles.scannerLine, { backgroundColor: colors.GOLD }]}
-                />
+                </View>
 
                 <View style={styles.statusContainer}>
                   <MotiView
@@ -282,9 +335,8 @@ export default function TripDetails() {
       <SafarAlert
         visible={confirmActivateVisible}
         title="Activate New Journey?"
-        message={`Activating this itinerary will conclude your current session in ${
-          activeTripInContext?.tripPlan?.tripName || "another location"
-        }. Do you wish to proceed?`}
+        message={`Activating this itinerary will conclude your current session in ${activeTripInContext?.tripPlan?.tripName || "another location"
+          }. Do you wish to proceed?`}
         type="confirm"
         confirmText="CONTINUE"
         cancelText="KEEP CURRENT"
@@ -376,7 +428,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   activatingText: {
-    marginTop: 20,
     fontFamily: "interBold",
     fontSize: 18,
     textAlign: "center",
@@ -386,25 +437,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-  pulsingHex: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
+  compassContainer: {
+    width: 130,
+    height: 130,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    position: "relative",
   },
-  scannerLine: {
-    height: 2,
-    width: width * 0.8,
-    marginTop: 40,
-    opacity: 0.5,
-    borderRadius: 1,
+  pulseRing: {
+    position: "absolute",
+    borderWidth: 1.5,
+    borderRadius: 90,
   },
   statusContainer: {
     marginTop: 40,
-    height: 30,
     justifyContent: "center",
   },
   divider: {
@@ -426,5 +472,34 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     fontSize: 14,
     letterSpacing: 1,
+  },
+  offlineCard: {
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: "rgba(100, 116, 139, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(100, 116, 139, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  offlineTitle: {
+    fontFamily: "outfitBold",
+    fontSize: 18,
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  offlineText: {
+    fontFamily: "inter",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  offlineSubtext: {
+    fontFamily: "outfitMedium",
+    fontSize: 13,
+    textAlign: "center",
   },
 });

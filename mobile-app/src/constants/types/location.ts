@@ -47,6 +47,9 @@ export interface NominatimResult {
   display_name: string;
   lat: string;
   lon: string;
+  addresstype?: string;
+  type?: string;
+  category?: string;
   address: {
     city?: string;
     town?: string;
@@ -71,4 +74,16 @@ export interface TrendingLocationData {
   coordinates: { lat: number | string; lon: number | string };
   insight?: string;
   recommendedMonth?: string;
+}
+
+export interface TrendingPlace {
+  id: number;
+  name: string;
+  title: string;
+  country: string;
+  desc: string;
+  image: string;
+  famous_landmark: string;
+  insight?: string;
+  recommended_month?: string;
 }

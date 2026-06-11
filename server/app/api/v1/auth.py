@@ -1,5 +1,5 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from firebase_admin import auth as firebase_auth
 
@@ -7,11 +7,13 @@ from app import models, schemas, auth_utils
 from app.database import get_db
 from app.logger import auth_logger
 from app.api.dependencies import get_current_user
+from app.rate_limiter import limiter
 
 router = APIRouter()
 
 @router.post("/sync-user", response_model=schemas.SyncUserResponse)
-async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def sync_user(request: Request, body: schemas.SyncUserRequest, db: Session = Depends(get_db)):
     try:
         decoded = firebase_auth.verify_id_token(body.firebase_id_token)
     except Exception as e:
@@ -48,7 +50,6 @@ async def sync_user(body: schemas.SyncUserRequest, db: Session = Depends(get_db)
             email=email,
             full_name=full_name,
             photo_url=photo_url,
-            home_location=None,
             created_at=now,
             last_login=now,
         )
@@ -76,7 +77,9 @@ async def get_me(current_user: models.User = Depends(get_current_user)):
 
 
 @router.patch("/me", response_model=schemas.UserProfile)
+@limiter.limit("15/minute")
 async def update_me(
+    request: Request,
     body: schemas.UserUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -85,8 +88,6 @@ async def update_me(
         "has_full_name": body.full_name is not None,
         "new_name": body.full_name
     })
-    if body.home_location is not None:
-        current_user.home_location = body.home_location
     if body.full_name is not None:
         auth_logger.info(f"Manual name update: {body.full_name}")
         current_user.full_name = body.full_name
@@ -106,7 +107,9 @@ async def update_me(
 
 
 @router.delete("/me")
+@limiter.limit("5/minute")
 async def delete_me(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):

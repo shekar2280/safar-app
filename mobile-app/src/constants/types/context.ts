@@ -58,5 +58,4 @@ export interface UserContextValue {
   setTransactions: (
     transactions: unknown[] | ((prev: unknown[]) => unknown[]),
   ) => void;
-  detectHomeLocation: () => Promise<void>;
 }

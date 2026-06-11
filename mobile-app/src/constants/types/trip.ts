@@ -1,5 +1,5 @@
 import { TravelerMode, TripCategory, TripType } from "./base";
-import { LocationData, DestinationData } from "./location";
+import { DestinationData, LocationData } from "./location";
 import { TripPlan } from "./itinerary";
 
 export interface Spending {

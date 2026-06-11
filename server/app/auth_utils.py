@@ -1,14 +1,11 @@
-import os
 import datetime
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from dotenv import load_dotenv
 from app import schemas
+from app.config import settings
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("JWT_SECRET", "supersecretkey")
+SECRET_KEY = settings.jwt_secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 

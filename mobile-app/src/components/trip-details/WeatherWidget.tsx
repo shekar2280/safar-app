@@ -1,15 +1,16 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Image, ImageBackground, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { WEATHER_CONFIG } from "@/src/constants";
 import { useWeather } from "@/src/hooks/queries/useWeather";
+import { Image } from "expo-image";
 
 const { width } = Dimensions.get("window");
 
-import { WeatherWidgetProps } from "@/src/types";
+import { WeatherWidgetProps } from "@/src/constants";
 
 export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const { data: weather, isLoading: loading } = useWeather(cityName);
@@ -30,11 +31,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
   const config = WEATHER_CONFIG[weatherCategory as keyof typeof WEATHER_CONFIG];
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.PRIMARY} />
-      </View>
-    );
+    return null;
   }
 
   if (!weather || !weather.current || !weather.current.weather) return null;
@@ -61,11 +58,13 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
         <Text style={[styles.title, { color: colors.MUTED_TEXT }]}>LOCAL WEATHER</Text>
       </View>
 
-      <ImageBackground
-        source={{ uri: config.bg }}
-        style={styles.cardBg}
-        imageStyle={{ borderRadius: 20 }}
-      >
+      <View style={styles.cardBg}>
+        <Image
+          source={{ uri: config.bg }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          transition={300}
+        />
         <View style={[styles.glassOverlay, { backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.35)" }]}>
           <View style={styles.topRow}>
             <MotiView
@@ -88,6 +87,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
               <Image
                 source={{ uri: `https://openweathermap.org/img/wn/${condition.icon}@4x.png` }}
                 style={styles.mainIcon}
+                transition={300}
               />
             </MotiView>
           </View>
@@ -126,7 +126,7 @@ export default function WeatherWidget({ cityName }: WeatherWidgetProps) {
             <Text style={styles.attributionText}>WEATHER POWERED BY OPENWEATHERMAP</Text>
           </View>
         </View>
-      </ImageBackground>
+      </View>
     </MotiView>
   );
 }
@@ -155,10 +155,10 @@ const styles = StyleSheet.create({
     minHeight: 200,
     overflow: "hidden",
     borderRadius: 20,
+    position: "relative",
   },
   glassOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
     padding: 24,
     justifyContent: "space-between",
   },

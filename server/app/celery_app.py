@@ -1,10 +1,11 @@
 from celery import Celery
 import os
+from app.config import settings
 
 celery_app = Celery(
     "safar_worker",
-    broker=os.getenv("CELERY_BROKER_URL", "pyamqp://user:password@localhost:5672//"),
-    backend=os.getenv("CELERY_RESULT_BACKEND", "rpc://")
+    broker=os.getenv("CELERY_BROKER_URL", settings.redis_url),
+    backend=os.getenv("CELERY_RESULT_BACKEND", settings.redis_url)
 )
 
 celery_app.conf.update(

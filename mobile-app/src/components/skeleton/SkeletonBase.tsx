@@ -26,7 +26,11 @@ export default function SkeletonBase({
       height={height as any}
       radius={radius}
       colorMode={theme as "light" | "dark"}
-      backgroundColor={colors.SURFACE_LIGHT}
+      colors={
+        theme === "dark"
+          ? [colors.SURFACE, colors.SURFACE_LIGHT, colors.SURFACE]
+          : [colors.SURFACE_LIGHT, colors.WHITE, colors.SURFACE_LIGHT]
+      }
       transition={{
         type: "timing",
         duration: 1500,

@@ -18,12 +18,11 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "@/src/components/trips/StartNewTripCard";
 import UserTripList from "@/src/components/trips/UserTripList";
-import HomeLocationPrompt from "@/src/components/trips/HomeLocationPrompt";
+
 import GlobalLocationHeader from "@/src/components/common/GlobalLocationHeader";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips, useDeleteTrip } from "@/src/hooks/queries/useTrips";
-import { UserTrip } from "@/src/types";
-import HeaderSkeleton from "@/src/components/skeleton/HeaderSkeleton";
+import { UserTrip } from "@/src/constants";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";
 import { useTheme } from "@/src/context/ThemeContext";
 
@@ -35,15 +34,22 @@ export default function Mytrip() {
   const { theme, toggleTheme, isDark } = useTheme();
   const colors = useThemeColors();
   const deleteTrip = useDeleteTrip();
-  const { data: userTrips = [], isLoading: tripsLoading, isFetching, refetch } = useTrips();
+  const { data: userTrips = [], isLoading: tripsLoading, refetch } = useTrips();
   const loading = authLoading || tripsLoading;
-  
+
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
   const firstName = userProfile?.fullName?.trim()?.split(" ")[0] || "Explorer";
 
   const handleDelete = (deletedId: string) => {
     deleteTrip.mutate(deletedId);
+  };
+
+  const handleManualRefresh = async () => {
+    setIsManualRefresh(true);
+    await refetch();
+    setIsManualRefresh(false);
   };
 
   const filteredTrips = useMemo(() => {
@@ -52,8 +58,7 @@ export default function Mytrip() {
     return userTrips.filter((item: UserTrip) => {
       const tripName = item?.concertData?.artist
         ? `${item.concertData.artist} Concert`
-        : item?.tripPlan?.tripName ||
-        (item?.savedTripId ? item.savedTripId.split("-")[0] : "My Trip");
+        : item?.tripPlan?.tripName || "My Trip";
 
       const tripLocation = (item as any)?.tripData?.locationInfo?.name || "";
       const discoverLocation = (item as any)?.discoverData?.locationInfo?.name || "";
@@ -82,7 +87,7 @@ export default function Mytrip() {
         ? "GOOD AFTERNOON"
         : "GOOD EVENING";
 
-  const renderHeader = () => (
+  const header = useMemo(() => (
     <View style={{ paddingTop: insets.top + 5 }}>
       <View style={styles.header}>
         {isSearching ? (
@@ -147,20 +152,20 @@ export default function Mytrip() {
           </>
         )}
       </View>
-      <HomeLocationPrompt />
-      {(userTrips.length === 0 && (loading || isFetching)) ? (
-        <View style={{ flex: 1, paddingHorizontal: 15 }}>
+
+      {loading ? (
+        <View style={{ flex: 1 }}>
           <TripCardSkeleton />
           <TripCardSkeleton />
           <TripCardSkeleton />
         </View>
       ) : null}
     </View>
-  );
+  ), [isSearching, searchQuery, colors, isDark, firstName, timeGreeting, loading, toggleTheme, toggleSearch, insets.top]);
 
   const renderEmpty = () => {
-    if (loading || (isFetching && userTrips.length === 0)) return null;
-    
+    if (loading) return null;
+
     if (searchQuery.trim()) {
       return (
         <View style={styles.noResults}>
@@ -185,14 +190,15 @@ export default function Mytrip() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.BACKGROUND }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <UserTripList 
-        userTrips={filteredTrips} 
+      <UserTripList
+        userTrips={loading ? [] : filteredTrips}
         onDelete={handleDelete}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+        isPaused={isSearching}
+        ListHeaderComponent={header}
+        ListEmptyComponent={renderEmpty()}
         contentContainerStyle={{ backgroundColor: colors.BACKGROUND }}
-        refreshing={isFetching && !loading}
-        onRefresh={refetch}
+        refreshing={isManualRefresh}
+        onRefresh={handleManualRefresh}
       />
     </View>
   );

@@ -5,7 +5,7 @@ import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { SafarAlertProps } from "@/src/types";
+import { SafarAlertProps } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 
@@ -73,11 +73,11 @@ export default function SafarAlert({
                       disabled={loading}
                     >
                       {loading ? (
-                        <ActivityIndicator color={(iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE} size="small" />
+                        <ActivityIndicator color={(type === "error" || type === "confirm") ? colors.WHITE : colors.BLACK} size="small" />
                       ) : (
                         <Text style={[
                           styles.confirmText, 
-                          { color: (iconColor === colors.SECONDARY || iconColor === colors.GOLD) ? colors.BLACK : colors.WHITE }
+                          { color: (type === "error" || type === "confirm") ? colors.WHITE : colors.BLACK }
                         ]}>
                           {confirmText}
                         </Text>

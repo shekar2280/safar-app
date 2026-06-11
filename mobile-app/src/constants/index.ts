@@ -6,3 +6,5 @@ export * from './hidden-gems';
 export * from './festive';
 export * from './colors';
 export * from './limits';
+export * from './types';
+

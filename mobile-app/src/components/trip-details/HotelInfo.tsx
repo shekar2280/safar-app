@@ -14,7 +14,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
-import { HotelOption, HotelInfoProps } from "@/src/types";
+import { HotelOption, HotelInfoProps } from "@/src/constants";
 import Button from "@/src/components/common/Button";
 import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 
@@ -71,9 +71,9 @@ export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) 
                 >
                   <Image
                     source={imageSource}
-                    style={styles.hotelImage}
+                    style={[styles.hotelImage, { backgroundColor: colors.SURFACE_LIGHT }]}
                     contentFit="cover"
-                    transition={500}
+                    transition={300}
                   />
                   <LinearGradient
                     colors={["transparent", "rgba(0,0,0,0.8)"]}

@@ -1,12 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  FlatList,
+  ScrollView,
   LayoutChangeEvent,
+  Animated,
 } from "react-native";
 import moment from "moment";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -18,21 +19,24 @@ import SafarAlert from "@/src/components/ui/SafarAlert";
 import { concertImages, fallbackImages } from "@/src/constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserTripCardProps } from "@/src/types";
+import { UserTripCardProps, AlertType } from "@/src/constants";
 import { apiDelete } from "@/src/lib/api";
 import * as Sentry from "@sentry/react-native";
-import { AlertType } from "@/src/types";
+import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
 
-const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
+const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }: UserTripCardProps) => {
   const router = useRouter();
   const colors = useThemeColors();
   const { isDark } = useTheme();
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
-  const [cardWidth, setCardWidth] = React.useState(width - 40);
-  const flatListRef = React.useRef<FlatList>(null);
+  const [cardWidth, setCardWidth] = React.useState(width * 0.94);
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const imageLengthRef = useRef(0);
+  const pressAnimRef = useRef(new Animated.Value(1)).current;
+  const isNavigatingRef = useRef(false);
 
   const [errorVisible, setErrorVisible] = React.useState(false);
   const [errorTitle, setErrorTitle] = React.useState("");
@@ -62,12 +66,9 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
 
   const tripName = trip?.concertData
     ? `${trip?.concertData?.artist}${trip?.concertData?.artist?.toLowerCase().includes("concert") ? "" : " Concert"}`
-    : isConcertLegacy
-      ? (trip?.savedTripId || "").split("-")[0].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ((trip?.savedTripId || "").toLowerCase().includes("concert") ? "" : " Concert")
-      : (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId)
-        ? (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].charAt(0).toUpperCase() +
-        (trip?.savedTrip?.normalized_key || (trip as any)?.savedTripId).split("-")[0].slice(1)
-        : "My Trip";
+    : trip?.tripPlan?.tripName
+      ? trip.tripPlan.tripName
+      : "My Trip";
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -109,31 +110,70 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
     return [{ uri: randomFallback }];
   }, [trip, randomFallback, concertFallback, isConcert]);
 
+  imageLengthRef.current = imageSources.length;
+
+  const isAutoplayPausedRef = React.useRef(false);
+  const isDraggingRef = React.useRef(false);
+  const pauseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetAutoplayTimer = React.useCallback(() => {
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+    }
+    pauseTimerRef.current = setTimeout(() => {
+      isAutoplayPausedRef.current = false;
+    }, 5000);
+  }, []);
+
   React.useEffect(() => {
-    if (imageSources.length <= 1) return;
+    return () => {
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current);
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    setActiveIndex(0);
+    scrollViewRef.current?.scrollTo({ x: 0, animated: false });
+  }, [trip?.id]);
+
+  React.useEffect(() => {
+    if (imageLengthRef.current <= 1 || isPaused || !isVisible) return;
 
     const interval = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % imageSources.length;
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-      setActiveIndex(nextIndex);
-    }, 4000);
+      if (isDraggingRef.current || isAutoplayPausedRef.current) {
+        return;
+      }
+      setActiveIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % imageLengthRef.current;
+        scrollViewRef.current?.scrollTo({ x: nextIndex * cardWidth, animated: true });
+        return nextIndex;
+      });
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [activeIndex, imageSources.length]);
+  }, [isPaused, isVisible, cardWidth]);
 
-  const onScroll = (event: any) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
-    if (index !== activeIndex && index >= 0 && index < imageSources.length) {
-      setActiveIndex(index);
+  const handleScroll = React.useCallback((event: any) => {
+    const scrollOffset = event.nativeEvent.contentOffset.x;
+    const slideSize = event.nativeEvent.layoutMeasurement.width || cardWidth;
+    if (slideSize > 0) {
+      const index = Math.round(scrollOffset / slideSize);
+      if (index >= 0 && index < imageSources.length) {
+        setActiveIndex((prev) => (prev !== index ? index : prev));
+      }
     }
-  };
+  }, [imageSources.length, cardWidth]);
 
-  const getItemLayout = (_: any, index: number) => ({
-    length: cardWidth,
-    offset: cardWidth * index,
-    index,
-  });
+  const onScrollEnd = (event: any) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width || cardWidth;
+    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
+    if (index >= 0 && index < imageSources.length) {
+      setActiveIndex((prev) => (prev !== index ? index : prev));
+    }
+    isDraggingRef.current = false;
+  };
 
   const handleDeleteFinal = async () => {
     try {
@@ -152,62 +192,109 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
     }
   };
 
+  const animatePressIn = () => {
+    Animated.spring(pressAnimRef, {
+      toValue: 0.965,
+      useNativeDriver: true,
+      speed: 40,
+      bounciness: 0,
+    }).start();
+  };
+
+  const animatePressOut = () => {
+    Animated.spring(pressAnimRef, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressCard = () => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    requestAnimationFrame(() => {
+      animatePressOut();
+      router.push({
+        pathname: "/trip-details",
+        params: {
+          tripId: trip.id,
+          imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
+        },
+      } as any);
+      setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 800);
+    });
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.SURFACE, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}
+    <Animated.View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.SURFACE,
+          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+          transform: [{ scale: pressAnimRef }],
+        }
+      ]}
       onLayout={onLayout}
-      onPress={() =>
-        router.push({
-          pathname: "/trip-details",
-          params: {
-            trip: JSON.stringify(trip),
-            imageUrl: imageSources[activeIndex]?.uri || imageSources[0]?.uri,
-          },
-        } as any)
-      }
     >
       <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
-        <FlatList
-          ref={flatListRef}
-          data={imageSources}
+        <ScrollView
+          ref={scrollViewRef}
           horizontal
-          pagingEnabled
-          decelerationRate="fast"
+          pagingEnabled={false}
           snapToInterval={cardWidth}
-          snapToAlignment="center"
+          snapToAlignment="start"
+          decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
           scrollEventThrottle={16}
-          getItemLayout={getItemLayout}
-          keyExtractor={(_, index) => index.toString()}
-          initialNumToRender={5}
-          windowSize={2}
-          maxToRenderPerBatch={5}
-          removeClippedSubviews={false}
-          renderItem={({ item, index }) => (
-            <View style={{ width: cardWidth, height: 230 }}>
+          onScroll={handleScroll}
+          onScrollBeginDrag={() => {
+            isDraggingRef.current = true;
+            isAutoplayPausedRef.current = true;
+            if (pauseTimerRef.current) {
+              clearTimeout(pauseTimerRef.current);
+            }
+          }}
+          onMomentumScrollEnd={(event) => {
+            onScrollEnd(event);
+            resetAutoplayTimer();
+          }}
+          onScrollEndDrag={(event) => {
+            onScrollEnd(event);
+            resetAutoplayTimer();
+          }}
+        >
+          {imageSources.map((item, index) => (
+            <TouchableOpacity
+              key={`${trip.id}-${index}`}
+              activeOpacity={1}
+              onPressIn={animatePressIn}
+              onPressOut={animatePressOut}
+              onPress={handlePressCard}
+              style={{ width: cardWidth, height: 230 }}
+            >
               <Image
                 source={item}
-                style={StyleSheet.absoluteFill}
+                style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
                 contentFit="cover"
-                priority="high"
-                cachePolicy="disk"
-                placeholder={{ blurhash: "L6PZf6ayfQfQfQfQfQfQfQfQfQfQ" }}
-                transition={200}
-                recyclingKey={trip.id + index}
               />
-            </View>
-          )}
-        />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.85)"]}
         style={styles.bottomGradient}
+        pointerEvents="none"
       />
 
       {imageSources.length > 1 && (
-        <View style={styles.paginationContainer}>
+        <View style={styles.paginationContainer} pointerEvents="none">
           {imageSources.map((_, i) => (
             <View
               key={i}
@@ -220,16 +307,32 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
         </View>
       )}
 
-      {isConcert && (
-        <View style={styles.badgeContainer}>
+      <View style={styles.badgeContainer} pointerEvents="none">
+        {isConcert && (
           <View style={[styles.eventBadge, { backgroundColor: colors.SECONDARY }]}>
             <Text style={[styles.badgeText, { color: Colors.BLACK }]}>CONCERT</Text>
           </View>
-        </View>
-      )}
+        )}
+        {trip.isActive && (
+          <View style={[styles.eventBadge, { backgroundColor: colors.GREEN || "#10B981" }]}>
+            <Text style={[styles.badgeText, { color: Colors.WHITE }]}>ACTIVE</Text>
+          </View>
+        )}
+        {trip.isFinished && (
+          <View style={[styles.eventBadge, { backgroundColor: "rgba(100, 116, 139, 0.8)" }]}>
+            <Text style={[styles.badgeText, { color: Colors.WHITE }]}>COMPLETED</Text>
+          </View>
+        )}
+      </View>
 
-      <View style={styles.content}>
-        <View style={{ flex: 1 }}>
+      <View style={styles.content} pointerEvents="box-none">
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          onPressIn={animatePressIn}
+          onPressOut={animatePressOut}
+          onPress={handlePressCard}
+          activeOpacity={1}
+        >
           <Text
             style={styles.title}
             numberOfLines={1}
@@ -248,7 +351,7 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
               `${trip.totalDays} ${trip.totalDays === 1 ? "Day" : "Days"} • ${trip?.traveler?.title || "1"}`
             )}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setDeleteVisible(true)} style={styles.deleteBtn}>
           <MaterialIcons name="delete-outline" size={22} color="rgba(247, 13, 13, 0.73)" />
@@ -276,7 +379,7 @@ const UserTripCard = React.memo(({ trip, onDelete }: UserTripCardProps) => {
         onConfirm={() => setErrorVisible(false)}
         onCancel={() => setErrorVisible(false)}
       />
-    </TouchableOpacity>
+    </Animated.View>
   );
 });
 
@@ -334,6 +437,8 @@ const styles = StyleSheet.create({
     top: 15,
     left: 15,
     zIndex: 10,
+    flexDirection: "row",
+    gap: 6,
   },
   eventBadge: {
     backgroundColor: Colors.SECONDARY,

@@ -1,32 +1,10 @@
 import React from "react";
 import { Stack } from "expo-router";
-import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, View } from "react-native";
-import { Colors } from "@/src/constants/colors";
 
 export default function AuthLayout() {
-  const [initialRoute, setInitialRoute] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkSeenLogin = async () => {
-      const seen = await AsyncStorage.getItem("seenLogin");
-      setInitialRoute(seen === "true" ? "sign-in/index" : "Login");
-    };
-    checkSeenLogin();
-  }, []);
-
-  if (!initialRoute) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.BACKGROUND }}>
-        <ActivityIndicator size="large" color={Colors.SECONDARY} />
-      </View>
-    );
-  }
-
   return (
     <Stack
-      initialRouteName={initialRoute}
+      initialRouteName="Login"
       screenOptions={{
         headerShown: false,
         animation: "slide_from_left",

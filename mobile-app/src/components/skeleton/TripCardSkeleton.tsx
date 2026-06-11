@@ -6,16 +6,17 @@ import { Spacing } from "@/src/constants/theme";
 const { width } = Dimensions.get("window");
 
 export default function TripCardSkeleton() {
-  const cardWidth = width - 20;
-
   return (
-    <View style={[styles.container, { width: cardWidth }]}>
+    <View style={styles.container}>
       <SkeletonBase height={230} radius={20} />
       
       <View style={styles.contentOverlay}>
-        <SkeletonBase width="80%" height={24} radius={6} />
-        <View style={{ height: 8 }} />
-        <SkeletonBase width="40%" height={16} radius={4} />
+        <View style={{ flex: 1, paddingRight: 15 }}>
+          <SkeletonBase width="85%" height={26} radius={6} />
+          <View style={{ height: 8 }} />
+          <SkeletonBase width="50%" height={16} radius={4} />
+        </View>
+        <SkeletonBase width={46} height={46} radius={23} />
       </View>
     </View>
   );
@@ -24,6 +25,7 @@ export default function TripCardSkeleton() {
 const styles = StyleSheet.create({
   container: {
     height: 230,
+    width: "100%",
     marginBottom: Spacing.lg,
     borderRadius: 20,
     overflow: "hidden",
@@ -31,8 +33,12 @@ const styles = StyleSheet.create({
   },
   contentOverlay: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
   }
 });

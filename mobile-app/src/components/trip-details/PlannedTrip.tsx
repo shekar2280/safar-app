@@ -5,7 +5,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { PlannedTripProps } from "@/src/types";
+import { PlannedTripProps } from "@/src/constants";
 
 export default function PlannedTrip({
   cityName,

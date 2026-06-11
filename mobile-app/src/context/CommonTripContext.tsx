@@ -1,6 +1,6 @@
 import React, { createContext, useState, ReactNode } from "react";
 
-import { CommonTripContextValue, CommonTripDetails } from "@/src/types";
+import { CommonTripContextValue, CommonTripDetails } from "@/src/constants";
 
 const CommonTripContext = createContext<CommonTripContextValue | null>(null);
 

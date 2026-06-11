@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Dimensions, StyleSheet } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { trendingTripCardImages } from "@/src/constants";
-import { DiscoverCardProps } from "@/src/types";
+import { DiscoverCardProps } from "@/src/constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -22,7 +22,7 @@ export default function DiscoverCard({
   const cardRadius = 24;
   const colors = useThemeColors();
 
-  const originalSource = React.useMemo(() => {
+  const sourceToUse = React.useMemo(() => {
     if (option?.image) {
       return typeof option.image === "string"
         ? { uri: option.image }
@@ -31,17 +31,6 @@ export default function DiscoverCard({
     const fallbackIndex = (option?.id || 0) % DISCOVER_IMAGES.length;
     return { uri: DISCOVER_IMAGES[fallbackIndex] };
   }, [option]);
-
-  const [imgSource, setImgSource] = React.useState(originalSource);
-
-  React.useEffect(() => {
-    setImgSource(originalSource);
-  }, [originalSource]);
-
-  const handleError = () => {
-    const randomIdx = Math.floor(Math.random() * DISCOVER_IMAGES.length);
-    setImgSource({ uri: DISCOVER_IMAGES[randomIdx] });
-  };
 
   const hasSpecialTag = option?.festival && !hideTag;
 
@@ -58,13 +47,11 @@ export default function DiscoverCard({
       ]}
     >
       <Image
-        source={imgSource}
-        onError={handleError}
+        source={sourceToUse}
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.SURFACE_LIGHT }]}
         contentFit="cover"
-        style={StyleSheet.absoluteFill}
-        transition={500}
-        placeholder={{ uri: "https://res.cloudinary.com/dbjgmxt8h/image/upload/v1770048382/trending-place5_n062ft.jpg" }}
-        placeholderContentFit="cover"
+        transition={200}
+        cachePolicy="memory-disk"
       />
 
       <LinearGradient

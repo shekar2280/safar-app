@@ -18,7 +18,7 @@ import {
   INTL_FOOD_COLLECTION,
 } from "@/src/constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/types";
+import { Restaurant, LocalExperience, RestaurantsInfoProps } from "@/src/constants";
 import Button from "@/src/components/common/Button";
 
 const { width } = Dimensions.get("window");
@@ -115,8 +115,13 @@ export default function RestaurantsInfo({ restaurantsInfo, cityName }: Restauran
                   key={idx}
                   style={[styles.restaurantCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
                 >
-                  <View style={styles.imageContainer}>
-                    <Image source={imageSource} style={styles.restaurantImage} contentFit="cover" />
+                  <View style={[styles.imageContainer, { backgroundColor: colors.SURFACE_LIGHT }]}>
+                    <Image
+                      source={imageSource}
+                      style={styles.restaurantImage}
+                      contentFit="cover"
+                      transition={300}
+                    />
                     <LinearGradient
                       colors={["transparent", "rgba(0,0,0,0.7)"]}
                       style={styles.imageOverlay}

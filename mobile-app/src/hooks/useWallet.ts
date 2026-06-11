@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
-import { UserTrip, Spending } from "@/src/types";
+import { UserTrip, Spending } from "@/src/constants";
 import { formatSpendingDate } from "@/src/utils/dateFormatter";
 import NetInfo from "@react-native-community/netinfo";
 import { Alert } from "react-native";

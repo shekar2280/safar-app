@@ -1,4 +1,4 @@
-import { NormalizedTripPlan } from "@/src/types";
+import { NormalizedTripPlan } from "@/src/constants";
 
 export const normalizeItinerary = (data: Record<string, any>): any => {
   const normalized: any = { ...data };

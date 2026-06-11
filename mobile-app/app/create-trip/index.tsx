@@ -7,7 +7,7 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
-import React, { useContext, useEffect, useState, useCallback, useRef } from "react";
+import React, { useContext, useEffect, useState, useCallback, useRef, memo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
@@ -15,15 +15,57 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { UserContext } from "@/src/context/UserContext";
 import { MAX_TRIP_DAYS } from "@/src/constants/limits";
-import LocationPicker from "@/src/components/trip/LocationPicker";
 import DestinationPicker from "@/src/components/trip/DestinationPicker";
 import { SelectBudgetOptions } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { LocationData, DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/types";
+import { DestinationData, TravelerGroup, BudgetOption, TravelerMode } from "@/src/constants";
 import Button from "@/src/components/common/Button";
+
+interface CounterTileProps {
+  label: string;
+  value: number;
+  unit: string;
+  unitPlural: string;
+  min: number;
+  max: number;
+  onChange: (val: number) => void;
+  colors: any;
+  delay: number;
+}
+
+const CounterTile = memo(({ label, value, unit, unitPlural, min, max, onChange, colors, delay }: CounterTileProps) => (
+  <MotiView
+    from={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, type: "timing" }}
+    style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
+  >
+    <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>{label}</Text>
+    <Text style={[styles.tileValue, { color: colors.TEXT }]}>{value}</Text>
+    <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{value === 1 ? unit : unitPlural}</Text>
+    <View style={styles.tileActions}>
+      <TouchableOpacity
+        style={[styles.tileBtn, { backgroundColor: colors.BLACK }, value === min && { opacity: 0.3 }]}
+        onPress={() => onChange(Math.max(min, value - 1))}
+        disabled={value === min}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tileBtn, { backgroundColor: colors.BLACK }, value === max && { opacity: 0.3 }]}
+        onPress={() => onChange(Math.min(max, value + 1))}
+        disabled={value === max}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
+      </TouchableOpacity>
+    </View>
+  </MotiView>
+));
 
 const { width, height } = Dimensions.get("window");
 
@@ -46,7 +88,6 @@ export default function CreateTripIndex() {
   const userCtx = useContext(UserContext);
   const userProfile = userCtx?.userProfile;
 
-  const [departure, setDeparture] = useState<LocationData | null>(userProfile?.homeLocation || null);
   const [destination, setDestination] = useState<DestinationData | null>(null);
   const [travelerMode, setTravelerMode] = useState<TravelerMode>(TravelerMode.Solo);
   const [travelerCount, setTravelerCount] = useState(1);
@@ -85,21 +126,6 @@ export default function CreateTripIndex() {
         priceRange: params.priceRange ? JSON.parse(params.priceRange as string) : undefined,
       });
     }
-
-    if (params.originName) {
-      const cityOnly = (params.originName as string).split(",")[0].trim();
-      setDeparture({
-        name: cityOnly,
-        label: cityOnly,
-        fullAddress: params.originName as string,
-        country: params.originCountry as string || "",
-        countryCode: params.originCountryCode as string || "",
-        coordinates: {
-          lat: Number(params.originLat) || 0,
-          lon: Number(params.originLon) || 0
-        }
-      });
-    }
   }, [params]);
 
   useEffect(() => {
@@ -122,25 +148,23 @@ export default function CreateTripIndex() {
   }, [travelerCount]);
 
   const handleGenerateTrip = () => {
-    const missing: string[] = [];
-    if (!departure) missing.push("Departure");
-    if (!destination) missing.push("Destination");
-    if (!budget) missing.push("Budget");
-
-    if (missing.length > 0) {
-      setAlertMessage(`Please complete the following: ${missing.join(", ")}`);
+    if (!destination) {
+      setAlertMessage("Please select a destination to continue.");
+      setAlertVisible(true);
+      return;
+    }
+    if (!budget) {
+      setAlertMessage("Please select a budget tier to continue.");
       setAlertVisible(true);
       return;
     }
 
     setTripData({
-      departureInfo: departure,
       destinationInfo: destination,
       travelerMode,
       totalDays,
       traveler: getTravelerObject(travelerMode, travelerCount),
-      budget: budget!.title,
-      isInternational: departure!.countryCode !== destination!.countryCode,
+      budget: budget.title,
       tripCategory: (params.tripCategory as any) || "GENERAL",
     });
     router.push("/create-trip/generate-trip" as any);
@@ -222,94 +246,52 @@ export default function CreateTripIndex() {
           style={[styles.bridgeCard, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
         >
           <View style={styles.bridgeContent}>
-            <View style={[styles.bridgeHalf, { zIndex: 2 }]}>
-              <LocationPicker
-                placeholder="Origin"
-                onLocationChange={setDeparture}
-                value={departure}
-              />
-            </View>
-            <View style={[styles.bridgeHalf, { zIndex: 1 }]}>
-              {params.destName ? (
-                <View style={[styles.staticDestinationWrapper, { backgroundColor: colors.SURFACE_LIGHT }]}>
-                  <View style={styles.labelSection}>
-                    <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>TO</Text>
-                  </View>
-                  <View style={styles.staticContent}>
-                    <Text style={[styles.staticValue, { color: colors.TEXT }]} numberOfLines={1}>
-                      {destination?.name || (params.destName as string).split(",")[0].trim()}
-                    </Text>
-                    <Ionicons name="sparkles" size={14} color={colors.GOLD} />
-                  </View>
+            {params.destName ? (
+              <View style={[styles.staticDestinationWrapper, { backgroundColor: colors.SURFACE_LIGHT }]}>
+                <View style={styles.labelSection}>
+                  <Text style={[styles.label, { color: colors.MUTED_TEXT }]}>TO</Text>
                 </View>
-              ) : (
-                <DestinationPicker
-                  placeholder="Destination"
-                  onLocationSelect={setDestination}
-                  value={destination}
-                />
-              )}
-            </View>
+                <View style={styles.staticContent}>
+                  <Text style={[styles.staticValue, { color: colors.TEXT }]} numberOfLines={1}>
+                    {destination?.name || (params.destName as string).split(",")[0].trim()}
+                  </Text>
+                  <Ionicons name="sparkles" size={14} color={colors.GOLD} />
+                </View>
+              </View>
+            ) : (
+              <DestinationPicker
+                placeholder="Where do you want to go?"
+                onLocationSelect={setDestination}
+                value={destination}
+              />
+            )}
           </View>
         </MotiView>
 
 
         <View style={styles.statsGrid}>
-          <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: DELAY + 200, type: "timing" }}
-            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-          >
-            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>DURATION</Text>
-            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{totalDays}</Text>
-            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{totalDays === 1 ? "DAY" : "DAYS"}</Text>
-
-            <View style={styles.tileActions}>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === 1 && { opacity: 0.3 }]}
-                onPress={() => setTotalDays(p => Math.max(1, p - 1))}
-                disabled={totalDays === 1}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, totalDays === MAX_TRIP_DAYS && { opacity: 0.3 }]}
-                onPress={() => setTotalDays(p => Math.min(MAX_TRIP_DAYS, p + 1))}
-                disabled={totalDays === MAX_TRIP_DAYS}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </MotiView>
-
-          <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: DELAY + 300, type: "timing" }}
-            style={[styles.statTile, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}
-          >
-            <Text style={[styles.tileLabel, { color: colors.MUTED_TEXT }]}>COMPANIONS</Text>
-            <Text style={[styles.tileValue, { color: colors.TEXT }]}>{travelerCount}</Text>
-            <Text style={[styles.tileUnit, { color: colors.MUTED_TEXT }]}>{travelerCount === 1 ? "PERSON" : "PEOPLE"}</Text>
-
-            <View style={styles.tileActions}>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 1 && { opacity: 0.3 }]}
-                onPress={() => setTravelerCount(p => Math.max(1, p - 1))}
-                disabled={travelerCount === 1}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>—</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tileBtn, { backgroundColor: colors.BLACK }, travelerCount === 6 && { opacity: 0.3 }]}
-                onPress={() => setTravelerCount(p => Math.min(6, p + 1))}
-                disabled={travelerCount === 6}
-              >
-                <Text style={[styles.tileBtnText, { color: Colors.GOLD }]}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </MotiView>
+          <CounterTile
+            label="DURATION"
+            value={totalDays}
+            unit="DAY"
+            unitPlural="DAYS"
+            min={1}
+            max={MAX_TRIP_DAYS}
+            onChange={setTotalDays}
+            colors={colors}
+            delay={DELAY + 200}
+          />
+          <CounterTile
+            label="COMPANIONS"
+            value={travelerCount}
+            unit="PERSON"
+            unitPlural="PEOPLE"
+            min={1}
+            max={6}
+            onChange={setTravelerCount}
+            colors={colors}
+            delay={DELAY + 300}
+          />
         </View>
 
         <MotiView
@@ -508,7 +490,7 @@ const styles = StyleSheet.create({
     flex: 1,
     aspectRatio: 1,
     borderRadius: 32,
-    padding: 18,
+    padding: Math.min(18, width * 0.042),
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
@@ -534,9 +516,9 @@ const styles = StyleSheet.create({
   },
   tileValue: {
     fontFamily: "playfairBold",
-    fontSize: 54,
-    lineHeight: 60,
-    marginBottom: 10,
+    fontSize: Math.min(54, width * 0.125),
+    lineHeight: Math.min(60, width * 0.14),
+    marginBottom: 6,
   },
   tileUnit: {
     fontFamily: "outfitBold",
@@ -546,13 +528,13 @@ const styles = StyleSheet.create({
   },
   tileActions: {
     flexDirection: "row",
-    gap: 20,
-    marginTop: 10,
+    gap: Math.min(20, width * 0.045),
+    marginTop: 8,
   },
   tileBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: Math.min(44, width * 0.1),
+    height: Math.min(44, width * 0.1),
+    borderRadius: Math.min(22, width * 0.05),
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
