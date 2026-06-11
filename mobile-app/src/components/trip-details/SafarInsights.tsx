@@ -1,10 +1,11 @@
 import React, { memo } from "react";
-import { View, Text, StyleSheet, ImageBackground } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Colors } from "@/src/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants";
 import { useThemeColors } from "@/src/constants/colors";
+import { Image } from "expo-image";
 
 interface SafarInsightsProps {
   bestTransport?: string;
@@ -27,13 +28,15 @@ const SafarInsights = ({ bestTransport, weatherInsight }: SafarInsightsProps) =>
       </View>
 
       {bestTransport && (
-        <ImageBackground
-          source={{ uri: TRANSPORT_INSIGHTS_IMAGES.NAVIGATOR }}
-          style={styles.insightCard}
-          imageStyle={{ borderRadius: 20 }}
-        >
+        <View style={styles.insightCard}>
+          <Image
+            source={{ uri: TRANSPORT_INSIGHTS_IMAGES.NAVIGATOR }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            transition={300}
+          />
           <LinearGradient
-            colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.85)"]}
+            colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.8)"]}
             style={styles.insightOverlay}
           >
             <View style={styles.insightHeaderRow}>
@@ -42,17 +45,19 @@ const SafarInsights = ({ bestTransport, weatherInsight }: SafarInsightsProps) =>
             </View>
             <Text style={styles.insightText}>{bestTransport}</Text>
           </LinearGradient>
-        </ImageBackground>
+        </View>
       )}
 
       {weatherInsight && (
-        <ImageBackground
-          source={{ uri: TRANSPORT_INSIGHTS_IMAGES.WEATHER }}
-          style={[styles.insightCard, bestTransport ? { marginTop: 14 } : {}]}
-          imageStyle={{ borderRadius: 20 }}
-        >
+        <View style={[styles.insightCard, bestTransport ? { marginTop: 14 } : {}]}>
+          <Image
+            source={{ uri: TRANSPORT_INSIGHTS_IMAGES.WEATHER }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            transition={300}
+          />
           <LinearGradient
-            colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.85)"]}
+            colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.8)"]}
             style={styles.insightOverlay}
           >
             <View style={styles.insightHeaderRow}>
@@ -61,7 +66,7 @@ const SafarInsights = ({ bestTransport, weatherInsight }: SafarInsightsProps) =>
             </View>
             <Text style={styles.insightText}>{weatherInsight}</Text>
           </LinearGradient>
-        </ImageBackground>
+        </View>
       )}
     </View>
   );
@@ -91,16 +96,17 @@ const styles = StyleSheet.create({
   insightCard: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.08)",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    backgroundColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    backgroundColor: "transparent",
+    overflow: "hidden",
+    minHeight: 130,
   },
   insightOverlay: {
-    borderRadius: 20,
     padding: 20,
     minHeight: 130,
     justifyContent: "flex-end",

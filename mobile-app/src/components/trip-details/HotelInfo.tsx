@@ -71,9 +71,9 @@ export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) 
                 >
                   <Image
                     source={imageSource}
-                    style={styles.hotelImage}
+                    style={[styles.hotelImage, { backgroundColor: colors.SURFACE_LIGHT }]}
                     contentFit="cover"
-                    transition={500}
+                    transition={300}
                   />
                   <LinearGradient
                     colors={["transparent", "rgba(0,0,0,0.8)"]}
