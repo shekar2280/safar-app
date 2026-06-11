@@ -155,6 +155,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         manager.disconnect(client_id)
         api_logger.info(f"WebSocket: Client {client_id} disconnected")
 
+@app.get("/healthz")
+async def healthz():
+    return {"status": "healthy", "time": datetime.datetime.utcnow().isoformat()}
+
 @app.post("/api/test-event")
 async def trigger_test_event(data: str):
     task = process_test_task.delay(data) 
