@@ -31,4 +31,35 @@ export const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: "SAFAR_QUERY_CACHE",
   throttleTime: 1000,
+  serialize: (client) => {
+    try {
+      const cloned = JSON.parse(JSON.stringify(client));
+      if (cloned && Array.isArray(cloned.queries)) {
+        cloned.queries = cloned.queries.filter(
+          (q: any) => q.queryKey && q.queryKey[0] !== "trendingPlaces"
+        );
+
+        cloned.queries.forEach((q: any) => {
+          if (
+            q.queryKey &&
+            q.queryKey[0] === "trips" &&
+            q.queryKey[1] === "list"
+          ) {
+            if (Array.isArray(q.state?.data)) {
+              q.state.data = q.state.data.map((trip: any) => {
+                if (trip.isFinished && !trip.isActive) {
+                  const { tripPlan, ...rest } = trip;
+                  return rest;
+                }
+                return trip;
+              });
+            }
+          }
+        });
+      }
+      return JSON.stringify(cloned);
+    } catch (e) {
+      return JSON.stringify(client);
+    }
+  },
 });
