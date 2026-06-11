@@ -54,11 +54,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
 
   const tripName = trip?.concertData?.artist
     ? `${trip.concertData.artist} Concert`
-    : trip?.tripPlan?.tripName ||
-    (trip?.savedTripId
-      ? trip.savedTripId.split("-")[0].charAt(0).toUpperCase() +
-      trip.savedTripId.split("-")[0].slice(1)
-      : "Active Trip");
+    : trip?.tripPlan?.tripName || "Active Trip";
 
   const goToPlanner = () => {
     setActiveTrip(trip as any);

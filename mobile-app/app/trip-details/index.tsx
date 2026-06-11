@@ -47,7 +47,6 @@ export default function TripDetails() {
     activeTripInContext,
     alertConfig,
     setAlertConfig,
-    loadingStaticData,
     isInitializing,
     images,
     handleScroll,

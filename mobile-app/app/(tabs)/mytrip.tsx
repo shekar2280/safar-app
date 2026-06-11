@@ -58,8 +58,7 @@ export default function Mytrip() {
     return userTrips.filter((item: UserTrip) => {
       const tripName = item?.concertData?.artist
         ? `${item.concertData.artist} Concert`
-        : item?.tripPlan?.tripName ||
-        (item?.savedTripId ? item.savedTripId.split("-")[0] : "My Trip");
+        : item?.tripPlan?.tripName || "My Trip";
 
       const tripLocation = (item as any)?.tripData?.locationInfo?.name || "";
       const discoverLocation = (item as any)?.discoverData?.locationInfo?.name || "";

@@ -3,7 +3,6 @@ import { Animated, Dimensions } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useUser } from "@/src/context/UserContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
-import { useStaticItinerary } from "@/src/hooks/queries/useStaticItinerary";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
@@ -16,7 +15,7 @@ const { width } = Dimensions.get("window");
 export const useTripDetails = () => {
   const router = useRouter();
   const navigation = useNavigation();
-  const { data: userTrips = [] } = useTrips();
+  const { data: userTrips = [], isLoading: loadingTrips } = useTrips();
   const { trip, imageUrl } = useLocalSearchParams();
   const { toggleVisited, deactivateTrip } = useActiveTrip();
   const queryClient = useQueryClient();
@@ -46,19 +45,10 @@ export const useTripDetails = () => {
     }
   }, [trip]);
 
-  const { data: staticData, isLoading: loadingStaticData } = useStaticItinerary(parsedTrip?.savedTripId);
-
   const tripDetails = useMemo(() => {
     const latestFromCache = (userTrips || []).find(t => t.id === parsedTrip?.id);
-    const base = latestFromCache || parsedTrip || {};
-
-    if (!staticData) return base;
-    return {
-      ...base,
-      tripPlan: staticData.trip_plan,
-      image_urls: (staticData.image_urls?.length > 0) ? staticData.image_urls : base.image_urls,
-    };
-  }, [parsedTrip, staticData, userTrips]);
+    return latestFromCache || parsedTrip || {};
+  }, [parsedTrip, userTrips]);
 
   const transportData = useMemo(
     () => ({
@@ -149,8 +139,7 @@ export const useTripDetails = () => {
     activeTripInContext,
     alertConfig,
     setAlertConfig,
-    loadingStaticData,
-    isInitializing: loadingStaticData && !tripDetails?.tripPlan,
+    isInitializing: loadingTrips && !tripDetails?.tripPlan,
     images,
     handleScroll,
     handleActivateTrip,
