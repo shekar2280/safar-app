@@ -214,7 +214,14 @@ export default function SafarLanding() {
             <a className="bg-[#C9A84C] text-black px-8 py-3 rounded-full font-medium hover:bg-[#EAB308] transition-all no-underline inline-flex items-center gap-2" href="https://expo.dev/accounts/shekar-safar/projects/safar/builds/0d0fd110-0b84-4032-96f1-fafb0add09cc" target="_blank" rel="noopener noreferrer">
               <Download size={18} /> Get the App
             </a>
-            <p className="text-[0.65rem] text-[#6b6560]/40 tracking-widest uppercase">© 2026 Safar App. All rights reserved.</p>
+            <div className="flex flex-col gap-2 items-start md:items-end">
+              <p className="text-[0.65rem] text-[#6b6560]/40 tracking-widest uppercase">© 2026 Safar App. All rights reserved.</p>
+              <div className="flex gap-4 text-[0.7rem] text-[#6b6560] tracking-wider uppercase font-medium">
+                <a href="/privacy" className="hover:text-[#C9A84C] transition-colors">Privacy Policy</a>
+                <span className="text-white/10">|</span>
+                <a href="/terms" className="hover:text-[#C9A84C] transition-colors">Terms of Service</a>
+              </div>
+            </div>
           </div>
         </div>
         <div className="footer-glow absolute bottom-[-100px] left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(201,168,76,0.06)_0%,transparent_70%)] pointer-events-none" />

@@ -171,6 +171,13 @@ export default function Profile() {
             />
 
             <MenuItem
+              icon="information-circle-outline"
+              title="About & Support"
+              subtitle="Privacy Policy, terms, and contact"
+              onPress={() => router.push("/profile/about" as any)}
+            />
+
+            <MenuItem
               icon="trash-outline"
               title="Delete Account"
               subtitle="Permanently erase your data"
