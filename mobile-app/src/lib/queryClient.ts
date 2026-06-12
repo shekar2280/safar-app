@@ -47,7 +47,7 @@ export const asyncStoragePersister = createAsyncStoragePersister({
           ) {
             if (Array.isArray(q.state?.data)) {
               q.state.data = q.state.data.map((trip: any) => {
-                if (trip.isFinished && !trip.isActive) {
+                if (!trip.isActive) {
                   const { tripPlan, ...rest } = trip;
                   return rest;
                 }

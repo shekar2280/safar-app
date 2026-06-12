@@ -8,6 +8,7 @@ import SafarAlert from "@/src/components/ui/SafarAlert";
 import * as Sentry from "@sentry/react-native";
 import { formatSpendingDate } from "../utils/dateFormatter";
 import NetInfo from "@react-native-community/netinfo";
+import { ActiveTripCacheManager } from "@/src/utils/activeTripCache";
 
 const ActiveTripContext = createContext<ActiveTripContextValue | null>(null);
 
@@ -300,19 +301,23 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     await skipPlace(tripId, newSkipped);
   };
 
-  const deactivateTrip = async (tripId: string): Promise<void> => {
+  const deactivateTrip = async (tripId: string) => {
     try {
       setActiveTrip(prev => prev?.id === tripId ? null : prev);
       if (activeId === tripId) {
         setActiveId(null);
         await AsyncStorage.removeItem(ACTIVE_TRIP_ID_KEY);
       }
+      await AsyncStorage.removeItem(`@ACTIVE_TRIP_CACHED_AT_${tripId}`);
+      await ActiveTripCacheManager.clear();
       await apiPatch(`/api/v1/trips/${tripId}/deactivate`, {});
       queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
     } catch (error) {
       const current = activeTrip?.visitedIndices || [];
       const skipped = activeTrip?.skipped_indices || [];
       await saveLocally(tripId, current, skipped, activeTrip?.totalBudget, activeTrip?.archivedSpendings, false, true);
+      await AsyncStorage.removeItem(`@ACTIVE_TRIP_CACHED_AT_${tripId}`);
+      await ActiveTripCacheManager.clear();
       
       setActiveTrip(prev => prev?.id === tripId ? null : prev);
     }
