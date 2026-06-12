@@ -1,7 +1,7 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
 import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";

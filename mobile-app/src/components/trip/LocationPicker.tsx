@@ -13,7 +13,7 @@ import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocation } from "@/src/context/LocationContext";
 
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { LocationData, LocationPickerProps } from "@/src/constants";
 

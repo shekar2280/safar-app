@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import React, { useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useTrips } from "@/src/hooks/queries/useTrips";
 import TripCardSkeleton from "@/src/components/skeleton/TripCardSkeleton";

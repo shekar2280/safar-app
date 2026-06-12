@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { DiscoverIdeasList } from "@/src/constants";

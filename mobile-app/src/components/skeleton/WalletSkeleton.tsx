@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet, Dimensions, ScrollView } from "react-native";
 import SkeletonBase from "./SkeletonBase";
 import { Spacing } from "@/src/constants/theme";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 
 const { width } = Dimensions.get("window");
 

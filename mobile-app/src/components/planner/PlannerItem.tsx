@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 import Button from "@/src/components/common/Button";
 
 import { JourneyItemProps, VisibilityState } from "@/src/constants";

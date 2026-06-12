@@ -1,6 +1,6 @@
 import React from "react";
 import { Skeleton } from "moti/skeleton";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 
 interface SkeletonBaseProps {

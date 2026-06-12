@@ -14,7 +14,7 @@ import Button from "@/src/components/common/Button";
 import { useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useUser } from "@/src/context/UserContext";
 import { updateUserProfile, USER_KEY } from "@/src/lib/api";

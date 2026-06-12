@@ -12,7 +12,7 @@ import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter } from "expo-router";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import HotelInfo from "@/src/components/trip-details/HotelInfo";
 import PlannedTrip from "@/src/components/trip-details/PlannedTrip";
@@ -51,6 +51,7 @@ export default function TripDetails() {
     alertConfig,
     setAlertConfig,
     isInitializing,
+    isPlanMissing,
     images,
     handleScroll,
     handleActivateTrip,
@@ -59,7 +60,6 @@ export default function TripDetails() {
     toggleVisited,
   } = useTripDetails();
 
-  const isPlanMissing = !tripDetails?.concertData && !tripDetails?.tripPlan;
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -230,6 +230,7 @@ export default function TripDetails() {
               <HotelInfo
                 cityName={tripDetails?.tripPlan?.tripName || ""}
                 hotelData={tripDetails?.tripPlan?.hotelOptions}
+                isLoading={isInitializing}
               />
 
               <View style={[styles.divider, { backgroundColor: colors.BORDER }]} />

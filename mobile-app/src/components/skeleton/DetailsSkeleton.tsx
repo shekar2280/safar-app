@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Dimensions, ScrollView } from "react-native";
 import SkeletonBase from "./SkeletonBase";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");

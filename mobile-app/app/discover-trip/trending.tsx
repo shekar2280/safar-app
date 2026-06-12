@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
 import SafarAlert from "@/src/components/ui/SafarAlert";
@@ -29,7 +29,7 @@ import {
   SUGGESTED_OUTBOUND,
   BACKUPS,
   COUNTRY_EMOJIS,
-} from "@/src/constants/discover";
+} from "@/src/constants/discovery";
 
 const { width, height } = Dimensions.get("window");
 
@@ -68,7 +68,6 @@ export default function TrendingTrips() {
   const changeCountry = (countryName: string) => {
     setIsTransitioning(true);
     setActiveCountry(countryName);
-    AsyncStorage.setItem(STORAGE_KEYS.SELECTED_COUNTRY, countryName);
     setTimeout(() => {
       setIsTransitioning(false);
     }, 300);
@@ -80,19 +79,14 @@ export default function TrendingTrips() {
   useEffect(() => {
     async function setupLocation() {
       try {
-        const cachedSelected = await AsyncStorage.getItem(STORAGE_KEYS.SELECTED_COUNTRY);
-        if (cachedSelected && !paramCountry) {
-          setActiveCountry(cachedSelected);
-        }
+        await AsyncStorage.removeItem(STORAGE_KEYS.SELECTED_COUNTRY);
 
         const cachedHome = await AsyncStorage.getItem(STORAGE_KEYS.HOME_COUNTRY);
         if (cachedHome) {
           const parsed = JSON.parse(cachedHome);
           setHomeCountry(parsed);
           setPermissionStatus("granted");
-          if (!paramCountry && !cachedSelected) {
-            setActiveCountry(parsed.name);
-          }
+          setActiveCountry(paramCountry || parsed.name);
           setIsResolvingLocation(false);
           triggerSilentBackgroundUpdate();
           return;
@@ -143,9 +137,7 @@ export default function TrendingTrips() {
 
         setHomeCountry(resolved);
         await AsyncStorage.setItem(STORAGE_KEYS.HOME_COUNTRY, JSON.stringify(resolved));
-        if (!paramCountry && !(await AsyncStorage.getItem(STORAGE_KEYS.SELECTED_COUNTRY))) {
-          setActiveCountry(resolved.name);
-        }
+        setActiveCountry(paramCountry || resolved.name);
       } else {
         handleLocationFailure();
       }
@@ -156,9 +148,7 @@ export default function TrendingTrips() {
   }
 
   function handleLocationFailure() {
-    if (!paramCountry && !activeCountry) {
-      setActiveCountry("United States");
-    }
+    setActiveCountry(paramCountry || "United States");
   }
 
   async function triggerSilentBackgroundUpdate() {
@@ -224,16 +214,9 @@ export default function TrendingTrips() {
   const getChips = () => {
     const chipsList: { name: string; label: string }[] = [];
 
+    // 1. Add "Near Me"
     if (homeCountry) {
       chipsList.push({ name: homeCountry.name, label: "📍 Near Me" });
-    }
-
-    if (activeCountry && activeCountry.toLowerCase() !== homeCountry?.name?.toLowerCase()) {
-      const normalizedActive = normalizeCountryName(activeCountry);
-      chipsList.push({
-        name: normalizedActive,
-        label: `${getCountryEmoji(normalizedActive)} ${normalizedActive}`,
-      });
     }
 
     const countryCode = homeCountry?.code || "DEFAULT";
@@ -252,6 +235,18 @@ export default function TrendingTrips() {
       if (replacement) {
         filteredOutbound.push(replacement);
       }
+    }
+
+    const suggestedNames = filteredOutbound.map(n => n.toLowerCase());
+    const isHome = activeCountry.toLowerCase() === homeCountry?.name?.toLowerCase();
+    const isSuggested = suggestedNames.includes(activeCountry.toLowerCase());
+
+    if (activeCountry && !isHome && !isSuggested) {
+      const normalizedActive = normalizeCountryName(activeCountry);
+      chipsList.push({
+        name: normalizedActive,
+        label: `${getCountryEmoji(normalizedActive)} ${normalizedActive}`,
+      });
     }
 
     filteredOutbound.forEach((name) => {

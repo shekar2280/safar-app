@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Dimensions, StyleSheet } from "react-native";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { trendingTripCardImages } from "@/src/constants";
 import { DiscoverCardProps } from "@/src/constants";
 import { Image } from "expo-image";
@@ -23,10 +23,10 @@ export default function DiscoverCard({
   const colors = useThemeColors();
 
   const sourceToUse = React.useMemo(() => {
-    if (option?.image) {
-      return typeof option.image === "string"
-        ? { uri: option.image }
-        : option.image;
+    if (option?.image && typeof option.image === "string" && option.image.trim().length > 0) {
+      return { uri: option.image };
+    } else if (option?.image && typeof option.image !== "string") {
+      return option.image;
     }
     const fallbackIndex = (option?.id || 0) % DISCOVER_IMAGES.length;
     return { uri: DISCOVER_IMAGES[fallbackIndex] };

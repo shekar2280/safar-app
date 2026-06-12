@@ -7,8 +7,10 @@ import {
   StatusBar,
 } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { MotiView, AnimatePresence } from "moti";
 import LottieView from "lottie-react-native";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { useRouter } from "expo-router";
@@ -31,6 +33,7 @@ import { useUser } from "@/src/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";
+import { LOADING_STEPS } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 
@@ -49,6 +52,19 @@ export default function GenerateTrip() {
   const [retryCount, setRetryCount] = useState(0);
   const colors = useThemeColors();
   const { isDark } = useTheme();
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      interval = setInterval(() => {
+        setStepIndex((prev) => (prev + 1) % LOADING_STEPS.length);
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loading]);
 
   useEffect(() => {
     const isTripReady =
@@ -182,10 +198,12 @@ export default function GenerateTrip() {
             : (tripData.destinationInfo?.imageUrl ? [tripData.destinationInfo.imageUrl] : [])
         } : null;
 
+        const finalDaysCount = itineraryData.adjustedDuration || tripData.totalDays;
+
         const newlyCreatedTrip = await apiPost<any>("/api/v1/trips", {
           trip_plan: itineraryData,
           image_urls: Array.isArray(finalImageUrl) ? finalImageUrl : (finalImageUrl ? [finalImageUrl] : []),
-          total_days: tripData.totalDays,
+          total_days: finalDaysCount,
           traveler: cleanTraveler,
           traveler_mode: tripData.travelerMode || "SOLO",
           concert_data: concertPayload,
@@ -241,22 +259,49 @@ export default function GenerateTrip() {
   const getLoadingMessage = () => {
     if (retryCount === 1) return "Retrying connection...";
     if (retryCount === 2) return "Almost there, finishing touches...";
-    return "Generating your trip...";
+    return LOADING_STEPS[stepIndex];
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.BACKGROUND, paddingTop: insets.top }]}>
+    <LinearGradient
+      colors={isDark ? ["#000000", "#09090A", "#121214"] : ["#FFFFFF", "#F9F9FB", "#F2F2F5"]}
+      style={[styles.container, { paddingTop: insets.top }]}
+    >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       {loading && (
         <View style={styles.loadingWrapper}>
-          <LottieView
-            source={require("../../assets/animations/loading.json")}
-            autoPlay
-            loop
-            style={styles.lottie}
-          />
-          <Text style={[styles.loadingText, { color: colors.TEXT }]}>{getLoadingMessage().toUpperCase()}</Text>
-          <Text style={[styles.loadingSub, { color: colors.MUTED_TEXT }]}>WE ARE CRAFTING YOUR UNIQUE JOURNEY</Text>
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "timing", duration: 800 }}
+          >
+            <LottieView
+              source={require("../../assets/animations/loading.json")}
+              autoPlay
+              loop
+              style={styles.lottie}
+            />
+          </MotiView>
+
+          <View style={styles.textContainer}>
+            <AnimatePresence exitBeforeEnter>
+              <MotiView
+                key={stepIndex}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                exit={{ opacity: 0, translateY: -10 }}
+                transition={{ type: "timing", duration: 400 }}
+              >
+                <Text style={[styles.loadingTitle, { color: colors.TEXT }]}>
+                  {getLoadingMessage()}
+                </Text>
+              </MotiView>
+            </AnimatePresence>
+          </View>
+
+          <Text style={[styles.loadingDesc, { color: colors.MUTED_TEXT }]}>
+            We are custom crafting a luxury itinerary tailored to your travel identity. Please wait a moment.
+          </Text>
         </View>
       )}
 
@@ -290,7 +335,7 @@ export default function GenerateTrip() {
           </View>
         </View>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -303,24 +348,33 @@ const styles = StyleSheet.create({
   loadingWrapper: {
     alignItems: "center",
     width: "100%",
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
   },
   lottie: {
     width: width * 0.6,
     height: width * 0.6,
+    maxWidth: 240,
+    maxHeight: 240,
+    marginBottom: 20,
   },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: "outfitBold",
-    letterSpacing: 4,
+  textContainer: {
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  loadingTitle: {
+    fontSize: 22,
+    fontFamily: "playfairBold",
     textAlign: "center",
-    marginTop: 20,
+    lineHeight: 30,
   },
-  loadingSub: {
-    fontSize: 9,
-    fontFamily: "outfitBold",
-    letterSpacing: 2,
-    marginTop: 8,
+  loadingDesc: {
+    fontSize: 13,
+    fontFamily: "outfit",
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 24,
   },
   errorWrapper: {
     alignItems: "center",

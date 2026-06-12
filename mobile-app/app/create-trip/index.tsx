@@ -10,11 +10,11 @@ import {
 import React, { useContext, useEffect, useState, useCallback, useRef, memo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { CreateTripContext } from "@/src/context/CreateTripContext";
 import { UserContext } from "@/src/context/UserContext";
-import { MAX_TRIP_DAYS } from "@/src/constants/limits";
+import { MAX_TRIP_DAYS } from "@/src/constants/config";
 import DestinationPicker from "@/src/components/trip/DestinationPicker";
 import { SelectBudgetOptions } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";

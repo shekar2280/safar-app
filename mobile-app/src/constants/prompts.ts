@@ -1,6 +1,13 @@
 export const AI_PROMPT = `
 Generate a premium, curated trip plan for a {travelerMode} trip to {location} for {totalDays} days and {totalNight} nights. The traveler group identity is {traveler} and the budget is {budget}.
 
+### DURATION AUTO-CORRECTION:
+Evaluate if the destination '{location}' is a specific local attraction, a single monument/landmark, or a small neighborhood/day-trip spot (e.g. "Elephanta Caves", "Colaba", "Bandra West") rather than a full city/region. If the requested duration of {totalDays} days is excessive to enjoy there, you MUST auto-correct the itinerary duration to a realistic length (e.g., 1 day for Elephanta Caves) and generate a shorter itinerary matching that corrected duration.
+If you scale down/adjust the duration, set "adjustedDuration" to the new number of days (e.g., 1) and provide a professional, friendly explanation in the top-level "adjustedDurationReason" string (e.g., "We noticed Elephanta Caves is best enjoyed as a 1-day trip! We've optimized your itinerary for the perfect day out."). If no auto-correction is needed, set "adjustedDuration" to {totalDays} and "adjustedDurationReason" to null.
+
+### HOTEL SELECTION (HYBRID RULE):
+If you have auto-corrected the trip to be a 1-day/day-trip excursion, or if {location} is a landmark/monument that does not have or require overnight stays/hotels, set "hotelOptions" to an empty array [] in your JSON output. Otherwise, list 5-6 hotel options.
+
 ### CURATION PHILOSOPHY:
 You are a high-end luxury travel concierge. 
 - FOCUS: Experience-first. purge all logistical chores (check-in/out, travel to/from airport).
@@ -19,18 +26,20 @@ You are a high-end luxury travel concierge.
 
 ### INSTRUCTIONS:
 
-1. Transport & Weather (REQUIRED):
+1. Transport, Weather & Duration (REQUIRED):
    At the top level, include:
    - "departureIata": "3-letter origin code"
    - "destinationIata": "3-letter destination code"
    - "bestTransport": "Specific advice on the best way to move around this city (e.g., specific MRT lines vs taxis)."
    - "weatherInsight": "Short packing/weather tip for the current month."
+   - "adjustedDuration": number (the final duration in days, either the requested {totalDays} or the adjusted shorter number of days).
+   - "adjustedDurationReason": string or null (if duration was corrected, explain why; otherwise null).
 
 2. Hotel options (5-6):
-   - Include: hotelName, hotelAddress, pricePerNight (in ₹), rating (0–5), description, suitabilityReason, and geoCoordinates {"latitude": number, "longitude": number}.
+   - Include: hotelName, hotelAddress, pricePerNight (in ₹), rating (0–5), description, suitabilityReason, and geoCoordinates {"latitude": number, "longitude": number}. (Set to empty array [] if it is a day-trip or hotel stays are not needed).
 
 3. Daily itinerary (Pool Logic):
-   - Include exactly {totalPlaces} "places" objects in "dailyItinerary".
+   - Include exactly {totalPlaces} "places" objects in "dailyItinerary" (unless you scaled down the trip duration, in which case generate exactly adjustedDuration * 4 places, i.e., 4 places per day).
    - Each MUST include: placeName, placeDetails, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot ("Morning", "Afternoon", "Evening"), geoCoordinates {"latitude": number, "longitude": number}, vibe, and searchKeyword.
 
 4. Recommendations:
@@ -40,7 +49,7 @@ You are a high-end luxury travel concierge.
 
 5. Metadata:
    - "tripName": "City, CountryCode" (e.g., "Paris, FRA").
-   - "tripDuration": "{totalDays} days, {totalNight} nights".
+   - "tripDuration": "X days, Y nights" where X is the final duration in days and Y is X-1 nights.
 
 ### JSON SYNTAX RULES (STRICT):
 - CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
@@ -54,6 +63,13 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const HIDDEN_GEMS_AI_PROMPT = `
 Generate a detailed, budget-conscious trip plan for {traveler} visiting {location} for {totalDays} days and {totalNight} nights, focusing EXCLUSIVELY on "Hidden Gems" and off-the-beaten-path locations. The budget is {budget}.
 
+### DURATION AUTO-CORRECTION:
+Evaluate if the destination '{location}' is a specific local attraction, a single monument/landmark, or a small neighborhood/day-trip spot (e.g. "Elephanta Caves", "Colaba", "Bandra West") rather than a full city/region. If the requested duration of {totalDays} days is excessive to enjoy there, you MUST auto-correct the itinerary duration to a realistic length (e.g., 1 day for Elephanta Caves) and generate a shorter itinerary matching that corrected duration.
+If you scale down/adjust the duration, set "adjustedDuration" to the new number of days (e.g., 1) and provide a professional, friendly explanation in the top-level "adjustedDurationReason" string (e.g., "We noticed Elephanta Caves is best enjoyed as a 1-day trip! We've optimized your itinerary for the perfect day out."). If no auto-correction is needed, set "adjustedDuration" to {totalDays} and "adjustedDurationReason" to null.
+
+### HOTEL SELECTION (HYBRID RULE):
+If you have auto-corrected the trip to be a 1-day/day-trip excursion, or if {location} is a landmark/monument that does not have or require overnight stays/hotels, set "hotelOptions" to an empty array [] in your JSON output. Otherwise, list 5-6 hotel options.
+
 IMPORTANT: Avoid the top 20 most famous tourist attractions. Focus on local secrets, secluded nature spots, quiet cultural sites, and non-commercialized areas.
 
 ### STRICT EXCLUSIONS:
@@ -64,23 +80,25 @@ IMPORTANT: Avoid the top 20 most famous tourist attractions. Focus on local secr
 
 Follow these instructions carefully:
 
-1. Transport & Weather (REQUIRED):
+1. Transport, Weather & Duration (REQUIRED):
    At the top level, include:
    - "departureIata": "3-letter origin code"
    - "destinationIata": "3-letter destination code"
    - "bestTransport": "Specific advice on reaching these remote spots (e.g., local buses, bike rentals, or specific hiking paths)."
    - "weatherInsight": "Short packing/weather tip for the current month."
+   - "adjustedDuration": number (the final duration in days, either the requested {totalDays} or the adjusted shorter number of days).
+   - "adjustedDurationReason": string or null (if duration was corrected, explain why; otherwise null).
 
 2. Hotel options (5-6):
-   - Focus on boutique stays, local homestays, or unique heritage properties.
+   - Focus on boutique stays, local homestays, or unique heritage properties. (Set to empty array [] if it is a day-trip or hotel stays are not needed).
    - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), description, and suitabilityReason.
 
 3. Daily itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
    - Provide a large collection of attractions that are NOT mainstream.
-   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
+   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary" (unless you scaled down the trip duration, in which case generate exactly adjustedDuration * 4 places, i.e., 4 places per day).
    - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
-   - Ensure there are exactly {perSlot} places for EACH time slot.
+   - Ensure there are exactly {perSlot} places for EACH time slot (unless scaled down, in which case ensure balanced distribution).
    - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot, vibe, and searchKeyword.
 
 4. Recommendations:
@@ -90,7 +108,7 @@ Follow these instructions carefully:
 
 5. Metadata:
    - "tripName": "City, CountryCode" (e.g., "Hampi, IND").
-   - "tripDuration": "{totalDays} days, {totalNight} nights".
+   - "tripDuration": "X days, Y nights" where X is the final duration in days and Y is X-1 nights.
 
 6. JSON SYNTAX RULES (STRICT):
 - CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.
@@ -105,6 +123,13 @@ Respond ONLY with raw JSON. Begin with { and end with }.
 export const FESTIVE_AI_PROMPT = `
 Generate a detailed, budget-conscious festive trip plan for {traveler} visiting {location} during the {festival} festival for {totalDays} days and {totalNight} nights. The budget is {budget}.
 
+### DURATION AUTO-CORRECTION:
+Evaluate if the destination '{location}' is a specific local attraction, a single monument/landmark, or a small neighborhood/day-trip spot (e.g. "Elephanta Caves", "Colaba", "Bandra West") rather than a full city/region. If the requested duration of {totalDays} days is excessive to enjoy there, you MUST auto-correct the itinerary duration to a realistic length (e.g., 1 day for Elephanta Caves) and generate a shorter itinerary matching that corrected duration.
+If you scale down/adjust the duration, set "adjustedDuration" to the new number of days (e.g., 1) and provide a professional, friendly explanation in the top-level "adjustedDurationReason" string (e.g., "We noticed Elephanta Caves is best enjoyed as a 1-day trip! We've optimized your itinerary for the perfect day out."). If no auto-correction is needed, set "adjustedDuration" to {totalDays} and "adjustedDurationReason" to null.
+
+### HOTEL SELECTION (HYBRID RULE):
+If you have auto-corrected the trip to be a 1-day/day-trip excursion, or if {location} is a landmark/monument that does not have or require overnight stays/hotels, set "hotelOptions" to an empty array [] in your JSON output. Otherwise, list 5-6 hotel options.
+
 ### VISION: Focus on deep cultural participation and local rituals. 
 
 ### STRICT EXCLUSIONS:
@@ -114,23 +139,25 @@ Generate a detailed, budget-conscious festive trip plan for {traveler} visiting 
 
 Follow these instructions carefully to ensure the trip captures the cultural essence of {festival}:
 
-1. Transport & Weather (REQUIRED):
+1. Transport, Weather & Duration (REQUIRED):
    At the top level, include:
    - "departureIata": "3-letter origin code"
    - "destinationIata": "3-letter destination code"
    - "bestTransport": "Specific advice for festive commute (e.g., local shuttles, walking zones, or avoiding specific busy routes)."
    - "weatherInsight": "Short packing/weather tip for the current month."
+   - "adjustedDuration": number (the final duration in days, either the requested {totalDays} or the adjusted shorter number of days).
+   - "adjustedDurationReason": string or null (if duration was corrected, explain why; otherwise null).
 
 2. Hotel options (5-6):
-   - Must be centrally located with easy access to main festive events or temples.
+   - Must be centrally located with easy access to main festive events or temples. (Set to empty array [] if it is a day-trip or hotel stays are not needed).
    - Each hotel must include: hotelName, hotelAddress, pricePerNight (in ₹), geoCoordinates {"latitude": number, "longitude": number}, rating (0–5), description, and suitabilityReason.
 
 3. Daily itinerary (The "Pool" Logic):
    - Use the key "dailyItinerary".
    - Provide a large collection of attractions specifically curated for the {festival}.
-   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary".
+   - Include exactly {totalPlaces} "places" objects in a single array under "dailyItinerary" (unless you scaled down the trip duration, in which case generate exactly adjustedDuration * 4 places, i.e., 4 places per day).
    - Each "place" must include a field "timeSlot" with values: "Morning", "Afternoon", or "Evening".
-   - Ensure there are exactly {perSlot} places for EACH time slot.
+   - Ensure there are exactly {perSlot} places for EACH time slot (unless scaled down, in which case ensure balanced distribution).
    - At least 50% of these places MUST be related to {festival}.
    - Structure: placeName, placeDetails, geoCoordinates: {"latitude": number, "longitude": number}, ticketPricing (in ₹), estimatedTravelTime, bestTimeToVisit, timeSlot, vibe, and searchKeyword.
 
@@ -141,7 +168,7 @@ Follow these instructions carefully to ensure the trip captures the cultural ess
 
 5. Metadata:
    - "tripName": "City, CountryCode" (e.g., "Varanasi, IND").
-   - "tripDuration": "{totalDays} days, {totalNight} nights".
+   - "tripDuration": "X days, Y nights" where X is the final duration in days and Y is X-1 nights.
 
 6. JSON SYNTAX RULES (STRICT):
 - CRITICAL: ALL 'description' and 'placeDetails' fields across hotels, itinerary, restaurants, and experiences MUST be highly detailed, engaging, and comprehensive (minimum 3 to 4 sentences). DO NOT write short 1-line descriptions.

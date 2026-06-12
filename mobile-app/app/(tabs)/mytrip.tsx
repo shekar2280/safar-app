@@ -15,7 +15,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import StartNewTripCard from "@/src/components/trips/StartNewTripCard";
 import UserTripList from "@/src/components/trips/UserTripList";
