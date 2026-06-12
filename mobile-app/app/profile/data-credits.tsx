@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
@@ -20,7 +20,7 @@ import { LOCAL_HOTEL_IMAGES } from "@/src/constants";
 
 const { width } = Dimensions.get("window");
 
-export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) {
+export default function HotelInfo({ hotelData = [], cityName, isLoading }: HotelInfoProps) {
   const colors = useThemeColors();
   const { isDark } = useTheme();
   const openHotelInMaps = (hotelName: string) => {
@@ -107,9 +107,19 @@ export default function HotelInfo({ hotelData = [], cityName }: HotelInfoProps) 
             );
           })}
         </ScrollView>
-      ) : (
+      ) : isLoading ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Exploring best options for your {cityName} journey...</Text>
+          <Text style={[styles.emptyText, { color: colors.MUTED_TEXT }]}>Exploring best options for your {cityName} journey...</Text>
+        </View>
+      ) : (
+        <View style={[styles.emptyCard, { backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "#FDF9F0", borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(235, 186, 73, 0.15)" }]}>
+          <View style={styles.emptyIconContainer}>
+            <Ionicons name="sparkles" size={20} color={colors.GOLD} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.TEXT }]}>Excursion Destination</Text>
+          <Text style={[styles.emptyDesc, { color: colors.MUTED_TEXT }]}>
+            No Elite Stays needed. This location is best experienced as a day trip or excursion from a larger nearby city.
+          </Text>
         </View>
       )}
 
@@ -189,6 +199,37 @@ const styles = StyleSheet.create({
   },
   emptyState: { padding: 40, alignItems: "center" },
   emptyText: { fontFamily: "inter", fontSize: 14, textAlign: "center" },
+  emptyCard: {
+    marginHorizontal: 4,
+    marginVertical: 8,
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(212,175,55,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontFamily: "playfairBold",
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  emptyDesc: {
+    fontFamily: "outfit",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
   footer: { marginTop: 10, paddingHorizontal: 4 },
   searchButton: {
     flexDirection: "row",

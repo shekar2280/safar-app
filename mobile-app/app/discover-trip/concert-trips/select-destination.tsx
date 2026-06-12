@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";

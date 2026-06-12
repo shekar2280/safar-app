@@ -96,3 +96,8 @@ export interface CommonTripDetails {
   trendingPlaces: unknown[];
   isInternational: boolean;
 }
+
+export interface ActiveTripCachePayload {
+  tripData: any;
+  cachedAt: number;
+}

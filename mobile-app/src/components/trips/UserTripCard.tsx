@@ -10,7 +10,7 @@ import {
   Animated,
 } from "react-native";
 import moment from "moment";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { Typography, Radius, Shadow, Spacing } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/src/context/ThemeContext";

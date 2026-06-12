@@ -29,7 +29,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { LOGO } from "@/src/constants/images";
 import { useUser } from "@/src/context/UserContext";
 import { useTheme } from "@/src/context/ThemeContext";

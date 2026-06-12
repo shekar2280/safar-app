@@ -15,7 +15,7 @@ import {
 import { Image } from "expo-image";
 import React, { useState, useContext } from "react";
 import { useRouter } from "expo-router";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConcertTripContext } from "@/src/context/ConcertTripContext";

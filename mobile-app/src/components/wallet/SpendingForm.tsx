@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../common/Button";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { SpendingFormProps } from "@/src/constants";
 import { useTheme } from "@/src/context/ThemeContext";
 

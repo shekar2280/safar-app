@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SpendingItemProps } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
 

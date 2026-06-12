@@ -11,8 +11,8 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, useThemeColors } from "@/src/constants/colors";
-import { CITY_ALIASES } from "@/src/constants/discover";
+import { Colors, useThemeColors } from "@/src/constants/theme";
+import { CITY_ALIASES } from "@/src/constants/discovery";
 import { useTheme } from "@/src/context/ThemeContext";
 import { DestinationData, DestinationPickerProps, NominatimResult, AlertType } from "@/src/constants";
 import SafarAlert from "@/src/components/ui/SafarAlert";

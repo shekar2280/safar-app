@@ -1,10 +1,10 @@
 import React, { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { TRANSPORT_INSIGHTS_IMAGES } from "@/src/constants";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { Image } from "expo-image";
 
 interface SafarInsightsProps {

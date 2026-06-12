@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import React, { useState, useEffect } from "react";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 import { LOGO } from "@/src/constants/images";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

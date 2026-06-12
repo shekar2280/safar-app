@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 
 interface WalletBalanceCardProps {
   isFinished: boolean;

@@ -84,6 +84,7 @@ export interface LocationPickerProps {
 export interface HotelInfoProps {
   hotelData?: any[];
   cityName?: string;
+  isLoading?: boolean;
 }
 
 export interface HotelTypeToggleProps {

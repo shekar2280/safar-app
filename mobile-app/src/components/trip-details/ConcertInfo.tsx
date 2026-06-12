@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../common/Button";

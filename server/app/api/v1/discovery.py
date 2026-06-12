@@ -205,30 +205,13 @@ You MUST also add a "pexels_query" field to EVERY JSON object.
             api_logger.error("GEMINI RESPONSE IS NOT A LIST", extra={"type": str(type(destinations))})
             raise HTTPException(status_code=500, detail="AI response format invalid (not a list)")
 
-        api_logger.info("ENRICHING TRENDING PLACES WITH PEXELS PHOTOS AND COORDINATES")
-        enriched_places = []
-        for i, dest in enumerate(destinations[:12]):
+        api_logger.info("ENRICHING TRENDING PLACES WITH PEXELS PHOTOS IN PARALLEL")
+        
+        async def enrich_destination(dest):
             landmark = dest.get("famous_landmark") or dest.get("name")
             pexels_search = dest.get("pexels_query") or f"Cinematic landscape photography {landmark} {dest.get('name')}"
             image_url = await get_pexels_image(pexels_search)
-            
-            lat = 0.0
-            lon = 0.0
-            try:
-                async with httpx.AsyncClient() as client:
-                    geocode_res = await client.get(
-                        f"https://nominatim.openstreetmap.org/search?q={dest.get('name')}&format=json&limit=1",
-                        headers={"User-Agent": "safar-backend"}
-                    )
-                    if geocode_res.status_code == 200:
-                        g_data = geocode_res.json()
-                        if g_data:
-                            lat = float(g_data[0]["lat"])
-                            lon = float(g_data[0]["lon"])
-            except Exception as e:
-                api_logger.warning("Failed to geocode trending place", extra={"place": dest.get("name"), "error": str(e)})
-                
-            enriched_places.append({
+            return {
                 "name": dest.get("name"),
                 "title": dest.get("title") or dest.get("name"),
                 "country": dest.get("country"),
@@ -237,9 +220,12 @@ You MUST also add a "pexels_query" field to EVERY JSON object.
                 "insight": dest.get("insight"),
                 "recommended_month": dest.get("recommended_month"),
                 "image": image_url,
-                "lat": lat,
-                "lon": lon
-            })
+                "lat": 0.0,
+                "lon": 0.0
+            }
+            
+        tasks = [enrich_destination(dest) for dest in destinations[:12]]
+        enriched_places = await asyncio.gather(*tasks)
 
         if cached:
             cached.trending_data = enriched_places

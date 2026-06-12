@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { LOGO } from "@/src/constants/images";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 
 const { width } = Dimensions.get("window");

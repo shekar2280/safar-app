@@ -8,6 +8,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import { fallbackImages } from "@/src/constants";
 import { UserTrip } from "@/src/constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+import { ActiveTripCacheManager } from "@/src/utils/activeTripCache";
 
 const { width } = Dimensions.get("window");
 
@@ -24,6 +27,8 @@ export const useTripDetails = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [confirmActivateVisible, setConfirmActivateVisible] = useState(false);
   const [activeTripInContext, setActiveTripInContext] = useState<UserTrip | null>(null);
+  const [isCacheExpired, setIsCacheExpired] = useState(false);
+  const [cachedActiveTrip, setCachedActiveTrip] = useState<any | null>(null);
 
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -53,21 +58,93 @@ export const useTripDetails = () => {
     }
   }, [tripId, trip, userTrips]);
 
+  const mergedTripDetails = useMemo(() => {
+    const isActive = tripDetails?.isActive || (activeTripInContext && String(activeTripInContext.id) === String(tripDetails?.id));
+    if (isActive && !tripDetails?.tripPlan && cachedActiveTrip?.tripPlan) {
+      return { ...tripDetails, ...cachedActiveTrip };
+    }
+    return tripDetails;
+  }, [tripDetails, cachedActiveTrip, activeTripInContext]);
+
+  useEffect(() => {
+    const loadCachedActive = async () => {
+      const isActive = tripDetails?.isActive || (activeTripInContext && String(activeTripInContext.id) === String(tripDetails?.id));
+      if (isActive && !tripDetails?.tripPlan) {
+        const cached = await ActiveTripCacheManager.get();
+        if (cached && String(cached.id) === String(tripDetails.id)) {
+          setCachedActiveTrip(cached);
+        }
+      }
+    };
+    loadCachedActive();
+  }, [tripDetails, activeTripInContext]);
+
+  useEffect(() => {
+    if (mergedTripDetails?.id && mergedTripDetails?.isActive && mergedTripDetails?.tripPlan) {
+      ActiveTripCacheManager.save(mergedTripDetails);
+    }
+  }, [mergedTripDetails]);
+
   const transportData = useMemo(
     () => ({
-      tripType: tripDetails?.travelerMode || "travel",
-      departureIata: tripDetails?.departureIata || (tripDetails?.tripPlan as any)?.departureIata,
-      destinationIata: tripDetails?.tripPlan?.destinationIata,
-      bestTransport: tripDetails?.tripPlan?.bestTransport,
-      weatherInsight: tripDetails?.concertData ? undefined : tripDetails?.tripPlan?.weatherInsight,
+      tripType: mergedTripDetails?.travelerMode || "travel",
+      departureIata: mergedTripDetails?.departureIata || (mergedTripDetails?.tripPlan as any)?.departureIata,
+      destinationIata: mergedTripDetails?.tripPlan?.destinationIata,
+      bestTransport: mergedTripDetails?.tripPlan?.bestTransport,
+      weatherInsight: mergedTripDetails?.concertData ? undefined : mergedTripDetails?.tripPlan?.weatherInsight,
     }),
-    [tripDetails]
+    [mergedTripDetails]
   );
 
   useEffect(() => {
     const current = (userTrips || []).find(t => t.isActive);
     setActiveTripInContext(current || null);
   }, [userTrips]);
+
+  useEffect(() => {
+    if (mergedTripDetails?.id && mergedTripDetails?.tripPlan?.adjustedDurationReason) {
+      const key = `shown-duration-adjustment-${mergedTripDetails.id}`;
+      AsyncStorage.getItem(key).then(val => {
+        if (!val) {
+          setAlertConfig({
+            visible: true,
+            title: "Itinerary Optimized",
+            message: mergedTripDetails.tripPlan.adjustedDurationReason,
+            type: "info",
+          });
+          AsyncStorage.setItem(key, "true");
+        }
+      });
+    }
+  }, [mergedTripDetails]);
+
+  useEffect(() => {
+    const checkCacheExpiration = async () => {
+      if (!mergedTripDetails?.id || !mergedTripDetails?.isActive) return;
+      
+      const netState = await NetInfo.fetch();
+      const timestampKey = `@ACTIVE_TRIP_CACHED_AT_${mergedTripDetails.id}`;
+
+      if (netState.isConnected) {
+        await AsyncStorage.setItem(timestampKey, Date.now().toString());
+        setIsCacheExpired(false);
+      } else {
+        const cachedAtStr = await AsyncStorage.getItem(timestampKey);
+        if (cachedAtStr) {
+          const cachedAt = parseInt(cachedAtStr);
+          if (Date.now() - cachedAt > 7 * 24 * 60 * 60 * 1000) {
+            setIsCacheExpired(true);
+          } else {
+            setIsCacheExpired(false);
+          }
+        } else {
+          setIsCacheExpired(true);
+        }
+      }
+    };
+
+    checkCacheExpiration();
+  }, [mergedTripDetails]);
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -76,22 +153,28 @@ export const useTripDetails = () => {
   };
 
   const executeActivation = async () => {
-    if (!tripDetails.id) return;
+    if (!mergedTripDetails.id) return;
     setConfirmActivateVisible(false);
     try {
       setIsAnimating(true);
       
-      // Perform optimistic mutation instantly
-      activateTripMutation.mutate(tripDetails.id);
+      const timestampKey = `@ACTIVE_TRIP_CACHED_AT_${mergedTripDetails.id}`;
+      await AsyncStorage.setItem(timestampKey, Date.now().toString());
+      setIsCacheExpired(false);
 
-      // Transition screen after a brief tactile delay (600ms) for the spinning compass rose
+      if (mergedTripDetails.tripPlan) {
+        await ActiveTripCacheManager.save(mergedTripDetails);
+      }
+
+      activateTripMutation.mutate(mergedTripDetails.id);
+
       setTimeout(() => {
         setIsAnimating(false);
         router.push({
           pathname: "/activeTrips" as any,
           params: {
-            tripId: tripDetails.id,
-            totalDays: tripDetails.totalDays ?? 1
+            tripId: mergedTripDetails.id,
+            totalDays: mergedTripDetails.totalDays ?? 1
           },
         });
       }, 600);
@@ -107,8 +190,8 @@ export const useTripDetails = () => {
   };
 
   const handleActivateTrip = async () => {
-    if (!tripDetails.id) return;
-    if (activeTripInContext && activeTripInContext.id !== tripDetails.id) {
+    if (!mergedTripDetails.id) return;
+    if (activeTripInContext && activeTripInContext.id !== mergedTripDetails.id) {
       setConfirmActivateVisible(true);
       return;
     }
@@ -116,16 +199,16 @@ export const useTripDetails = () => {
   };
 
   const images = useMemo(() => {
-    const personalImages = tripDetails?.concertData?.image_urls;
+    const personalImages = mergedTripDetails?.concertData?.image_urls;
     if (personalImages && Array.isArray(personalImages) && personalImages.length > 0) {
       return personalImages.map((img: string) => ({ uri: img }));
     }
 
-    const legacyImg = (tripDetails as any)?.imageUrl;
+    const legacyImg = (mergedTripDetails as any)?.imageUrl;
     if (Array.isArray(legacyImg) && legacyImg.length > 0) return legacyImg.map((img: string) => ({ uri: img }));
     if (typeof legacyImg === "string" && legacyImg.trim().length > 0) return [{ uri: legacyImg }];
 
-    const aiImages = tripDetails?.tripPlan?.imageUrl || (tripDetails as any)?.savedTrip?.image_urls;
+    const aiImages = mergedTripDetails?.tripPlan?.imageUrl || (mergedTripDetails as any)?.savedTrip?.image_urls;
     if (Array.isArray(aiImages) && aiImages.length > 0) {
       return aiImages.map((img: string) => ({ uri: img }));
     }
@@ -134,10 +217,16 @@ export const useTripDetails = () => {
 
     const randomFallback = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
     return [{ uri: randomFallback }];
-  }, [tripDetails, imageUrl]);
+  }, [mergedTripDetails, imageUrl]);
+
+  const isPlanMissing = useMemo(() => {
+    if (!mergedTripDetails?.concertData && !mergedTripDetails?.tripPlan) return true;
+    if (mergedTripDetails?.isActive && isCacheExpired) return true;
+    return false;
+  }, [mergedTripDetails, isCacheExpired]);
 
   return {
-    tripDetails,
+    tripDetails: mergedTripDetails,
     isAnimating,
     activeIndex,
     confirmActivateVisible,
@@ -145,7 +234,8 @@ export const useTripDetails = () => {
     activeTripInContext,
     alertConfig,
     setAlertConfig,
-    isInitializing: loadingTrips && !tripDetails?.tripPlan,
+    isInitializing: loadingTrips && !mergedTripDetails?.tripPlan,
+    isPlanMissing,
     images,
     handleScroll,
     handleActivateTrip,

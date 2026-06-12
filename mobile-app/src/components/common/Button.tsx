@@ -9,7 +9,7 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useThemeColors } from "@/src/constants/colors";
+import { useThemeColors } from "@/src/constants/theme";
 
 import { ButtonProps } from "@/src/constants";
 

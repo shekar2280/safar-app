@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { AIDisclaimerProps } from "@/src/constants";
 

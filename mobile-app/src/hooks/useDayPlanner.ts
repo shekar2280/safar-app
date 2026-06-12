@@ -32,6 +32,14 @@ export const useDayPlanner = () => {
   }, [activeTrip?.id]);
 
   const displayImage = useMemo(() => {
+    const tripData = activeTrip as any;
+    const personalImages = tripData?.concertData?.image_urls || tripData?.concertData?.imageUrl;
+    if (Array.isArray(personalImages) && personalImages.length > 0) {
+      return { uri: personalImages[0] };
+    } else if (typeof personalImages === "string" && personalImages.trim().length > 0) {
+      return { uri: personalImages };
+    }
+
     const img = activeTrip?.imageUrl;
     if (Array.isArray(img) && img.length > 0) {
       return { uri: img[2] || img[0] };
@@ -40,7 +48,7 @@ export const useDayPlanner = () => {
       return { uri: img };
     }
     return randomFallback;
-  }, [activeTrip?.imageUrl, randomFallback]);
+  }, [activeTrip?.imageUrl, (activeTrip as any)?.concertData, randomFallback]);
 
   const sections = useMemo(() => {
     if (!activeTrip?.tripPlan) return { active: [] as JourneyItem[], completed: [] as JourneyItem[] };

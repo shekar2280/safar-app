@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 import LottieView from "lottie-react-native";
 import { useRouter } from "expo-router";
 

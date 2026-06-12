@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -42,6 +42,13 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   }, [trip?.id]);
 
   const tripImageSource = useMemo(() => {
+    const personalImages = trip?.concertData?.image_urls || trip?.concertData?.imageUrl;
+    if (Array.isArray(personalImages) && personalImages.length > 0) {
+      return { uri: personalImages[0] };
+    } else if (typeof personalImages === "string" && personalImages.trim().length > 0) {
+      return { uri: personalImages };
+    }
+
     const img = trip?.imageUrl;
     if (Array.isArray(img) && img.length > 0) {
       return { uri: img[1] || img[0] };
@@ -50,7 +57,7 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
       return { uri: img };
     }
     return randomFallback;
-  }, [trip?.imageUrl, randomFallback]);
+  }, [trip?.imageUrl, trip?.concertData, randomFallback]);
 
   const tripName = trip?.concertData?.artist
     ? `${trip.concertData.artist} Concert`

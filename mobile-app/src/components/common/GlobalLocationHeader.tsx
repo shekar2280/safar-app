@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "@/src/constants/colors";
+import { Colors } from "@/src/constants/theme";
 import { useLocation } from "@/src/context/LocationContext";
 import LocationPicker from "@/src/components/trip/LocationPicker";
 

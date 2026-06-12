@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Colors, useThemeColors } from "@/src/constants/colors";
+import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import {
