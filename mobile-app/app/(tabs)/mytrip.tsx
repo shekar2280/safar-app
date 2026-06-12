@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
+import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -51,6 +52,19 @@ export default function Mytrip() {
     await refetch();
     setIsManualRefresh(false);
   };
+
+  useEffect(() => {
+    const requestLocationUpfront = async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === "undetermined") {
+          await Location.requestForegroundPermissionsAsync();
+        }
+      } catch (e) {
+      }
+    };
+    requestLocationUpfront();
+  }, []);
 
   const filteredTrips = useMemo(() => {
     if (!searchQuery.trim()) return userTrips;

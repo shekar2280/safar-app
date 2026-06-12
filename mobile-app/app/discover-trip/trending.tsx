@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Colors, useThemeColors } from "@/src/constants/colors";
 import { useTheme } from "@/src/context/ThemeContext";
 import DiscoverCard from "@/src/components/trip/DiscoverCard";
+import SafarAlert from "@/src/components/ui/SafarAlert";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "@/src/context/UserContext";
 import { useTrendingPlaces } from "@/src/hooks/queries/useTrendingPlaces";
@@ -61,6 +62,8 @@ export default function TrendingTrips() {
   const [isResolvingLocation, setIsResolvingLocation] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const changeCountry = (countryName: string) => {
     setIsTransitioning(true);
@@ -225,17 +228,25 @@ export default function TrendingTrips() {
       chipsList.push({ name: homeCountry.name, label: "📍 Near Me" });
     }
 
+    if (activeCountry && activeCountry.toLowerCase() !== homeCountry?.name?.toLowerCase()) {
+      const normalizedActive = normalizeCountryName(activeCountry);
+      chipsList.push({
+        name: normalizedActive,
+        label: `${getCountryEmoji(normalizedActive)} ${normalizedActive}`,
+      });
+    }
+
     const countryCode = homeCountry?.code || "DEFAULT";
     const outboundNames = SUGGESTED_OUTBOUND[countryCode] || SUGGESTED_OUTBOUND.DEFAULT;
 
     let filteredOutbound = outboundNames.filter(
-      (name) => name.toLowerCase() !== homeCountry?.name.toLowerCase()
+      (name) => name.toLowerCase() !== homeCountry?.name?.toLowerCase()
     );
 
     if (filteredOutbound.length < outboundNames.length) {
       const replacement = BACKUPS.find(
         (b) =>
-          b.toLowerCase() !== homeCountry?.name.toLowerCase() &&
+          b.toLowerCase() !== homeCountry?.name?.toLowerCase() &&
           !filteredOutbound.includes(b)
       );
       if (replacement) {
@@ -250,7 +261,7 @@ export default function TrendingTrips() {
       });
     });
 
-    return chipsList.filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i);
+    return chipsList.filter((v, i, a) => a.findIndex((t) => t.name.toLowerCase() === v.name.toLowerCase()) === i);
   };
 
   const getHeaderTitle = () => {
@@ -260,7 +271,7 @@ export default function TrendingTrips() {
     return `Trending in ${activeCountry}`;
   };
 
-  const showLoading = loading || isResolvingLocation || isTransitioning || !activeCountry;
+  const showLoading = loading || isResolvingLocation || isTransitioning || isValidating || !activeCountry;
 
   if (isConnected === false && places.length === 0) {
     return (
@@ -324,10 +335,30 @@ export default function TrendingTrips() {
             placeholderTextColor={colors.MUTED_TEXT}
             value={searchInput}
             onChangeText={setSearchInput}
-            onSubmitEditing={() => {
+            onSubmitEditing={async () => {
               if (searchInput.trim().length > 2) {
                 const searched = searchInput.trim();
-                changeCountry(searched);
+                setIsValidating(true);
+                try {
+                  const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searched)}&format=json&addressdetails=1&limit=1`,
+                    { headers: { "User-Agent": "safar-travel-app", "Accept-Language": "en" } }
+                  );
+                  const data = await res.json();
+                  if (data && data.length > 0) {
+                    const item = data[0];
+                    const placeName = item.display_name.split(",")[0].trim();
+                    changeCountry(placeName);
+                    setSearchInput("");
+                  } else {
+                    setAlertVisible(true);
+                  }
+                } catch (err) {
+                  console.error("Validation error:", err);
+                  setAlertVisible(true);
+                } finally {
+                  setIsValidating(false);
+                }
               }
             }}
             returnKeyType="search"
@@ -398,7 +429,7 @@ export default function TrendingTrips() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.PRIMARY} />
           <Text style={[styles.loadingText, { color: colors.MUTED_TEXT }]}>
-            {isResolvingLocation ? "Detecting your location..." : "Finding trending spots..."}
+            {isValidating ? "Verifying location..." : isResolvingLocation ? "Detecting your location..." : "Finding trending spots..."}
           </Text>
         </View>
       ) : (
@@ -430,6 +461,16 @@ export default function TrendingTrips() {
           )}
         />
       )}
+
+      <SafarAlert
+        visible={alertVisible}
+        title="LOCATION NOT FOUND"
+        message="We couldn't find a country matching your search. Please check the spelling and try again."
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setAlertVisible(false)}
+        onCancel={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
