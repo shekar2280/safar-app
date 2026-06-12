@@ -1,3 +1,4 @@
+import os
 import httpx
 import sentry_sdk
 from typing import Optional, Dict, Any
@@ -6,7 +7,7 @@ from app.config import settings
 
 class WeatherService:
     def __init__(self):
-        self.api_key = settings.weather_api_key
+        self.api_key = settings.weather_api_key or os.getenv("WEATHER_API", "")
         self.base_url = "https://api.openweathermap.org/data/2.5"
 
     async def get_current_weather(self, city: str) -> Optional[Dict[str, Any]]:
