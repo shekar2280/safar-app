@@ -79,13 +79,13 @@ export const Colors = {
   GOLD_MUTED: palette.light.goldMuted,
   DARK_SURFACE: "#121212",
   DARK_SURFACE_ALT: "#1E1E1E",
-  GREEN: palette.light.green
+  GREEN: palette.light.green,
 } as const;
 
 export function useThemeColors() {
   const { theme } = useTheme();
   const colors = theme === "light" ? palette.light : palette.dark;
-  
+
   return {
     BACKGROUND: colors.background,
     SURFACE: colors.surface,
@@ -196,5 +196,5 @@ export const LOADING_STEPS = [
   "Mapping Local Hotspots",
   "Analyzing Transit Routes",
   "Gathering Weather Insights",
-  "Polishing Bespoke Itinerary"
+  "Polishing Bespoke Itinerary",
 ];

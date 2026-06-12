@@ -37,6 +37,7 @@ export default function TripDetails() {
   const navigation = useNavigation();
   const colors = useThemeColors();
   const { isDark } = useTheme();
+  const pageBg = isDark ? "#0D0D10" : colors.BACKGROUND;
 
   const [showContent, setShowContent] = useState(false);
   const minDelayFired = useRef(false);
@@ -92,7 +93,7 @@ export default function TripDetails() {
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: colors.BACKGROUND }}
+        style={{ backgroundColor: pageBg }}
       >
         <View style={styles.slideshowContainer}>
           <TouchableOpacity
@@ -143,24 +144,75 @@ export default function TripDetails() {
           )}
         </View>
 
-        <View style={[styles.container, { backgroundColor: colors.BACKGROUND }]}>
+        <View style={[styles.container, { backgroundColor: pageBg }]}>
           <View style={styles.headerBlock}>
             <View style={styles.titleRow}>
               <Text
                 style={[styles.title, { color: colors.TEXT, flexShrink: 1 }]}
-                numberOfLines={1}
+                numberOfLines={2}
                 adjustsFontSizeToFit
-                minimumFontScale={0.7}
+                minimumFontScale={0.8}
               >
                 {tripDetails?.concertData?.artist
                   ? `${tripDetails?.concertData?.artist} Concert`
                   : tripDetails?.tripPlan?.tripName || "Trip Details"}
               </Text>
-              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD, marginBottom: 8 }]} />
             </View>
-            <Text style={[styles.dateText, { color: colors.MUTED_TEXT }]}>
-              {tripDetails.totalDays} {tripDetails.totalDays === 1 ? "DAY" : "DAYS"} CURATED JOURNEY
-            </Text>
+
+            <View style={styles.badgesRow}>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(212, 175, 55, 0.15)"
+                      : "rgba(212, 175, 55, 0.08)",
+                  },
+                ]}
+              >
+                <Ionicons name="calendar-outline" size={14} color={colors.GOLD} />
+                <Text style={[styles.badgeText, { color: colors.GOLD, fontFamily: "outfitBold" }]}>
+                  {tripDetails.totalDays} {tripDetails.totalDays === 1 ? "Day" : "Days"}
+                </Text>
+              </View>
+
+              {tripDetails?.traveler?.title && (
+                <View
+                  style={[
+                    styles.badge,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "rgba(0, 0, 0, 0.04)",
+                    },
+                  ]}
+                >
+                  <Ionicons name="people-outline" size={14} color={colors.MUTED_TEXT} />
+                  <Text style={[styles.badgeText, { color: colors.TEXT }]}>
+                    {tripDetails.traveler.title}
+                  </Text>
+                </View>
+              )}
+
+              {tripDetails?.isInternational !== undefined && (
+                <View
+                  style={[
+                    styles.badge,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "rgba(0, 0, 0, 0.04)",
+                    },
+                  ]}
+                >
+                  <Ionicons name="globe-outline" size={14} color={colors.MUTED_TEXT} />
+                  <Text style={[styles.badgeText, { color: colors.TEXT }]}>
+                    {tripDetails.isInternational ? "International" : "Domestic"}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
 
           {tripDetails.isFinished ? (
@@ -401,7 +453,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 35,
     paddingBottom: 100,
   },
-  headerBlock: { marginBottom: 20 },
+  headerBlock: { marginBottom: 24 },
+  premiumTagRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
+  premiumTagText: {
+    fontFamily: "outfitBold",
+    fontSize: 11,
+    letterSpacing: 1.5,
+  },
+  tagLine: {
+    height: 1,
+    flex: 1,
+    opacity: 0.3,
+  },
   titleRow: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -416,6 +484,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dateText: { fontFamily: "outfitMedium", fontSize: 14, marginTop: 6 },
+  badgesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+  },
+  badgeText: {
+    fontFamily: "outfitMedium",
+    fontSize: 12,
+  },
   activateButton: {
     padding: 15,
     borderRadius: 15,
