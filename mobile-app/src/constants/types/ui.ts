@@ -152,3 +152,7 @@ export interface RestaurantsInfoProps {
   } | null;
   cityName: string;
 }
+
+export interface SkeletonCardProps {
+  cardHeight?: number;
+}

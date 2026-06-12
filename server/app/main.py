@@ -157,7 +157,22 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "healthy", "time": datetime.datetime.utcnow().isoformat()}
+    redis_status = "not_configured"
+    if settings.redis_url:
+        try:
+            r = aioredis.from_url(settings.redis_url, encoding="utf8", decode_responses=True)
+            # Write a dummy key to prevent 7-day inactivity deletion on free Redis tiers
+            await r.set("heartbeat", datetime.datetime.utcnow().isoformat(), ex=86400)
+            await r.close()
+            redis_status = "active"
+        except Exception as e:
+            redis_status = "error"
+
+    return {
+        "status": "healthy", 
+        "redis": redis_status,
+        "time": datetime.datetime.utcnow().isoformat()
+    }
 
 @app.post("/api/test-event")
 async def trigger_test_event(data: str):

@@ -198,3 +198,9 @@ export const LOADING_STEPS = [
   "Gathering Weather Insights",
   "Polishing Bespoke Itinerary",
 ];
+
+export const SKELETON_CONFIG = {
+  DEFAULT_HEIGHT: 180,
+  ANIMATION_DURATION: 1000,
+  BASE_OPACITY: 0.4,
+};

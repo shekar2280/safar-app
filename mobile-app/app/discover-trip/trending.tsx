@@ -22,6 +22,7 @@ import { useUser } from "@/src/context/UserContext";
 import { useTrendingPlaces } from "@/src/hooks/queries/useTrendingPlaces";
 import { useNetInfo } from "@react-native-community/netinfo";
 import Button from "@/src/components/common/Button";
+import SkeletonCard from "@/src/components/common/SkeletonCard";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -421,14 +422,21 @@ export default function TrendingTrips() {
       )}
 
       {showLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.PRIMARY} />
-          <Text style={[styles.loadingText, { color: colors.MUTED_TEXT }]}>
-            {isValidating ? "Verifying location..." : isResolvingLocation ? "Detecting your location..." : "Finding trending spots..."}
-          </Text>
-        </View>
+        <FlatList
+          key="skeleton-list"
+          data={[1, 2, 3, 4, 5]}
+          keyExtractor={(item) => item.toString()}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          renderItem={() => (
+            <View style={styles.cardContainer}>
+              <SkeletonCard cardHeight={height * 0.20} />
+            </View>
+          )}
+        />
       ) : (
         <FlatList
+          key="places-list"
           data={places}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
