@@ -1,3 +1,4 @@
+import os
 import httpx
 import sentry_sdk
 from typing import Optional, List, Dict, Any
@@ -6,7 +7,7 @@ from app.config import settings
 
 class OpenTripMapService:
     def __init__(self):
-        self.api_key = settings.opentripmap_api_key
+        self.api_key = settings.opentripmap_api_key or os.getenv("OPEN_TRIP_MAP_API", "")
         self.base_url = "https://api.opentripmap.com/0.1/en"
 
     async def get_places_by_radius(self, lat: float, lon: float, radius: int = 5000) -> List[Dict[str, Any]]:

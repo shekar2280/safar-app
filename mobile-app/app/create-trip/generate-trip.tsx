@@ -153,6 +153,9 @@ export default function GenerateTrip() {
         const aiData = JSON.parse(repairedJson);
 
         itineraryData = normalizeItinerary(aiData);
+        if ((!itineraryData.tripName || !itineraryData.tripName.trim()) && tripData.destinationInfo?.name) {
+          itineraryData.tripName = tripData.destinationInfo.name;
+        }
         finalImageUrl = result.imageUrl || result.imageUrls || "";
         destinationIata = aiData.destinationIata || "N/A";
 

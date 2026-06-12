@@ -3,6 +3,17 @@ import { NormalizedTripPlan } from "@/src/constants";
 export const normalizeItinerary = (data: Record<string, any>): any => {
   const normalized: any = { ...data };
 
+  // Resolve tripName fallback from various possible LLM naming variations
+  if (!normalized.tripName) {
+    normalized.tripName = data.tripName || 
+                          data.trip_name || 
+                          data.metadata?.tripName || 
+                          data.metadata?.trip_name || 
+                          data.location || 
+                          data.locationName || 
+                          "";
+  }
+
   if (!normalized.recommendations) {
     normalized.recommendations = {};
   }

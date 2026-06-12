@@ -5,4 +5,34 @@ ios/
 dist/
 .git/
 
+# Environments & Secrets (EAS needs google-services.json, but keep others ignored)
+.env
+.env.local
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+
+# Metro & Build Logs
+.metro-health-check*
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# IDEs & System
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.lock
+
+# Custom Project Exclusions
+app/discover-trip/sports-trip/
+app-example/
+SYSTEM_BRAIN.md
+resources/
+
 !google-services.json
