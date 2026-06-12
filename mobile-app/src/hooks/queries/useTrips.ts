@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiDelete, apiPatch, JWT_KEY } from "@/src/lib/api";
 import { UserTrip } from "@/src/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { normalizeItinerary } from "@/src/utils/normalizeItinerary";
 
 function mapBackendTrip(raw: any): UserTrip {
   const imageUrls: string[] = raw.image_urls ?? [];
@@ -25,7 +26,7 @@ function mapBackendTrip(raw: any): UserTrip {
     completedAt: raw.completed_at,
     updatedAt: raw.updated_at,
     createdAt: raw.created_at,
-    tripPlan: raw.trip_plan,
+    tripPlan: raw.trip_plan ? normalizeItinerary(raw.trip_plan) : undefined,
     concertData: raw.concert_data,
     imageUrl:
       raw.image_url ||

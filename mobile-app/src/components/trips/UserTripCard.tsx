@@ -64,11 +64,21 @@ const UserTripCard = React.memo(({ trip, onDelete, isPaused, isVisible = true }:
 
   const isConcert = !!trip?.concertData || isConcertLegacy;
 
-  const tripName = trip?.concertData
-    ? `${trip?.concertData?.artist}${trip?.concertData?.artist?.toLowerCase().includes("concert") ? "" : " Concert"}`
-    : trip?.tripPlan?.tripName
-      ? trip.tripPlan.tripName
-      : "My Trip";
+  const tripName = useMemo(() => {
+    if (trip?.concertData) {
+      return `${trip.concertData.artist}${trip.concertData.artist.toLowerCase().includes("concert") ? "" : " Concert"}`;
+    }
+    const plan = trip?.tripPlan as any;
+    if (plan) {
+      if (typeof plan.tripName === "string" && plan.tripName.trim()) return plan.tripName;
+      if (typeof plan.trip_name === "string" && plan.trip_name.trim()) return plan.trip_name;
+      if (plan.metadata && typeof plan.metadata.tripName === "string" && plan.metadata.tripName.trim()) return plan.metadata.tripName;
+      if (plan.metadata && typeof plan.metadata.trip_name === "string" && plan.metadata.trip_name.trim()) return plan.metadata.trip_name;
+      if (typeof plan.locationName === "string" && plan.locationName.trim()) return plan.locationName;
+      if (typeof plan.location === "string" && plan.location.trim()) return plan.location;
+    }
+    return "My Trip";
+  }, [trip]);
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];

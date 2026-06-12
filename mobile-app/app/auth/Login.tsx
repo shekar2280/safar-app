@@ -60,7 +60,7 @@ export default function Login() {
     try {
       setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
-      
+
       try {
         await GoogleSignin.signOut();
       } catch (e) {
@@ -96,45 +96,45 @@ export default function Login() {
         contentFit="cover"
         transition={800}
       />
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.85)"]}
-          style={[styles.gradientOverlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
-        >
-          <StatusBar style="dark" />
-          <View style={styles.content}>
-            <View style={styles.centerHeroSection}>
-              <View style={styles.logoGlassFrame}>
-                <Image
-                  source={LOGO}
-                  style={styles.logoImage}
-                  contentFit="cover"
-                />
-              </View>
-              <Text style={styles.brandTitle}>Safar</Text>
-              <Text style={styles.brandSubtitle}>If You Never Go,</Text>
-              <Text style={styles.brandSubtitle}>You Will Never Know</Text>
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.85)"]}
+        style={[styles.gradientOverlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
+      >
+        <StatusBar style="dark" />
+        <View style={styles.content}>
+          <View style={styles.centerHeroSection}>
+            <View style={styles.logoGlassFrame}>
+              <Image
+                source={LOGO}
+                style={styles.logoImage}
+                contentFit="cover"
+              />
             </View>
+            <Text style={styles.brandTitle}>Safar</Text>
+            <Text style={styles.brandSubtitle}>If You Never Go,</Text>
+            <Text style={styles.brandSubtitle}>You Will Never Know</Text>
+          </View>
 
-            <View style={styles.bottomButtonsSection}>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={onContinueWithGoogle}
-                  disabled={googleLoading}
-                >
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={Colors.WHITE} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-google" size={20} color={Colors.WHITE} style={styles.buttonIcon} />
-                      <Text style={styles.primaryButtonText}>Continue with Google</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+          <View style={styles.bottomButtonsSection}>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={onContinueWithGoogle}
+                disabled={googleLoading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={Colors.WHITE} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={20} color={Colors.WHITE} style={styles.buttonIcon} />
+                    <Text style={styles.primaryButtonText}>Continue with Google</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
-        </LinearGradient>
+        </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     letterSpacing: 1,
   },
-   logoGlassFrame: {
+  logoGlassFrame: {
     width: 150,
     height: 150,
     borderRadius: 75,
