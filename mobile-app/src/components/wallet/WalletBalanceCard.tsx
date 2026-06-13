@@ -8,6 +8,7 @@ interface WalletBalanceCardProps {
   remBudget: number;
   totalBudget: number;
   totalSpent: number;
+  currency: string;
 }
 
 export const WalletBalanceCard = ({
@@ -15,6 +16,7 @@ export const WalletBalanceCard = ({
   remBudget,
   totalBudget,
   totalSpent,
+  currency,
 }: WalletBalanceCardProps) => {
   return (
     <LinearGradient
@@ -32,7 +34,7 @@ export const WalletBalanceCard = ({
               { color: isFinished ? "#F1F5F9" : remBudget < 0 ? "#FF4B4B" : "#FFFFFF" },
             ]}
           >
-            ₹{remBudget.toLocaleString("en-IN")}
+            {currency}{remBudget.toLocaleString("en-US")}
           </Text>
         </View>
         <View
@@ -50,12 +52,12 @@ export const WalletBalanceCard = ({
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>TOTAL BUDGET</Text>
-          <Text style={styles.statValue}>₹{totalBudget.toLocaleString("en-IN")}</Text>
+          <Text style={styles.statValue}>{currency}{totalBudget.toLocaleString("en-US")}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>SPENDINGS</Text>
-          <Text style={styles.statValue}>₹{totalSpent.toLocaleString("en-IN")}</Text>
+          <Text style={styles.statValue}>{currency}{totalSpent.toLocaleString("en-US")}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -86,7 +88,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   bigAmount: {
-    fontSize: 38,
+    fontSize: 32,
     fontFamily: "outfitBold",
     marginTop: 8,
   },

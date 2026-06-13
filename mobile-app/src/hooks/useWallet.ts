@@ -24,6 +24,7 @@ export const useWallet = () => {
   const [newBudgetInput, setNewBudgetInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hasSeenSwipeTip, setHasSeenSwipeTip] = useState(true);
+  const [currency, setCurrency] = useState("₹");
 
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -42,6 +43,9 @@ export const useWallet = () => {
       if (!tripId) return;
       const seen = await AsyncStorage.getItem(`seenSwipeTip_${tripId}`);
       setHasSeenSwipeTip(!!seen);
+      
+      const savedCurrency = await AsyncStorage.getItem(`currency_${tripId}`);
+      if (savedCurrency) setCurrency(savedCurrency);
     };
     checkSwipeTip();
   }, [tripId]);
@@ -118,6 +122,7 @@ export const useWallet = () => {
 
     try {
       setLoading(true);
+      await AsyncStorage.setItem(`currency_${tripId}`, currency);
       await updateTripBudget(tripId, newBudget);
       setNewBudgetInput("");
       setLoading(false);
@@ -185,6 +190,8 @@ export const useWallet = () => {
     allSpendings,
     totalSpent,
     remBudget,
+    currency,
+    setCurrency,
     handleSetBudget,
     recordSpending,
     clearAll,

@@ -25,3 +25,13 @@ export const SelectBudgetOptions: BudgetOption[] = [
     icon: "💎",
   },
 ];
+
+export const COMMON_CURRENCIES = [
+  { code: "USD", symbol: "$" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "INR", symbol: "₹" },
+  { code: "JPY", symbol: "¥" },
+  { code: "AUD", symbol: "A$" },
+  { code: "CAD", symbol: "C$" },
+];

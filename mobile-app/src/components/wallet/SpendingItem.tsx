@@ -12,7 +12,11 @@ import { useActiveTrip } from "@/src/context/ActiveTripContext";
 const { width } = Dimensions.get("window");
 const SWIPE_LIMIT = -width * 0.2;
 
-export const SpendingItem = ({ item, tripId, isFinished }: SpendingItemProps) => {
+interface SpendingItemExtendedProps extends SpendingItemProps {
+  currency: string;
+}
+
+export const SpendingItem = ({ item, tripId, isFinished, currency }: SpendingItemExtendedProps) => {
   const [deleteVisible, setDeleteVisible] = React.useState(false);
   const translateX = useSharedValue(0);
   const colors = useThemeColors();
@@ -78,7 +82,7 @@ export const SpendingItem = ({ item, tripId, isFinished }: SpendingItemProps) =>
             <Text style={[styles.name, { color: colors.TEXT }, isFinished && { color: colors.GRAY }]}>{item.name}</Text>
             <Text style={[styles.date, { color: colors.MUTED_TEXT }]}>{item.date}</Text>
           </View>
-          <Text style={[styles.amount, { color: colors.TEXT }, isFinished && { color: colors.GRAY }]}>₹{item.amount}</Text>
+          <Text style={[styles.amount, { color: colors.TEXT }, isFinished && { color: colors.GRAY }]}>{currency}{item.amount}</Text>
         </Animated.View>
       </GestureDetector>
 

@@ -47,6 +47,8 @@ export default function SpendingsInput() {
     allSpendings,
     totalSpent,
     remBudget,
+    currency,
+    setCurrency,
     handleSetBudget,
     recordSpending,
     clearAll,
@@ -94,6 +96,8 @@ export default function SpendingsInput() {
               setNewBudgetInput={setNewBudgetInput}
               handleSetBudget={handleSetBudget}
               loading={loading}
+              currency={currency}
+              setCurrency={setCurrency}
             />
           ) : (
             <WalletBalanceCard
@@ -101,6 +105,7 @@ export default function SpendingsInput() {
               remBudget={remBudget}
               totalBudget={totalBudget}
               totalSpent={totalSpent}
+              currency={currency}
             />
           )}
 
@@ -169,6 +174,7 @@ export default function SpendingsInput() {
                   item={item}
                   tripId={tripId!}
                   isFinished={isFinished}
+                  currency={currency}
                 />
               ))
             )}
@@ -189,12 +195,13 @@ export default function SpendingsInput() {
               hideForm={hideForm}
               clearAll={clearAll}
               recordSpending={recordSpending}
+              currency={currency}
             />
           </View>
         </View>
       )}
 
-      {!isFormVisible && !isFinished && (
+      {!isFormVisible && !isFinished && totalBudget > 0 && (
         <View style={styles.fixedButtonContainer}>
           <Button
             title="RECORD EXPENSE"
@@ -252,8 +259,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 40,
-    lineHeight: 48,
+    fontSize: 26,
+    lineHeight: 34,
   },
   goldDot: {
     width: 7,

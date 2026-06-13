@@ -13,6 +13,10 @@ import { Colors, useThemeColors } from "@/src/constants/theme";
 import { SpendingFormProps } from "@/src/constants";
 import { useTheme } from "@/src/context/ThemeContext";
 
+interface SpendingFormExtendedProps extends SpendingFormProps {
+  currency: string;
+}
+
 const { width } = Dimensions.get("window");
 
 export const SpendingForm = ({
@@ -24,7 +28,8 @@ export const SpendingForm = ({
   hideForm,
   clearAll,
   recordSpending,
-}: SpendingFormProps) => {
+  currency,
+}: SpendingFormExtendedProps) => {
   const isRecordDisabled = isSaving || !spendingName.trim() || isNaN(parseFloat(amountInput));
 
   return (
@@ -52,7 +57,7 @@ export const SpendingForm = ({
         </View>
 
         <View style={styles.inputWrapper}>
-          <Ionicons name="cash-outline" size={20} color={Colors.GOLD} style={styles.inputIcon} />
+          <Text style={styles.currencyPrefix}>{currency}</Text>
           <TextInput
             placeholder="0.00"
             value={amountInput}
@@ -61,7 +66,6 @@ export const SpendingForm = ({
             style={styles.textInput}
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
           />
-          <Text style={styles.currencySuffix}>INR</Text>
         </View>
       </View>
       
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "playfairBold",
     color: Colors.WHITE,
   },
@@ -147,10 +151,13 @@ const styles = StyleSheet.create({
     fontFamily: "outfitBold",
     color: Colors.WHITE,
   },
-  currencySuffix: {
+  currencyPrefix: {
     fontFamily: "outfitBold",
-    fontSize: 14,
-    color: Colors.WHITE,
+    fontSize: 18,
+    color: Colors.GOLD,
+    marginRight: 10,
+    minWidth: 20,
+    textAlign: "center",
   },
   footerActions: {
     flexDirection: "row",

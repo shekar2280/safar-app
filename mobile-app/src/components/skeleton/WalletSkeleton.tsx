@@ -1,28 +1,22 @@
 import React from "react";
 import { View, StyleSheet, Dimensions, ScrollView } from "react-native";
 import SkeletonBase from "./SkeletonBase";
-import { Spacing } from "@/src/constants/theme";
-import { Colors } from "@/src/constants/theme";
+import { useThemeColors } from "@/src/constants/theme";
 
 const { width } = Dimensions.get("window");
 
 export default function WalletSkeleton() {
-  return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.content}>
-        {/* Header Skeleton */}
-        <View style={styles.header}>
-            <SkeletonBase width={150} height={12} radius={4} />
-            <View style={{ height: 8 }} />
-            <SkeletonBase width={220} height={42} radius={8} />
-        </View>
+  const colors = useThemeColors();
 
-        {/* Budget Card Skeleton */}
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: colors.BACKGROUND }]} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+
+
         <SkeletonBase height={200} radius={24} />
 
         <View style={{ height: 40 }} />
 
-        {/* Transaction History Skeleton */}
         <View style={styles.historyHeader}>
           <SkeletonBase width={140} height={20} radius={4} />
           <SkeletonBase width={80} height={32} radius={12} />
@@ -42,7 +36,6 @@ export default function WalletSkeleton() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
   },
   content: {
     paddingHorizontal: 20,
