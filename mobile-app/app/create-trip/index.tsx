@@ -364,8 +364,8 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontFamily: "playfairBold",
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 22,
+    lineHeight: 28,
     textAlign: "center",
   },
   scrollContent: {

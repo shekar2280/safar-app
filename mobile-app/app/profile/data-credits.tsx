@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   headerInfo: { marginBottom: 30 },
   mainTitle: {
     fontFamily: "playfairBold",
-    fontSize: 28,
+    fontSize: 22,
     letterSpacing: 2,
     marginBottom: 10,
   },

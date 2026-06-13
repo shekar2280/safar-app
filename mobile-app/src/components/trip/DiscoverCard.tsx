@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     left: 12,
-    fontSize: 24,
+    fontSize: 20,
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,

@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 28,
-    marginTop: -2,
+    fontSize: 22,
+    lineHeight: 28,
   },
   listContent: {
     paddingHorizontal: 10,

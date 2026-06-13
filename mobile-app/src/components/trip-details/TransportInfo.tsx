@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 0, marginBottom: 16 },
   overline: { fontFamily: "interMedium", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
-  sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
+  sectionTitle: { fontSize: 22, fontFamily: "playfairBold" },
   goldDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 4, marginBottom: 6 },
   routeContainer: { 
     borderRadius: 32, 
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   routeHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   iataBox: { flex: 1 },
-  iataCode: { fontSize: 32, fontFamily: "playfairBold", letterSpacing: 1 },
+  iataCode: { fontSize: 26, fontFamily: "playfairBold", letterSpacing: 1 },
   cityLabel: { fontSize: 10, fontFamily: "interMedium", letterSpacing: 1.5, marginTop: 4 },
   planeLine: { flex: 1.5, alignItems: "center", justifyContent: "center" },
   dashLine: { position: "absolute", width: "100%", height: 1, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", borderStyle: "dashed", borderRadius: 1 },

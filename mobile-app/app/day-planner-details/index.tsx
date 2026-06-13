@@ -282,8 +282,8 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     fontFamily: "playfairBold",
-    fontSize: 24,
-    marginTop: 20,
+    fontSize: 22,
+    lineHeight: 28,
     marginBottom: 6,
   },
   loadingSubtitle: {

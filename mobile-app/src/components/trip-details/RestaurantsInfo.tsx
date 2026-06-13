@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: width * 0.03, marginBottom: 16 },
   overline: { fontFamily: "interMedium", fontSize: 10, color: Colors.MUTED_TEXT, letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
-  sectionTitle: { fontSize: 28, fontFamily: "playfairBold", color: Colors.TEXT },
+  sectionTitle: { fontSize: 22, fontFamily: "playfairBold", color: Colors.TEXT },
   goldDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.SECONDARY, marginLeft: 4, marginBottom: 6 },
 
   experienceList: { paddingHorizontal: width * 0.03 },

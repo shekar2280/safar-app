@@ -342,11 +342,11 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontFamily: "outfitBold",
-    fontSize: 16,
+    fontSize: 14,
   },
   menuSubtitle: {
     fontFamily: "outfit",
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   chevronBox: {
@@ -384,12 +384,12 @@ const styles = StyleSheet.create({
   },
   dangerTitleCenter: {
     fontFamily: "playfairBold",
-    fontSize: 26,
+    fontSize: 22,
     marginBottom: 10,
   },
   modalDescCenter: {
     fontFamily: "outfit",
-    fontSize: 15,
+    fontSize: 13,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 25,

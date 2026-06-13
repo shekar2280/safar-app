@@ -251,7 +251,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 28,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.PRIMARY,
     marginTop: -2,
   },

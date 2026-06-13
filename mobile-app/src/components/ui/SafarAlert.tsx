@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 24,
+    fontSize: 20,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },

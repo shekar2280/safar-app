@@ -205,7 +205,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontFamily: "playfairBold",
-    fontSize: 32,
+    fontSize: 26,
+    lineHeight: 32,
     color: Colors.TEXT,
   },
   closeBtn: {

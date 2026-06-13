@@ -102,7 +102,7 @@ export default function Mytrip() {
         : "GOOD EVENING";
 
   const header = useMemo(() => (
-    <View style={{ paddingTop: insets.top + 5 }}>
+    <View style={{ paddingTop: insets.top }}>
       <View style={styles.header}>
         {isSearching ? (
           <View style={[styles.searchBarWrapper, { backgroundColor: colors.SURFACE, borderColor: colors.BORDER }]}>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    minHeight: 80,
+    minHeight: 60,
     marginBottom: 10,
   },
   greetingWrapper: {
@@ -251,8 +251,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 36,
-    lineHeight: 44,
+    fontSize: 28,
   },
   goldDot: {
     width: 7,

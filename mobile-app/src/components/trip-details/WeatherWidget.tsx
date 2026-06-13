@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   temp: {
     fontFamily: "outfitMedium",
-    fontSize: 56,
+    fontSize: 40,
     color: "#FFF",
     lineHeight: 62,
   },

@@ -123,13 +123,15 @@ export default function HotelInfo({ hotelData = [], cityName, isLoading }: Hotel
         </View>
       )}
 
-      <View style={styles.footer}>
-        <Button
-          title="Explore More Stays"
-          onPress={openGeneralSearch}
-          icon="arrow-forward"
-        />
-      </View>
+      {hotelData.length > 0 && (
+        <View style={styles.footer}>
+          <Button
+            title="Explore More Stays"
+            onPress={openGeneralSearch}
+            icon="arrow-forward"
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -145,7 +147,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: 0 },
-  sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
+  sectionTitle: { fontSize: 22, fontFamily: "playfairBold" },
   goldDot: {
     width: 6, height: 6, borderRadius: 3,
     marginLeft: 4, marginBottom: 6,

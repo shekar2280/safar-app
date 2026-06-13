@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontFamily: "playfairBold",
-    fontSize: 32,
+    fontSize: 26,
     letterSpacing: 4,
     marginBottom: 4,
   },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   bulletBody: {
     fontFamily: "outfit",
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

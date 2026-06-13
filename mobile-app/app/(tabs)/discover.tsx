@@ -95,8 +95,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 36,
-    lineHeight: 48,
+    fontSize: 28,
   },
   goldDot: {
     width: 7,

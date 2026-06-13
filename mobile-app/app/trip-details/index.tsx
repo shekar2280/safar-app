@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 4,
   },
-  title: { fontSize: 32, fontFamily: "playfairBold", lineHeight: 40 },
+  title: { fontSize: 26, fontFamily: "playfairBold", lineHeight: 32 },
   goldDot: {
     width: 6,
     height: 6,

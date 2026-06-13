@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   titleRow: { flexDirection: "row", alignItems: "baseline", marginTop: -4 },
-  sectionTitle: { fontSize: 28, fontFamily: "playfairBold" },
+  sectionTitle: { fontSize: 22, fontFamily: "playfairBold" },
   goldDot: {
     width: 6,
     height: 6,
