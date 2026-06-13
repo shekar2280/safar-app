@@ -29,25 +29,37 @@ export default function ActiveTrips() {
   const { isDark } = useTheme();
 
   const sortedTrips = useMemo(() => {
-    return (userTrips || [])
-      .filter((t: UserTrip) => t.isActive || t.isFinished)
-      .sort((a, b) => {
+    const trips = (userTrips || []).filter((t: UserTrip) => t.isActive || t.isFinished);
+    
+    trips.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
 
-        if (a.isActive && !b.isActive) return -1;
-        if (!a.isActive && b.isActive) return 1;
+      const parseDate = (val: any, fallbackToNow = false) => {
+        if (!val) return fallbackToNow ? Date.now() : 0;
+        if (val.seconds) return val.seconds * 1000;
+        const time = new Date(val).getTime();
+        return isNaN(time) ? (fallbackToNow ? Date.now() : 0) : time;
+      };
 
-        const parseDate = (val: any) => {
-          if (!val) return 0;
-          if (val.seconds) return val.seconds * 1000;
-          return new Date(val).getTime();
-        };
+      if (a.isFinished && b.isFinished) {
+        return parseDate(b.completedAt) - parseDate(a.completedAt);
+      }
 
-        if (a.isFinished && b.isFinished) {
-          return parseDate(b.completedAt) - parseDate(a.completedAt);
+      return parseDate(b.activatedAt, b.isActive) - parseDate(a.activatedAt, a.isActive);
+    });
+
+    let foundActive = false;
+    return trips.map(trip => {
+      if (trip.isActive) {
+        if (!foundActive) {
+          foundActive = true;
+          return trip;
         }
-
-        return parseDate(b.activatedAt) - parseDate(a.activatedAt);
-      });
+        return { ...trip, isActive: false, isFinished: true };
+      }
+      return trip;
+    });
   }, [userTrips]);
 
   return (
@@ -58,10 +70,12 @@ export default function ActiveTrips() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
-          <Text style={[styles.subtitle, { color: colors.MUTED_TEXT }]}>MY JOURNEY HISTORY</Text>
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: colors.TEXT }]}>Active Trips</Text>
-            <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
+          <View style={styles.headerContent}>
+            <Text style={[styles.subtitle, { color: colors.MUTED_TEXT }]}>MY JOURNEY HISTORY</Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: colors.TEXT }]}>Active Trips</Text>
+              <View style={[styles.goldDot, { backgroundColor: colors.GOLD }]} />
+            </View>
           </View>
         </View>
 
@@ -110,8 +124,13 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   header: {
-    paddingHorizontal: width * 0.03,
-    marginBottom: 10,
+    paddingHorizontal: width * 0.01,
+    paddingBottom: 15,
+    minHeight: 80,
+    justifyContent: "flex-end",
+  },
+  headerContent: {
+    paddingHorizontal: 15,
   },
   subtitle: {
     fontFamily: "outfitMedium",
@@ -126,8 +145,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "playfairBold",
-    fontSize: 36,
-    lineHeight: 48,
+    fontSize: 28,
   },
   goldDot: {
     width: 7,

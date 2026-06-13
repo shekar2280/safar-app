@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActiveTripContextValue, ActiveTripData, AlertType, Spending } from "@/src/constants";
+import { ActiveTripContextValue, ActiveTripData, AlertType, Spending, UserTrip } from "@/src/constants";
 import { apiPatch } from "@/src/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
@@ -211,6 +211,10 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     try {
       setActiveTrip((prev) => prev ? { ...prev, totalBudget } : prev);
       await saveLocally(tripId, visited, skipped, totalBudget);
+      queryClient.setQueryData(tripQueryKeys.lists(), (old: UserTrip[] | undefined) => {
+        if (!old) return old;
+        return old.map(t => t.id === tripId ? { ...t, totalBudget } : t);
+      });
       apiPatch(`/api/v1/trips/${tripId}/budget`, { total_budget: totalBudget }).then(() => {
         queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       }).catch(() => {});
@@ -249,6 +253,10 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     });
 
     try {
+      queryClient.setQueryData(tripQueryKeys.lists(), (old: UserTrip[] | undefined) => {
+        if (!old) return old;
+        return old.map(t => t.id === tripId ? { ...t, archivedSpendings: updatedList } : t);
+      });
       apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList }).then(() => {
         queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       }).catch(() => {});
@@ -276,6 +284,10 @@ export const ActiveTripProvider = ({ children }: { children: ReactNode }) => {
     });
 
     try {
+      queryClient.setQueryData(tripQueryKeys.lists(), (old: UserTrip[] | undefined) => {
+        if (!old) return old;
+        return old.map(t => t.id === tripId ? { ...t, archivedSpendings: updatedList } : t);
+      });
       apiPatch(`/api/v1/trips/${tripId}/archive-spendings`, { spendings: updatedList }).then(() => {
         queryClient.invalidateQueries({ queryKey: tripQueryKeys.lists() });
       }).catch(() => {});

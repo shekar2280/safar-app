@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Colors, useThemeColors } from "@/src/constants/theme";
 import { useTheme } from "@/src/context/ThemeContext";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import SafarAlert from "@/src/components/ui/SafarAlert";
 import { useActiveTrip } from "@/src/context/ActiveTripContext";
@@ -23,6 +23,7 @@ import { ActiveTripCardProps } from "@/src/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { tripQueryKeys } from "@/src/hooks/queries/useTrips";
 import * as Sentry from "@sentry/react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const { setActiveTrip } = useActiveTrip();
@@ -36,6 +37,26 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const navigation = useNavigation();
+  const [currency, setCurrency] = useState("₹");
+
+  const loadCurrency = async () => {
+    if (trip?.id) {
+      const saved = await AsyncStorage.getItem(`currency_${trip.id}`);
+      if (saved) {
+        setCurrency(saved);
+      } else {
+        setCurrency("₹");
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadCurrency();
+    const unsubscribe = navigation.addListener("focus", loadCurrency);
+    return unsubscribe;
+  }, [navigation, trip?.id]);
 
   const randomFallback = useMemo(() => {
     return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
@@ -130,7 +151,9 @@ export default function ActiveTripCard({ trip }: ActiveTripCardProps) {
               <View style={styles.budgetRow}>
                 <MaterialCommunityIcons name="wallet-outline" size={16} color="rgba(255,255,255,0.6)" />
                 <Text style={styles.budgetText}>
-                  ₹{Number(trip.totalBudget || 0).toLocaleString("en-IN")}
+                  {trip.totalBudget && trip.totalBudget > 0
+                    ? `${currency}${Number(trip.totalBudget).toLocaleString()}`
+                    : "Not initialized yet"}
                 </Text>
               </View>
             </View>
